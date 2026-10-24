@@ -75,6 +75,25 @@ static void length_line_sets_the_clock_length(void)
     CHECK(tc_session_online(&s, 0));
 }
 
+static void null_length_clears_the_length_and_its_overtime(void)
+{
+    tc_session_t s;
+    tc_clock_t c;
+    tc_session_init(&s);
+    tc_clock_init(&c);
+    tc_line_t l = { 0 };
+    l.type = TC_LINE_LENGTH;
+    l.length_s = 60;
+    tc_session_apply(&s, &l, &c, 0);
+    tc_clock_tap(&c, 0);
+    CHECK(tc_clock_overtime(&c, 61000u, true));
+
+    l.length_s = 0; /* {"v":1,"L":null} */
+    tc_session_apply(&s, &l, &c, 61000u);
+    CHECK_EQ_INT(0, c.length_s);
+    CHECK(!tc_clock_overtime(&c, 62000u, true));
+}
+
 static void ended_line_returns_to_neutral_but_stays_online(void)
 {
     tc_session_t s;
@@ -141,6 +160,7 @@ int main(void)
     RUN(link_is_lost_after_three_seconds_without_a_line);
     RUN(online_check_survives_tick_wraparound);
     RUN(length_line_sets_the_clock_length);
+    RUN(null_length_clears_the_length_and_its_overtime);
     RUN(ended_line_returns_to_neutral_but_stays_online);
     RUN(status_goes_out_first_then_every_second);
     RUN(status_goes_out_at_once_on_start_pause_and_reset);

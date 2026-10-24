@@ -48,6 +48,14 @@ static void whitespace_field_order_extra_fields_and_cr_are_accepted(void)
     CHECK_EQ_INT(61, l.length_s);
 }
 
+static void null_length_means_unknown(void)
+{
+    tc_line_t l = { .length_s = 4242 };
+    CHECK(parse("{\"v\":1,\"L\":null}", &l));
+    CHECK_EQ_INT(TC_LINE_LENGTH, l.type);
+    CHECK_EQ_INT(0, l.length_s);
+}
+
 static void length_limit_counts_the_terminator(void)
 {
     tc_line_t l;
@@ -93,6 +101,8 @@ static void invalid_lines_are_dropped_and_leave_out_untouched(void)
         "{\"v\":1,\"L\":0}",
         "{\"v\":1,\"L\":-5}",
         "{\"v\":1,\"L\":\"2700\"}",
+        "{\"v\":1,\"L\":true}",
+        "{\"v\":1,\"L\":1.5}",
         "{\"v\":1,\"state\":\"paused\"}",
         "{\"v\":1,\"state\":\"ende\"}",
         "{\"v\":1,\"L\":5,\"L\":6}",
@@ -176,6 +186,7 @@ int main(void)
     RUN(state_line_with_negative_and_null_deviation);
     RUN(length_and_ended_lines);
     RUN(whitespace_field_order_extra_fields_and_cr_are_accepted);
+    RUN(null_length_means_unknown);
     RUN(length_limit_counts_the_terminator);
     RUN(invalid_lines_are_dropped_and_leave_out_untouched);
     RUN(null_arguments_are_rejected);

@@ -43,7 +43,11 @@ static void handle_line(const char *line, size_t len)
     bsp_display_unlock();
 
     if (parsed.type == TC_LINE_LENGTH && length != previous_length) {
-        ESP_LOGI(TAG, "talk length L=%lu s", (unsigned long)length);
+        if (length == 0) {
+            ESP_LOGI(TAG, "talk length cleared (unknown)");
+        } else {
+            ESP_LOGI(TAG, "talk length L=%lu s", (unsigned long)length);
+        }
     } else if (parsed.type == TC_LINE_ENDED) {
         ESP_LOGI(TAG, "slide show ended");
     }

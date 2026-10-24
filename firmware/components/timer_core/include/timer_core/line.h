@@ -19,7 +19,7 @@ extern "C" {
 
 typedef enum {
     TC_LINE_STATE,  /* {"v":1,"c":"#RRGGBB","d":<int>|null} */
-    TC_LINE_LENGTH, /* {"v":1,"L":<int > 0>} */
+    TC_LINE_LENGTH, /* {"v":1,"L":<int > 0>|null}, null clearing L */
     TC_LINE_ENDED,  /* {"v":1,"state":"ended"} */
 } tc_line_type_t;
 
@@ -28,7 +28,7 @@ typedef struct {
     uint32_t color;       /* TC_LINE_STATE: 0xRRGGBB */
     bool has_deviation;   /* TC_LINE_STATE: false when "d" is null */
     int32_t deviation_s;  /* TC_LINE_STATE: t - m in seconds */
-    uint32_t length_s;    /* TC_LINE_LENGTH */
+    uint32_t length_s;    /* TC_LINE_LENGTH: 0 when "L" is null (unknown) */
 } tc_line_t;
 
 /*

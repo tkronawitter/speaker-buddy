@@ -295,11 +295,15 @@ bool tc_line_parse(const char *line, size_t len, tc_line_t *out)
         }
         result.type = TC_LINE_STATE;
     } else if (len_field != NULL) {
-        if (len_field->kind != VAL_INT || len_field->num <= 0) {
+        /* null clears L ("unknown"); a number must be positive */
+        if (len_field->kind == VAL_NULL) {
+            result.length_s = 0;
+        } else if (len_field->kind == VAL_INT && len_field->num > 0) {
+            result.length_s = (uint32_t)len_field->num;
+        } else {
             return false;
         }
         result.type = TC_LINE_LENGTH;
-        result.length_s = (uint32_t)len_field->num;
     } else {
         if (state->kind != VAL_STRING || state->str_len != 5 || memcmp(state->str, "ended", 5) != 0) {
             return false;

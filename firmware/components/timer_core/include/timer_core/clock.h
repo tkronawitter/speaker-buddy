@@ -38,7 +38,10 @@ bool tc_clock_running(const tc_clock_t *clock);
 /* Elapsed whole seconds. */
 uint32_t tc_clock_seconds(const tc_clock_t *clock, uint32_t now_ms);
 
-/* Sets L in seconds from the laptop line {"v":1,"L":...}; 0 clears it. Survives a reset. */
+/*
+ * Sets L in seconds from the laptop line {"v":1,"L":...}. 0 means unknown ({"v":1,"L":null}) and
+ * turns overtime by L off. A long-press reset of the clock keeps L.
+ */
 void tc_clock_set_length(tc_clock_t *clock, uint32_t length_s);
 
 /*
