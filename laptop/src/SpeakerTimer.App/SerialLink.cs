@@ -16,6 +16,10 @@ public sealed class SerialLink : IDisposable
     private const int IoTimeoutMs = 500;
     private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(1);
 
+    // While no program reads the port the timer keeps up to 1 KB of old status lines queued; they
+    // arrive within milliseconds of the open and are dropped, so the first t the laptop sees is live.
+    private static readonly TimeSpan BacklogDrainTime = TimeSpan.FromMilliseconds(300);
+
     private readonly Func<string?> _findPort;
     private readonly CancellationTokenSource _stop = new();
     private readonly object _portLock = new();
@@ -138,6 +142,8 @@ public sealed class SerialLink : IDisposable
         try
         {
             port.Open();
+            Thread.Sleep(BacklogDrainTime);
+            port.DiscardInBuffer();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {
