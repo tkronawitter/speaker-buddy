@@ -35,7 +35,9 @@ ID and does not restate them.
 - Standing go from the owner for flashing over USB: `bsp-test` images since 2026-10-24 19:03,
   `firmware/` project images since 19:06. Conditions: `tools/check-image` exits 0 before every
   flash; `erase_flash` and eFuse writes always need a separate go; the A-01 freeze from the freeze date
-  overrides the standing go. The factory image is archive only and is never flashed back
+  overrides the standing go. The factory image is archive only and is never flashed back.
+  After every flash the board is restarted (`idf.py flash` resets it via RTS) and the report says
+  so, with one status line read back as proof (the owner, 2026-10-24 22:15)
 - Laptop program: C# .NET 8; logic in `net8.0`, adapter in `net8.0-windows`, late-bound
   `dynamic` COM, no `COMReference`, no trimming. Stage rules A-03 apply
 - Public repo, MIT, English for code, README and commit messages (O-01, O-02)
@@ -227,10 +229,12 @@ implement.
     so they never reach the screen. Fixed in 618991f: `lv_obj_set_clickable(s_time, false)`
     clears `LV_OBJ_FLAG_CLICKABLE` on the container. Build without warnings, `check-image` 0 and
     flash verified by the dev session; step 28 retests long press on the digits
-28. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; the owner observes the
+28. [x] Flash under the standing go, `tools/check-image.ps1` exits 0 first; the owner observes the
     board and tests: tap starts, long press pauses, long
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
-    is covered by the host test, not waited for
+    is covered by the host test, not waited for.
+    Result 2026-10-24 22:10 (per the owner, after 618991f): PASS, tap and long press on the digits
+    work. Still open as a display check: the scale-down of the time from 100 minutes (step 26)
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -244,6 +248,9 @@ implement.
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
 32. [x] Laptop test mode `speaker-timer.exe --demo`: cycles neutral, green, red, purple and a
     deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds.
+    Deviation in the code (found by the coordinator 2026-10-24 22:30): `DemoSequence.LengthSeconds`
+    is `45 * 60` (`laptop/src/SpeakerTimer.Core/DemoSequence.cs:13`), so overtime orange does not
+    show in the demo. Open question below: change the code or drop the short `L` from this step
     Status for 30-32 (2026-10-24, pushed in aa7d2c6 firmware link plus `timer_core/session`, and
     d7cdab2 laptop `SerialLink`, `TimerPort`, `LineFramer`, `DemoSequence`, App with `--demo`): `dotnet test` 150/150, host tests 5/5, `check-image` clean (6997 symbols). Verified by
     the dev session on the development PC without the owner: opening `COM4` with DTR/RTS low does not reset the
@@ -256,7 +263,62 @@ implement.
     and deviation change as sent; opening the port does not reset the board; unplugging the cable
     shows the disconnected symbol and the clock keeps running; replugging reconnects within a few
     seconds. Open for the owner: the visual check and the unplug/replug test (the serial side is
-    already verified, see step 32)
+    already verified, see step 32).
+    Result 2026-10-24 22:14 (per the owner): FAIL. After boot `00:00` shows on black; about 1 s
+    later the whole screen goes black and stays black. The firmware keeps running: status lines
+    `t=65..73` arrive, colours from `--demo` are received, link and touch work. Cause unknown,
+    the dev session is investigating on the development PC. Unplug/replug of the serial link passes: the
+    coordinator's log shows "disconnected", then "connected on COM4" and status lines again
+    within seconds. The disconnected symbol could not be seen because the screen was black;
+    that part is retested after the display fix.
+    Diagnosis 22:28-22:29: a diagnostic image driven by the dev session's `phases.py` (nothing,
+    then `L` plus neutral, green, green with `+45`, clock stopped) showed every phase as expected
+    per the owner, no black screen.
+    Cause found in part (22:44): reproduced 3 of 3 times by replugging while `--demo` runs, 0
+    times without the demo. A diagnostic image with an RTC boot counter showed `boots=2`,
+    reason 11 (`ESP_RST_USB`) in the black state: after power-on, the control-line toggling
+    while the exe opens the port resets the chip a second time over USB Serial/JTAG, despite
+    `DtrEnable = false` and `RtsEnable = false` (step 31). After that extra reset the panel stays
+    black while the app runs and renders normally. Not confirmed: that the reset lands during
+    panel init. The board has no panel reset line (`BSP_LCD_RST` is not connected). The extra
+    reset also sets the talk clock back to 0.
+    Side finding, no fix yet: on connect the exe first receives stale status lines the board
+    queued while the port was closed (`t=110..118` before the live `t=182`).
+    State at the end of 2026-10-24 (step 33 still FAIL, nothing committed after ff4612d; per
+    the owner plus the dev logs):
+    - Extra reset: a replug while the laptop program runs resets the chip again about 0.7 s
+      after power-on (`boots=2`, reason 11, `prev_stage=1`, during panel init); a replug with no
+      program running does not (`boots=1`, reason 1). First laptop fix, DTR on at open, did not
+      help: .NET `Open` clears DTR first. Second fix `SafeLineState` (Win32 sets the lines off
+      in a safe order before `Open`) is built, not yet proven on a replug
+    - Dark panel: after any chip reset the panel often stays dark for about 10 s, although the
+      app runs about 0.6 s after the reset. LVGL sends two full frames at boot and then nothing
+      while the screen is static, so the panel shows nothing until the next full redraw; a
+      stopped clock with no laptop traffic can stay black indefinitely (likely the 22:27 and
+      22:59 cases). Not proven: why the first frames do not show
+    - Counter checks: 14 port opens on a running board without a reset gave 0 black screens;
+      10 forced resets gave 0 permanent black screens, each followed by about 10 s dark
+    - Reading the panel registers back over QSPI returns 0 on this board and is not usable; its
+      diagnostic image caused one black screen itself (artefact, 23:04)
+    - The board runs a dev diagnostic image, not a committed build
+    Cause found 2026-10-24 23:24-23:29 (per the owner plus the dev logs), replacing the redraw
+    explanation above: one RTS reset makes the panel permanently black, on demand (23:24, 23:29).
+    Full redraws and a sleep-out, display-on and brightness kick did not bring it back (23:24).
+    The diagnostic trigger `L:2` did (23:29, `00:00` back): TCA9554 expander pins 0, 1, 2 and 6
+    low for 20 ms, then high (the sequence from Waveshare's own demos), then a full panel init
+    and redraw. BSP 2.0.3 never touches the expander (`BSP_LCD_RST` not connected), so after a
+    chip reset the panel gets no hardware reset. Not known yet: which of those pins is the panel
+    reset.
+    Fix direction: pulse the expander pins before panel init at every boot (firmware). The
+    redraw-after-boot candidate is refuted and dropped. `SafeLineState` on the laptop stays a
+    separate fix for the extra reset after a replug.
+    Panel fix PASS, pushed in a507838 (`main/main.c`): `reset_panel()` runs before
+    `bsp_display_start` and pulls TCA9554 pins 0, 1, 2 and 6 low for 20 ms, then high, then
+    waits 150 ms. All four pins are kept as in Waveshare's demos; which one is the panel reset
+    will not be narrowed down. Proof: 10 RTS resets without laptop traffic (23:32-23:34), 0
+    black screens per the owner 23:35; before the fix 1 of 1 black.
+    Still open for step 33: `SafeLineState` (laptop, not committed, replug test pending) and the
+    retest of colours and the disconnected symbol with `--demo`
 34. [x] Commit and push
 
 ### Task 6: PowerPoint adapter and tray program (by Sun 08.11.)
@@ -378,6 +440,15 @@ Open, dev interpretations from Task 4 (2026-10-24), implemented as stated, waiti
 3. Long press threshold 1.0 s: OK?
 4. Disconnected symbol: USB icon with an X, top right: OK?
 5. Deviation line in Montserrat 28 (the time uses the 150 px digit font from step 25): OK?
+   Answered by the owner 2026-10-24 22:30: no, `+0:45` in Montserrat 28 is far too small; the
+   deviation line must get much larger (code change in `main/ui.c`, step 26)
+6. `--demo` sends `L` = 45:00, so overtime orange never shows in the demo (step 32 planned a
+   short `L`). Shorten `L` in `DemoSequence` so the board test sees overtime, or check overtime
+   another way and drop it from step 32?
+7. Black panel after an extra USB reset (step 33): besides the laptop fix that stops the extra
+   reset, should the firmware also recover the panel (no reset line on this board)?
+   Superseded 2026-10-24 23:29: the panel needs a hardware reset through the TCA9554 expander
+   at every boot; the firmware fix goes that way, no separate decision needed
 
 Answered by the owner on 2026-10-24 at 19:21: install `lv_font_conv` via `npx` (step 25) and a host
 C compiler (step 23) on the development PC; the dev session installs them.
