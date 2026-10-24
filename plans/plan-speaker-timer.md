@@ -31,8 +31,10 @@ ID and does not restate them.
   `waveshare/esp32_s3_touch_amoled_1_8` 2.0.3, LVGL 9, all pinned in `dependencies.lock`;
   `CONFIG_BT_ENABLED=n`, no Wi-Fi init, no OTA, no TinyUSB, own partition table without OTA;
   secure boot and flash encryption stay off (A-04)
-- Every flash of the board needs its own go from the owner. The factory image is archive only and is
-  never flashed back
+- Every flash of the board needs its own go from the owner, with one exception: since 2026-10-24
+  19:03 there is a standing go for flashing `bsp-test` images over USB. `erase_flash` and eFuse
+  writes always need a separate go, and the A-01 freeze from the freeze date overrides the standing go.
+  The factory image is archive only and is never flashed back
 - Laptop program: C# .NET 8; logic in `net8.0`, adapter in `net8.0-windows`, late-bound
   `dynamic` COM, no `COMReference`, no trimming. Stage rules A-03 apply
 - Public repo, MIT, English for code, README and commit messages (O-01, O-02)
@@ -136,9 +138,12 @@ implement.
     archive SHA-256 matched, `erase_flash` OK (16.1 s), bsp-test flashed and hashes verified.
     Revision V2 verified by the serial log (`Touch CST816S 0x15 found`, `CST816S: IC id: 183`,
     probe `-> board V2`); PSRAM 8 MB octal OK; co5300 2.2.0 panel created. FAIL: display stays
-    white, the app stops after the touch-probe line (no `Label shown`, no panic). Suspected,
-    unverified: BSP 2.0.3 registers the QSPI CO5300 panel through `lvgl_port_add_disp_rgb`.
-    Next: diagnostic image (step logging, lock timeout, heartbeat), flash waits for a go.
+    white, the app stops after the touch-probe line (no `Label shown`, no panic). First
+    suspicion (BSP 2.0.3 registers the QSPI panel through `lvgl_port_add_disp_rgb`) is not the
+    cause per the dev session's diagnosis: `app_main` used the panel IO concurrently with the
+    LVGL flush, the brightness call ran outside the LVGL lock. Third image sets brightness under
+    the lock; result pending after a power cycle. Lesson for Task 4: every panel IO call goes
+    through the LVGL lock.
     Reset lessons for step 31 and the flash steps: after ROM download mode an RTS reset boots the
     app only after one power cycle (otherwise `boot:0x23`); the Windows `usbser` driver needs a
     dummy DTR write
