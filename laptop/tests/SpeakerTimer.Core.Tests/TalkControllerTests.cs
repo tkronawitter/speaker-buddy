@@ -60,7 +60,7 @@ public class TalkControllerTests
 
         Assert.Empty(controller.Tick(Show(1), Timer(5), periodic: false));
         Assert.Equal(new ProtocolLine[] { new StateLine("#000000", null) }, controller.Tick(Show(2), Timer(6), periodic: true));
-        Assert.Equal(new ProtocolLine[] { new StateLine("#00A000", 40) }, controller.Tick(Show(15), Timer(640), periodic: false));
+        Assert.Equal(new ProtocolLine[] { new StateLine("#00A000", null) }, controller.Tick(Show(15), Timer(640), periodic: false));
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class TalkControllerTests
         var controller = new TalkController(null, Colors);
         controller.Tick(Show(15), Timer(640), periodic: true);
 
-        Assert.Equal(new ProtocolLine[] { new LengthLine(2700), new StateLine("#00A000", 40) }, controller.OnConnected());
+        Assert.Equal(new ProtocolLine[] { new LengthLine(2700), new StateLine("#00A000", null) }, controller.OnConnected());
     }
 
     [Fact]

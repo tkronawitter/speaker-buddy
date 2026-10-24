@@ -6,10 +6,10 @@ public class TalkLengthTests
 {
     [Theory]
     [InlineData(45 * 60, 60)]
-    [InlineData(30 * 60, 40)]
-    [InlineData(15 * 60, 30)]
+    [InlineData(30 * 60, 45)]
+    [InlineData(15 * 60, 45)]
     [InlineData(90 * 60, 120)]
-    public void Tolerance_is_a_45th_of_the_length_with_a_30_second_floor(int lengthSeconds, int expected)
+    public void Tolerance_is_a_45th_of_the_length_with_a_45_second_floor(int lengthSeconds, int expected)
     {
         Assert.Equal(expected, TalkLength.Tolerance(lengthSeconds));
     }
@@ -17,7 +17,7 @@ public class TalkLengthTests
     [Fact]
     public void Tolerance_without_a_length_is_the_floor()
     {
-        Assert.Equal(30, TalkLength.Tolerance(null));
+        Assert.Equal(45, TalkLength.Tolerance(null));
     }
 
     [Fact]

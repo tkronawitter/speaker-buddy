@@ -37,8 +37,10 @@ public enum EvaluationRule
 /// <summary>Result of one evaluation step.</summary>
 /// <param name="Color">Colour to show.</param>
 /// <param name="Deviation">
-/// <c>t - m</c> in seconds at the arrival on the last reached mark: positive is behind, negative
-/// ahead; null before the first mark.
+/// What the deviation line shows, in seconds, matching the colour at every tick: null for green and
+/// neutral; for red how far ahead of the last mark the talk still is (<c>t - m</c>, negative, live);
+/// for purple how far behind it is: the lateness at the arrival on the last mark, or, while the
+/// next mark is overdue (B-06), <c>t</c> minus that next mark (positive, live).
 /// </param>
 /// <param name="Rule">The rule that decided the colour.</param>
 public sealed record Evaluation(EvaluationColor Color, int? Deviation, EvaluationRule Rule);
@@ -86,11 +88,9 @@ public sealed class Evaluator
             arrived = true;
         }
 
-        int? deviation = _lastMark is null ? null : _lastDeviation;
-
         if (_reachedCount < _marks.Count && t > _marks[_reachedCount].Seconds + _tolerance)
         {
-            return new Evaluation(EvaluationColor.Purple, deviation, EvaluationRule.LateForNextMark);
+            return new Evaluation(EvaluationColor.Purple, t - _marks[_reachedCount].Seconds, EvaluationRule.LateForNextMark);
         }
 
         if (_lastMark is null)
@@ -98,24 +98,26 @@ public sealed class Evaluator
             return new Evaluation(EvaluationColor.Neutral, null, EvaluationRule.BeforeFirstMark);
         }
 
-        if (arrived)
-        {
-            return new Evaluation(_lastColor, deviation, RuleForArrival(_lastColor));
-        }
-
         // B-04: red only while still ahead; staying on the slide turns it green.
-        if (_lastColor == EvaluationColor.Red)
+        if (!arrived && _lastColor == EvaluationColor.Red && t >= _lastMark.Seconds - _tolerance)
         {
-            if (t < _lastMark.Seconds - _tolerance)
-            {
-                return new Evaluation(EvaluationColor.Red, deviation, EvaluationRule.Ahead);
-            }
-
             _lastColor = EvaluationColor.Green;
         }
 
-        return new Evaluation(_lastColor, deviation, EvaluationRule.Hold);
+        var rule = arrived ? RuleForArrival(_lastColor)
+            : _lastColor == EvaluationColor.Red ? EvaluationRule.Ahead
+            : EvaluationRule.Hold;
+        return new Evaluation(_lastColor, DeviationFor(_lastColor, t), rule);
     }
+
+    // The number never contradicts the colour: none for green, the live lead for red, the lateness
+    // at the arrival for purple.
+    private int? DeviationFor(EvaluationColor color, int t) => color switch
+    {
+        EvaluationColor.Red => t - _lastMark!.Seconds,
+        EvaluationColor.Purple => _lastDeviation,
+        _ => null,
+    };
 
     // Behind means "talk faster" (purple), ahead means "talk slower" (red).
     private EvaluationColor ClassifyArrival(int deviation) =>

@@ -9,7 +9,7 @@ public static class TalkLength
     public const int MinimumHighestMarkSeconds = 5 * 60;
 
     /// <summary>Lower bound of the tolerance, also used when <c>L</c> is unknown.</summary>
-    public const int MinimumToleranceSeconds = 30;
+    public const int MinimumToleranceSeconds = 45;
 
     /// <summary>
     /// <c>L</c> from the start argument if given, else the highest mark if it is at least 5:00,
@@ -62,7 +62,7 @@ public static class TalkLength
         return false;
     }
 
-    /// <summary><c>tol = max(L / 45, 0:30)</c> in whole seconds; 0:30 when <c>L</c> is unknown.</summary>
+    /// <summary><c>tol = max(L / 45, 0:45)</c> in whole seconds; 0:45 when <c>L</c> is unknown.</summary>
     public static int Tolerance(int? lengthSeconds) =>
         lengthSeconds is int length ? Math.Max(length / 45, MinimumToleranceSeconds) : MinimumToleranceSeconds;
 }

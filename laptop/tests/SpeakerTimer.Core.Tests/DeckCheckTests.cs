@@ -20,7 +20,7 @@ public class DeckCheckTests
         Assert.Equal(new[] { new Mark(3, 420) }, result.HiddenMarks);
         Assert.Equal(new[] { new MarkWarning(6, 660, 720) }, result.Decreasing);
         Assert.Equal(1770, result.LengthSeconds);
-        Assert.Equal(39, result.ToleranceSeconds);
+        Assert.Equal(45, result.ToleranceSeconds);
         Assert.Equal(3, result.ProblemCount);
     }
 
@@ -36,7 +36,7 @@ public class DeckCheckTests
               slide   2  ## 5:00
               slide   5  ## 12:00
               slide   7  ## 29:30
-            Talk length 29:30, tolerance 0:39
+            Talk length 29:30, tolerance 0:45
             Near misses (not used as marks):
               slide   4  "## 10:75"
             Marks on hidden slides (ignored):

@@ -23,7 +23,7 @@ public class EvaluatorTests
     {
         var result = WorkedExample().Update(640, 15);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 40, EvaluationRule.OnPlan), result);
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.OnPlan), result);
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class EvaluatorTests
         var evaluator = WorkedExample();
 
         Assert.Equal(new Evaluation(EvaluationColor.Red, -90, EvaluationRule.Ahead), evaluator.Update(510, 15));
-        Assert.Equal(new Evaluation(EvaluationColor.Red, -90, EvaluationRule.Ahead), evaluator.Update(539, 15));
-        Assert.Equal(new Evaluation(EvaluationColor.Green, -90, EvaluationRule.Hold), evaluator.Update(540, 15));
+        Assert.Equal(new Evaluation(EvaluationColor.Red, -61, EvaluationRule.Ahead), evaluator.Update(539, 15));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(540, 15));
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class EvaluatorTests
         var evaluator = WorkedExample();
 
         Assert.Equal(new Evaluation(EvaluationColor.Neutral, null, EvaluationRule.BeforeFirstMark), evaluator.Update(660, 13));
-        Assert.Equal(new Evaluation(EvaluationColor.Purple, null, EvaluationRule.LateForNextMark), evaluator.Update(661, 13));
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 61, EvaluationRule.LateForNextMark), evaluator.Update(661, 13));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class EvaluatorTests
 
         Assert.Equal(EvaluationColor.Green, result.Color);
         Assert.Equal(EvaluationRule.OnPlan, result.Rule);
-        Assert.Equal(t - 300, result.Deviation);
+        Assert.Null(result.Deviation);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class EvaluatorTests
         evaluator.Update(300, 5);
 
         Assert.Equal(EvaluationRule.Hold, evaluator.Update(660, 8).Rule);
-        Assert.Equal(new Evaluation(EvaluationColor.Purple, 0, EvaluationRule.LateForNextMark), evaluator.Update(661, 8));
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 61, EvaluationRule.LateForNextMark), evaluator.Update(661, 8));
     }
 
     [Fact]
@@ -120,8 +120,8 @@ public class EvaluatorTests
         ]), Tolerance);
         evaluator.Update(300, 1);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 0, EvaluationRule.Hold), evaluator.Update(390, 1));
-        Assert.Equal(new Evaluation(EvaluationColor.Purple, 0, EvaluationRule.LateForNextMark), evaluator.Update(391, 1));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(390, 1));
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 61, EvaluationRule.LateForNextMark), evaluator.Update(391, 1));
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class EvaluatorTests
 
         var result = evaluator.Update(661, 5);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Purple, 361, EvaluationRule.LateForNextMark), result);
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 61, EvaluationRule.LateForNextMark), result);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class EvaluatorTests
         var evaluator = ThreeMarks();
         evaluator.Update(300, 5);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 0, EvaluationRule.Hold), evaluator.Update(380, 5));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(380, 5));
     }
 
     [Fact]
@@ -149,9 +149,9 @@ public class EvaluatorTests
         var evaluator = ThreeMarks();
         evaluator.Update(600, 10);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 0, EvaluationRule.Hold), evaluator.Update(610, 4));
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 0, EvaluationRule.Hold), evaluator.Update(620, 5));
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 0, EvaluationRule.Hold), evaluator.Update(630, 10));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(610, 4));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(620, 5));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(630, 10));
     }
 
     [Fact]
@@ -161,8 +161,8 @@ public class EvaluatorTests
 
         var result = evaluator.Update(640, 12);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 40, EvaluationRule.OnPlan), result);
-        Assert.Equal(new Evaluation(EvaluationColor.Purple, 40, EvaluationRule.LateForNextMark), evaluator.Update(961, 12));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.OnPlan), result);
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 61, EvaluationRule.LateForNextMark), evaluator.Update(961, 12));
     }
 
     [Fact]
@@ -171,7 +171,33 @@ public class EvaluatorTests
         var evaluator = ThreeMarks();
         evaluator.Update(900, 15);
 
-        Assert.Equal(new Evaluation(EvaluationColor.Green, 0, EvaluationRule.Hold), evaluator.Update(5000, 20));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(5000, 20));
+    }
+
+    [Fact]
+    public void Deviation_never_contradicts_the_colour()
+    {
+        // Desk test 2026-10-24: red on arrival at -38, then green, then purple for the overdue next
+        // mark showed the frozen -38 ("too fast") next to purple ("talk faster")
+        var evaluator = new Evaluator(MarkSet.Build(
+        [
+            new SlideNotes(3, false, "## 2:00"),
+            new SlideNotes(4, false, "## 3:00"),
+        ]), 30);
+
+        Assert.Equal(new Evaluation(EvaluationColor.Red, -38, EvaluationRule.Ahead), evaluator.Update(82, 3));
+        Assert.Equal(new Evaluation(EvaluationColor.Green, null, EvaluationRule.Hold), evaluator.Update(90, 3));
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 31, EvaluationRule.LateForNextMark), evaluator.Update(211, 3));
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 50, EvaluationRule.LateForNextMark), evaluator.Update(230, 3));
+    }
+
+    [Fact]
+    public void Purple_after_a_late_arrival_keeps_the_lateness()
+    {
+        var evaluator = ThreeMarks();
+        evaluator.Update(380, 5);
+
+        Assert.Equal(new Evaluation(EvaluationColor.Purple, 80, EvaluationRule.Hold), evaluator.Update(600, 6));
     }
 
     [Fact]
