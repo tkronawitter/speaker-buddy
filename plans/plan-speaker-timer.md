@@ -285,8 +285,10 @@ implement.
     black while the app runs and renders normally. Not confirmed: that the reset lands during
     panel init. The board has no panel reset line (`BSP_LCD_RST` is not connected). The extra
     reset also sets the talk clock back to 0.
-    Side finding, no fix yet: on connect the exe first receives stale status lines the board
-    queued while the port was closed (`t=110..118` before the live `t=182`).
+    Side finding: on connect the exe first receives stale status lines the board queued while
+    the port was closed (`t=110..118` before the live `t=182`). Fixed in 0f5d21f "laptop: drop
+    the timer's backlog on connect"; board test PASS 2026-10-25 00:08 (first `t` is live, no
+    jump).
     State at the end of 2026-10-24 (step 33 still FAIL, nothing committed after ff4612d; per
     the owner plus the dev logs):
     - Extra reset: a replug while the laptop program runs resets the chip again about 0.7 s
@@ -362,6 +364,8 @@ implement.
     NOT verified: the live COM path (show detection, `FullName` lock, slide index, show end, two
     decks at once). On the development PC a deck opened via automation has 0 windows and `SlideShowSettings` is
     null, so no slide show could be started by script; root cause unknown after 2 attempts.
+    Superseded 2026-10-25: in step 39 run 1 the coordinator started the show over COM and
+    the live path worked (see step 39).
     Step 39, with the owner starting the show by hand, is the first real run. The Ubuntu CI build of
     the WinForms App builds on Ubuntu (CI run 40126609656 green, jobs `laptop` and
     `firmware-host`)
@@ -372,7 +376,21 @@ implement.
     lock) and the end of the show (`state: ended`).
     Test deck (2026-10-25): `<private backup> Dateien\Elektronik\ESP32\speaker-timer-desk-test.pptx`,
     5 slides, marks 1:00, 2:00, 3:00 and 4:30; `--check` with `--length 5` reports 0 problems,
-    `tol` 0:30
+    `tol` 0:30.
+    Run 1, 2026-10-25 00:16:57-00:22:44, unattended at the owner' request (00:13): a test-only
+    diagnostic image with clock autostart (not committed; the clean image was flashed back
+    afterwards), tray app 91cfc39 with `--length 5`, show started over COM and paged by a
+    coordinator script. App log: show detected, 4 marks, highest 270 s; slide 2 at `t=77` green
+    `d=17`; slide 3 at `t=82` red `d=-38`, green at `t=90` once `t` reached `m - tol`; `t=211`
+    purple (late for the next mark); slide 4 at `t=261` purple `d=81`; slide 5 at `t=286` green
+    `d=16`; show end detected. PASS for show detection, marks, evaluation and show end, the first
+    live run of the COM path.
+    Fixed before the run: 91cfc39 "laptop: survive a busy PowerPoint" (PowerPoint rejected a
+    call at show start, `RPC_E_CALL_REJECTED` surfaced as `MissingMemberException` and crashed
+    the app).
+    Still open, so step 39 stays unticked for a short watched rerun: two decks in slide show at
+    once (`FullName` lock), the board's overtime and end display during a real show, and no
+    PowerPoint dialog from the program (nobody was watching)
 40. [x] Commit and push
 
 ### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
