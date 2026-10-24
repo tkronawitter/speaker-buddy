@@ -482,7 +482,13 @@ implement.
 
 ### Stretch, before the talk date only if every core step above is on time
 
-50. [ ] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03)
+50. [ ] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03).
+    Pushed 2026-10-25 ("Upload laptop coverage to Codecov"): `ci.yml` job `laptop` with
+    `codecov-action@v7`, flag `laptop`, `fail_ci_if_error: false` until the secret exists;
+    `codecov.yml` with informational checks and carryforward for the `laptop` flag. README badge
+    added. Local coverage (dev-Repository-2): lines 93.3 % (979/1049), branches 82.6 %.
+    Open: the owner sets the repository secret `CODECOV_TOKEN`; the step is done when the first
+    upload shows up on codecov.io
 51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
     `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04).
     Pushed in 7072ada "ci: build the firmware in the ESP-IDF container"; CI run 40141818016

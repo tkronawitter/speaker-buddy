@@ -1,6 +1,7 @@
 # Speaker Buddy
 
 [![ci](https://github.com/tkronawitter/speaker-buddy/actions/workflows/ci.yml/badge.svg)](https://github.com/tkronawitter/speaker-buddy/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tkronawitter/speaker-buddy/graph/badge.svg)](https://codecov.io/gh/tkronawitter/speaker-buddy)
 
 A small display on the lectern that shows the elapsed talk time and colours its background by how
 the talk is going against time marks in the PowerPoint speaker notes: green on plan, purple when
