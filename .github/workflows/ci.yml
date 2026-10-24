@@ -23,9 +23,9 @@ jobs:
   laptop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-laptop
           path: laptop/TestResults/**/coverage.cobertura.xml
@@ -55,7 +55,7 @@ jobs:
   firmware-host:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: cmake -S firmware/test/host -B build-host
@@ -75,7 +75,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build
         working-directory: firmware
@@ -92,7 +92,7 @@ jobs:
           sh tools/check-image.sh firmware/build/speaker_buddy.elf
 
       - name: Upload firmware
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firmware
           # The merged image flashes at 0x0; the parts and flash_args flash as idf.py prints it
