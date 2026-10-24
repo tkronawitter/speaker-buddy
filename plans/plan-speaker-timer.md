@@ -31,10 +31,10 @@ ID and does not restate them.
   `waveshare/esp32_s3_touch_amoled_1_8` 2.0.3, LVGL 9, all pinned in `dependencies.lock`;
   `CONFIG_BT_ENABLED=n`, no Wi-Fi init, no OTA, no TinyUSB, own partition table without OTA;
   secure boot and flash encryption stay off (A-04)
-- Every flash of the board needs its own go from the owner, with one exception: since 2026-10-24
-  19:03 there is a standing go for flashing `bsp-test` images over USB. `erase_flash` and eFuse
-  writes always need a separate go, and the A-01 freeze from the freeze date overrides the standing go.
-  The factory image is archive only and is never flashed back
+- Standing go from the owner for flashing over USB: `bsp-test` images since 2026-10-24 19:03,
+  `firmware/` project images since 19:06. Conditions: `tools/check-image` exits 0 before every
+  flash; `erase_flash` and eFuse writes always need a separate go; the A-01 freeze from the freeze date
+  overrides the standing go. The factory image is archive only and is never flashed back
 - Laptop program: C# .NET 8; logic in `net8.0`, adapter in `net8.0-windows`, late-bound
   `dynamic` COM, no `COMReference`, no trimming. Stage rules A-03 apply
 - Public repo, MIT, English for code, README and commit messages (O-01, O-02)
@@ -123,7 +123,8 @@ implement.
     `esp_ota_`, `tinyusb` or `tud_`. Expected: exit 0 on the current build. A-04 check: runs
     locally before every flash (steps 20, 28, 33 and any fix flashed during Task 7) until the CI firmware job (step 51) exists,
     then in CI as well (the owner, 2026-10-24)
-20. [ ] **(the owner)** Go for the first flash of the `firmware/` project. Run `pwsh
+20. [ ] First flash of the `firmware/` project under the standing go; the owner observes the board.
+    Run `pwsh
     tools/check-image.ps1 firmware/build/speaker_timer.elf` (must exit 0), then `idf.py -p COM4
     flash monitor` with a minimal screen (solid colour plus "hello" text, touch coordinates
     logged). Expected: display shows the screen, touch logs coordinates, the BSP log names the
@@ -172,7 +173,8 @@ implement.
     background, "disconnected" symbol. Expected: builds
 27. [ ] Implement `main/input.c`: short tap starts; long press pauses or resets (D-03), so a short
     tap never stops a running clock. Expected: builds
-28. [ ] **(the owner)** Go for flash; `tools/check-image.ps1` exits 0 first; then test on the board: tap starts, long press pauses, long
+28. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; the owner observes the
+    board and tests: tap starts, long press pauses, long
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
     is covered by the host test, not waited for
 29. [ ] Commit and push. Expected: CI `firmware-host` green
@@ -188,8 +190,8 @@ implement.
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
 32. [ ] Laptop test mode `speaker-timer.exe --demo`: cycles neutral, green, red, purple and a
     deviation every 3 s, sends `L` once. Expected: builds
-33. [ ] **(the owner)** Go for flash; `tools/check-image.ps1` exits 0 first; then run `--demo`
-    against the board on the development PC. Expected: colours
+33. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; then run `--demo`
+    against the board on the development PC while the owner observes the board. Expected: colours
     and deviation change as sent; opening the port does not reset the board; unplugging the cable
     shows the disconnected symbol and the clock keeps running; replugging reconnects within a few
     seconds
