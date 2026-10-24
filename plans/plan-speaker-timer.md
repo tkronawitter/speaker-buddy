@@ -121,17 +121,18 @@ implement.
     `esp_ota_`, `tinyusb` or `tud_`. Expected: exit 0 on the current build. A-04 check: runs
     locally before every flash (steps 20, 28, 33 and any fix flashed during Task 7) until the CI firmware job (step 51) exists,
     then in CI as well (the owner, 2026-10-24)
-20. [ ] **(the owner)** First flash, go given 2026-10-24 18:45, in this order: (a) BOOT-mode test:
-    hold BOOT while plugging in, the ROM bootloader answers on the port; this is the recovery
-    path, so it comes first; (b) `esptool erase_flash` of the whole chip, which removes xiaozhi
-    and the factory remnants (the archive from step 16 is the only copy left); (c) flash the
-    local BSP test project `%USERPROFILE%\esp\bsp-test` (not the repo project; built
-    2026-10-24 with IDF v5.5.5, toolchain esp-14.2.0_20260121, `bsp_test.bin` 706 KB, SHA-256
-    `6cccc1547e26b78e85ba0ad6b5154f6d164f947307d6c484784649e05d45ba31`, `nm` clean, BT off),
-    after `check-image` exits 0. Expected: display shows the test screen, the BSP log names the
-    touch chip; this is the final proof of revision V2 (CO5300/CST816S). The PCB itself is
-    marked "Rev 1.1". Note: BSP 2.0.3 ships only the CO5300 panel driver, so a V1 board would
-    need another driver. The repo project from step 17 is flashed from step 28 on
+20. [ ] **(the owner)** Go for the first flash of the `firmware/` project. Run `pwsh
+    tools/check-image.ps1 firmware/build/speaker_timer.elf` (must exit 0), then `idf.py -p COM4
+    flash monitor` with a minimal screen (solid colour plus "hello" text, touch coordinates
+    logged). Expected: display shows the screen, touch logs coordinates, the BSP log names the
+    touch chip (CO5300/CST816S = V2; BSP 2.0.3 ships only the CO5300 panel driver). The PCB is
+    marked "Rev 1.1".
+    Done outside the plan, 2026-10-24 after the go of 18:45: BOOT-mode test, `erase_flash` of the
+    whole chip (removes xiaozhi and the factory remnants; the archive from step 16 is the only
+    copy left), then the throwaway test app `%USERPROFILE%\esp\bsp-test` flashed (IDF v5.5.5,
+    toolchain esp-14.2.0_20260121, `bsp_test.bin` 706 KB, SHA-256
+    `6cccc1547e26b78e85ba0ad6b5154f6d164f947307d6c484784649e05d45ba31`, checked with `nm` by
+    the dev session, not with `tools/check-image`). Result: pending
 21. [ ] Commit and push. Expected: `main` contains a buildable firmware project
 
 ### Task 4: Firmware clock and display (by Sun 01.11.)
@@ -243,7 +244,8 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Rollback
 
-- Step 20 (b) erase_flash cannot be undone; the archived factory dump (step 16) stays archive only.
+- The `erase_flash` done before step 20 cannot be undone; the archived factory dump (step 16)
+  stays archive only.
 - Steps 20, 28, 33 (flash): the factory image is never restored. Rollback is flashing the last
   own build that worked: `idf.py -p COM4 flash` from the previous commit, or `esptool.py -p COM4
   write_flash 0x0 <merged .bin>` from the archived build. If the board stops enumerating, hold
