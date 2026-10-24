@@ -28,7 +28,7 @@ depends on the laptop program.
 
 | Path | Content |
 | --- | --- |
-| `laptop/` | Laptop program, C# / .NET 8. `SpeakerTimer.Core` holds the platform-neutral logic and its tests |
+| `laptop/` | Laptop program, C# / .NET 8. `SpeakerTimer.Core` holds the platform-neutral logic and its tests, `SpeakerTimer.App` is the Windows program (`speaker-timer.exe`) |
 | `firmware/` | ESP-IDF firmware for the timer (planned) |
 | `docs/protocol.md` | The serial protocol between timer and laptop |
 | `.github/workflows/` | CI |
@@ -40,6 +40,20 @@ Requires the .NET 8 SDK.
 ```sh
 dotnet test laptop/SpeakerTimer.sln
 ```
+
+## Laptop program
+
+`speaker-timer.exe` runs on Windows with PowerPoint. Started without options it sits in the
+notification area, follows the slide show and drives the timer; "Stop and release port" in its
+menu ends it.
+
+| Command | Purpose |
+| --- | --- |
+| `speaker-timer --check deck.pptx` | Lists the time marks of a deck and reports likely typos, marks on hidden slides and decreasing marks, without PowerPoint |
+| `speaker-timer --demo` | Sends a colour test pattern to the timer |
+| `speaker-timer --length 45` | Sets the talk length instead of taking the highest mark |
+
+From PowerShell, append `| Out-Host` to `--check` and `--demo` so the prompt waits for the output.
 
 ## License
 
