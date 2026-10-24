@@ -34,7 +34,7 @@ public sealed class TalkRunner : IDisposable
         _log = log ?? throw new ArgumentNullException(nameof(log));
         _controller = new TalkController(lengthArgument, ColorScheme.Default);
         _source = new PowerPointSource(_log.Write);
-        _link = new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort());
+        _link = new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort(), _log.Write);
         _link.Connected += OnConnected;
         _link.Disconnected += OnDisconnected;
         _link.StatusReceived += status => _timer = status;

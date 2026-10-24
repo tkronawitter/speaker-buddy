@@ -58,10 +58,28 @@ internal static class Program
         }
 
         var log = new FileLog();
+        LogUnhandledExceptions(log);
         ApplicationConfiguration.Initialize();
         using var runner = new TalkRunner(talkLength, fixedPort, log);
         Application.Run(new TrayContext(runner, log));
         return 0;
+    }
+
+    // No dialog may ever cover the slides (A-03): an exception on the UI thread is logged and the
+    // message loop goes on instead of WinForms showing its ThreadExceptionDialog. An exception on
+    // another thread still ends the process, but leaves its reason in the log.
+    private static void LogUnhandledExceptions(FileLog log)
+    {
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) =>
+            log.Write($"unhandled on the tray thread, ignored: {e.Exception.GetType().Name} {e.Exception.Message}");
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            log.Write($"unhandled, the program ends: {e.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            log.Write($"unobserved task exception, ignored: {e.Exception.GetType().Name} {e.Exception.Message}");
+            e.SetObserved();
+        };
     }
 
     private static bool TryReadOptions(string[] args, out int? length, out string? port)
@@ -130,7 +148,7 @@ internal static class Program
             stop.Cancel();
         };
 
-        using var link = new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort());
+        using var link = new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort(), Console.Error.WriteLine);
         TimerStatusLine? lastStatus = null;
 
         link.Connected += port =>

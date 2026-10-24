@@ -22,6 +22,7 @@ public sealed class SerialLink : IDisposable
     private static readonly TimeSpan BacklogDrainTime = TimeSpan.FromMilliseconds(300);
 
     private readonly Func<string?> _findPort;
+    private readonly Action<string> _log;
     private readonly CancellationTokenSource _stop = new();
     private readonly object _portLock = new();
     private SerialPort? _port;
@@ -29,9 +30,11 @@ public sealed class SerialLink : IDisposable
     private int _disposed;
 
     /// <param name="findPort">Returns the port to use, or null while no timer is attached.</param>
-    public SerialLink(Func<string?> findPort)
+    /// <param name="log">Receives failures the link recovered from; the link never throws them on.</param>
+    public SerialLink(Func<string?> findPort, Action<string> log)
     {
         _findPort = findPort ?? throw new ArgumentNullException(nameof(findPort));
+        _log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
     /// <summary>Raised with the port name after the port was opened.</summary>
@@ -94,9 +97,14 @@ public sealed class SerialLink : IDisposable
         {
             ended = _loop?.Wait(StopTimeout) ?? true;
         }
-        catch (AggregateException e) when (e.InnerExceptions.All(i => i is OperationCanceledException))
+        catch (AggregateException e)
         {
-            // Stopping is the expected end of the loop.
+            // Stopping is the expected end of the loop; anything else is logged, never thrown at
+            // the kill switch
+            foreach (var inner in e.InnerExceptions.Where(i => i is not OperationCanceledException))
+            {
+                _log($"serial loop ended with {inner.GetType().Name} {inner.Message}");
+            }
         }
 
         // A loop still inside an open or a read waits on the token; leave the token source to the
@@ -114,26 +122,51 @@ public sealed class SerialLink : IDisposable
 
         while (!stop.IsCancellationRequested)
         {
-            var portName = _findPort();
-            if (portName is null || !TryOpen(portName))
-            {
-                stop.WaitHandle.WaitOne(RetryInterval);
-                continue;
-            }
-
-            framer.Reset();
-            Connected?.Invoke(portName);
             try
             {
-                ReadUntilLost(framer, buffer, stop);
+                ConnectAndRead(framer, buffer, stop);
             }
-            finally
+            catch (Exception e)
             {
-                ClosePort();
-                Disconnected?.Invoke();
+                // Only the stop ends the loop: a failed search, open or close is logged and retried
+                _log($"serial loop failed, retrying: {e.GetType().Name} {e.Message}");
             }
 
             stop.WaitHandle.WaitOne(RetryInterval);
+        }
+    }
+
+    private void ConnectAndRead(LineFramer framer, byte[] buffer, CancellationToken stop)
+    {
+        var portName = _findPort();
+        if (portName is null || !TryOpen(portName))
+        {
+            return;
+        }
+
+        framer.Reset();
+        Raise(nameof(Connected), () => Connected?.Invoke(portName));
+        try
+        {
+            ReadUntilLost(framer, buffer, stop);
+        }
+        finally
+        {
+            ClosePort();
+            Raise(nameof(Disconnected), () => Disconnected?.Invoke());
+        }
+    }
+
+    // A failing subscriber must not take the connection down with it
+    private void Raise(string name, Action raise)
+    {
+        try
+        {
+            raise();
+        }
+        catch (Exception e)
+        {
+            _log($"{name} handler failed: {e.GetType().Name} {e.Message}");
         }
     }
 
@@ -214,11 +247,11 @@ public sealed class SerialLink : IDisposable
 
                 if (parsed is TimerStatusLine status)
                 {
-                    StatusReceived?.Invoke(status);
+                    Raise(nameof(StatusReceived), () => StatusReceived?.Invoke(status));
                 }
                 else if (parsed is FirmwareLine firmware)
                 {
-                    FirmwareReceived?.Invoke(firmware);
+                    Raise(nameof(FirmwareReceived), () => FirmwareReceived?.Invoke(firmware));
                 }
             }
         }
@@ -237,13 +270,26 @@ public sealed class SerialLink : IDisposable
             {
                 _port.Close();
             }
-            catch (IOException)
+            catch (Exception e) when (IsPortGone(e))
             {
                 // The device is already gone; nothing left to close.
             }
+            finally
+            {
+                try
+                {
+                    _port.Dispose();
+                }
+                catch (Exception e) when (IsPortGone(e))
+                {
+                    // Same: a pulled cable can fail the dispose as well.
+                }
 
-            _port.Dispose();
-            _port = null;
+                _port = null;
+            }
         }
     }
+
+    private static bool IsPortGone(Exception e) =>
+        e is IOException or UnauthorizedAccessException or InvalidOperationException;
 }
