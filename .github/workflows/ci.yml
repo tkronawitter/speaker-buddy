@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "laptop/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "laptop/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  laptop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore laptop/SpeakerTimer.sln
+
+      - name: Build
+        run: dotnet build laptop/SpeakerTimer.sln --no-restore -warnaserror
+
+      - name: Format
+        run: dotnet format laptop/SpeakerTimer.sln --no-restore --verify-no-changes
+
+      - name: Test
+        run: >
+          dotnet test laptop/SpeakerTimer.sln --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory laptop/TestResults
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-laptop
+          path: laptop/TestResults/**/coverage.cobertura.xml
+          if-no-files-found: warn
