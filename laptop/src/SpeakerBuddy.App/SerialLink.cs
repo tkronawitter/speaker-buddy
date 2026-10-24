@@ -15,6 +15,7 @@ public sealed class SerialLink : IDisposable
     private const int BaudRate = 115200;
     private const int IoTimeoutMs = 500;
     private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
 
     // While no program reads the port the timer keeps up to 1 KB of old status lines queued; they
     // arrive within milliseconds of the open and are dropped, so the first t the laptop sees is live.
@@ -25,6 +26,7 @@ public sealed class SerialLink : IDisposable
     private readonly object _portLock = new();
     private SerialPort? _port;
     private Task? _loop;
+    private int _disposed;
 
     /// <param name="findPort">Returns the port to use, or null while no timer is attached.</param>
     public SerialLink(Func<string?> findPort)
@@ -77,20 +79,32 @@ public sealed class SerialLink : IDisposable
         }
     }
 
+    /// <summary>Stops the loop and closes the port. Safe to call more than once.</summary>
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _stop.Cancel();
         ClosePort();
+        var ended = true;
         try
         {
-            _loop?.Wait(TimeSpan.FromSeconds(2));
+            ended = _loop?.Wait(StopTimeout) ?? true;
         }
         catch (AggregateException e) when (e.InnerExceptions.All(i => i is OperationCanceledException))
         {
             // Stopping is the expected end of the loop.
         }
 
-        _stop.Dispose();
+        // A loop still inside an open or a read waits on the token; leave the token source to the
+        // finalizer rather than dispose it under the running loop
+        if (ended)
+        {
+            _stop.Dispose();
+        }
     }
 
     private void Run(CancellationToken stop)

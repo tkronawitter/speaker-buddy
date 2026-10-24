@@ -14,6 +14,7 @@ public sealed class TalkRunner : IDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan PeriodicInterval = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
 
     private readonly FileLog _log;
     private readonly SerialLink _link;
@@ -26,6 +27,7 @@ public sealed class TalkRunner : IDisposable
     private string? _port;
     private string? _firmware;
     private EvaluationRule? _lastRule;
+    private int _disposed;
 
     public TalkRunner(int? lengthArgument, string? fixedPort, FileLog log)
     {
@@ -53,14 +55,29 @@ public sealed class TalkRunner : IDisposable
         _thread.Start();
     }
 
-    /// <summary>Stops polling and sending and releases the serial port (the kill switch).</summary>
+    /// <summary>
+    /// Stops polling and sending and releases the serial port (the kill switch). Safe to call more
+    /// than once: the tray's Stop and the <c>using</c> in Main both dispose.
+    /// </summary>
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _stop.Cancel();
-        _thread?.Join(TimeSpan.FromSeconds(2));
+        var ended = _thread?.Join(StopTimeout) ?? true;
         _link.Dispose();
-        _stop.Dispose();
-        _log.Write("stopped, port released");
+
+        // A thread stuck in a PowerPoint call still waits on the token; it is a background thread
+        // and dies with the process, so its token source is left to the finalizer instead
+        if (ended)
+        {
+            _stop.Dispose();
+        }
+
+        _log.Write(ended ? "stopped, port released" : "stopped, port released, talk thread did not end in time");
     }
 
     private void OnConnected(string port)
