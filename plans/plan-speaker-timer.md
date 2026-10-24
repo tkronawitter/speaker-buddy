@@ -99,9 +99,10 @@ implement.
 
 ### Task 3: Firmware toolchain and board bring-up (by Thu 29.10.)
 
-15. [ ] Finish the ESP-IDF v5.5.5 toolchain install in `%USERPROFILE%\esp` (user approval in the
-    dev window pending since 18:29 on 2026-10-24). Expected: `idf.py --version` prints `ESP-IDF
-    v5.5.5`
+15. [x] ESP-IDF v5.5.5 installed on the development PC: source `%USERPROFILE%\esp\esp-idf-v5.5.5`, tools in
+    `%USERPROFILE%\esp\.espressif` (`IDF_TOOLS_PATH`); `install.ps1 esp32s3` ended "All done!"
+    on 2026-10-24. Shell: set `IDF_TOOLS_PATH`, dot-source `export.ps1`. Expected: `idf.py
+    --version` prints `ESP-IDF v5.5.5`
 16. [ ] Check that the factory backup is intact before the first flash:
     `Get-FileHash -Algorithm SHA256 "<private backup> Dateien\Elektronik\ESP32\waveshare-esp32-s3-touch-amoled-1.8\factory\factory-dump.bin"`
     and compare with the `.sha256` file next to it. Expected: identical hash. This is the safety
@@ -169,7 +170,10 @@ implement.
     .NET 8 (`[DllImport("oleaut32")] GetActiveObject`) on `PowerPoint.Application`, never starts
     PowerPoint; reads notes per slide, hidden flag (`SlideShowTransition.Hidden`), current
     `SlideShowWindows(1).View.Slide.SlideIndex`, slide show running or not, by polling once per
-    tick; any COM exception skips the tick (A-03). Verify the object model calls against the Office
+    tick; any COM exception skips the tick (A-03). `SlideShowWindows(1)` is ambiguous when more
+    than one slide show runs: lock onto the presentation by `Presentation.FullName` when its slide
+    show starts and pick that window on every tick, so a second deck or an embedded deck never
+    switches the tracked presentation; test with two decks in slide show at once. Verify the object model calls against the Office
     VBA reference first, the requirement page marks them unverified. Expected: builds
 36. [ ] Wire `Evaluator` to `PowerPointSource` and `SerialLink`: `t` comes from the timer line,
     the laptop sends state every second and on change, `L` once after connect and on change,
