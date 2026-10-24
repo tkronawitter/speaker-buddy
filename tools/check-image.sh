@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 # Fails if the firmware ELF links Wi-Fi, Bluetooth, OTA or TinyUSB code (requirement A-04).
-# Usage: tools/check-image.sh [firmware/build/speaker_timer.elf]
+# Usage: tools/check-image.sh [firmware/build/speaker_buddy.elf]
 # Uses $NM if set, else xtensa-esp32s3-elf-nm from PATH (present in the espressif/idf image).
 set -eu
 
-elf="${1:-$(dirname "$0")/../firmware/build/speaker_timer.elf}"
+elf="${1:-$(dirname "$0")/../firmware/build/speaker_buddy.elf}"
 nm="${NM:-xtensa-esp32s3-elf-nm}"
 
 if [ ! -f "$elf" ]; then

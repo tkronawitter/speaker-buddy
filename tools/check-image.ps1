@@ -1,8 +1,8 @@
 # Fails if the firmware ELF links Wi-Fi, Bluetooth, OTA or TinyUSB code (requirement A-04).
-# Usage: pwsh tools/check-image.ps1 [firmware/build/speaker_timer.elf] [-Nm <path to nm>]
+# Usage: pwsh tools/check-image.ps1 [firmware/build/speaker_buddy.elf] [-Nm <path to nm>]
 # Without -Nm, xtensa-esp32s3-elf-nm is taken from PATH or from the ESP-IDF tools directory.
 param(
-    [string] $Elf = (Join-Path $PSScriptRoot '..\firmware\build\speaker_timer.elf'),
+    [string] $Elf = (Join-Path $PSScriptRoot '..\firmware\build\speaker_buddy.elf'),
     [string] $Nm
 )
 

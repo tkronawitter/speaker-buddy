@@ -1,4 +1,4 @@
-/* Speaker timer firmware: the timer owns the elapsed time and runs on its own without a laptop. */
+/* Speaker Buddy firmware: the timer owns the elapsed time and runs on its own without a laptop. */
 #include "bsp/esp-bsp.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -12,7 +12,7 @@
 #include "timer_core/view.h"
 #include "ui.h"
 
-static const char *TAG = "speaker_timer";
+static const char *TAG = "speaker_buddy";
 
 #define UI_PERIOD_MS 100
 

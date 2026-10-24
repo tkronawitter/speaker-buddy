@@ -28,17 +28,17 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore
-        run: dotnet restore laptop/SpeakerTimer.sln
+        run: dotnet restore laptop/SpeakerBuddy.sln
 
       - name: Build
-        run: dotnet build laptop/SpeakerTimer.sln --no-restore -warnaserror
+        run: dotnet build laptop/SpeakerBuddy.sln --no-restore -warnaserror
 
       - name: Format
-        run: dotnet format laptop/SpeakerTimer.sln --no-restore --verify-no-changes
+        run: dotnet format laptop/SpeakerBuddy.sln --no-restore --verify-no-changes
 
       - name: Test
         run: >
-          dotnet test laptop/SpeakerTimer.sln --no-build
+          dotnet test laptop/SpeakerBuddy.sln --no-build
           --collect:"XPlat Code Coverage"
           --results-directory laptop/TestResults
 
