@@ -317,8 +317,12 @@ implement.
     waits 150 ms. All four pins are kept as in Waveshare's demos; which one is the panel reset
     will not be narrowed down. Proof: 10 RTS resets without laptop traffic (23:32-23:34), 0
     black screens per the owner 23:35; before the fix 1 of 1 black.
-    Still open for step 33: `SafeLineState` (laptop, not committed, replug test pending) and the
-    retest of colours and the disconnected symbol with `--demo`
+    Laptop fix PASS, pushed in e168210: new `SafeLineState`, called by `SerialLink.TryOpen`
+    before `Open`, turns the control lines off in a safe order through Win32 (App csproj
+    `AllowUnsafeBlocks`). Replug test 3 of 3 with `boots=1`, reason 1 (23:45-23:48, replugs by
+    the owner, reads by the dev session); before the fix 3 of 3 had `boots=2`, reason 11. The board
+    runs the clean a507838 image again.
+    Still open for step 33: the retest of colours and the disconnected symbol with `--demo`
 34. [x] Commit and push
 
 ### Task 6: PowerPoint adapter and tray program (by Sun 08.11.)
