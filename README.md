@@ -108,6 +108,21 @@ menu ends it. It logs to `%LOCALAPPDATA%\speaker-buddy\logs`.
 
 From PowerShell, append `| Out-Host` to `--check` and `--demo` so the prompt waits for the output.
 
+### Publish and sign
+
+```sh
+pwsh tools/publish-laptop.ps1
+pwsh tools/sign.ps1
+```
+
+`publish-laptop.ps1` writes one self-contained `laptop/publish/speaker-buddy.exe` (about 70 MB),
+so the presenting laptop needs no .NET runtime. `sign.ps1` signs it with a code signing
+certificate from `Cert:\CurrentUser\My` (found by subject, or pass `-Thumbprint`) and an RFC 3161
+timestamp, then checks the signature. The certificate is self-signed for now: Windows shows the
+signature as valid only on machines that trust it, and it is not expected to satisfy Smart App
+Control.
+Copy the exe without a browser download, or run `Unblock-File` on it after copying.
+
 ## License
 
 [MIT](LICENSE)

@@ -432,20 +432,30 @@ implement.
 41. [ ] **(the owner)** Add `## m:ss` marks to the the first talk deck. Due before step 43
 42. [ ] **(the owner)** Run `speaker-buddy.exe --check <the first talk deck>`. Expected: no near misses,
     no decreasing marks, highest mark close to 30:00
-43. [ ] **(the owner)** Install the .NET 8 Desktop Runtime on the stage laptop and copy the published
-    program (`dotnet publish laptop/src/SpeakerBuddy.App -c Release -r win-x64 --self-contained
-    false`) to a local folder. Framework-dependent for the talk date; the self-contained single exe
-    comes after the talk date (O-03). Expected: exe starts into the tray.
-    The stage laptop is the owner' private device; the exe is not signed for now (the owner,
-    2026-10-25 01:09). So that Windows does not block it:
-    - Copy the published folder without a browser download (private storage sync or USB stick), or run
-      `Get-ChildItem <folder> -Recurse | Unblock-File` after copying
+43. [ ] **(the owner)** Put the signed program on the stage laptop. On the development PC: `pwsh
+    tools/publish-laptop.ps1` (one self-contained `laptop/publish/speaker-buddy.exe`, about
+    70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in 768dcd4), then
+    `pwsh tools/sign.ps1` (a570b83). Expected: exe starts into the tray.
+    The stage laptop is the owner' private device. Signing (the owner, 2026-10-25 01:11, replacing
+    "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy`, thumbprint
+    `8E1E2DC50FFA1A5E5709FF6EDAF2DE142C3FC8C7`, valid until 2028-12-30, private key not
+    exportable in `Cert:\CurrentUser\My` on the development PC. The public file is
+    `<private backup>\Elektronik\ESP32\speaker-buddy-codesign.cer` in private storage; importing it on the
+    laptop is a Machine-Sync-Queue row. Verified on the development PC: published, signed with an RFC 3161
+    timestamp, the signed exe runs `--check` on the desk-test deck (0 problems, `tol` 0:45);
+    `Get-AuthenticodeSignature` there reports `UnknownError`, as expected without the root.
+    So that Windows does not block it:
+    - Import the `.cer` (Machine-Sync-Queue row), then `Get-AuthenticodeSignature
+      <exe>` shows `Valid` with the thumbprint above
+    - Copy the exe without a browser download (private storage sync or USB stick), or run
+      `Unblock-File <exe>` after copying
     - Start the exe once by hand before the rehearsal
     - Check Smart App Control: Windows Security > App & browser control > Smart App Control, or
       `Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy -Name VerifiedAndReputablePolicyState`
       (0 = off, 1 = on, 2 = evaluation)
-    - If Smart App Control is on and blocks the exe: either sign it with a self-signed
-      certificate trusted on that laptop, or turn Smart App Control off. the owner decides then
+    - If Smart App Control is on: per the dev session (not tested), a self-signed certificate
+      does not satisfy it even when imported; the options are turning Smart App Control off or
+      a CA certificate (issue #3). the owner decides then
 44. [ ] **(the owner)** Desk rehearsal with the the first talk deck on the development PC (milestone 5 on the private notes
     page). Expected: colours behave as intended; fixes go back into Tasks 2 to 6
 45. [ ] Tag the build that passed step 44 as `v0.1.0-rc1` and keep its `.bin` and exe next to the
@@ -467,14 +477,23 @@ implement.
 ### Stretch, before the talk date only if every core step above is on time
 
 50. [ ] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03)
-51. [ ] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
-    `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04)
+51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
+    `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04).
+    Pushed in 7072ada "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
+    green: jobs `laptop`, `firmware-host` and `firmware-build`, the image check ran inside the
+    container, artifact `firmware` uploaded
+52. [x] Pulled forward from after the talk date (O-03): `speaker-buddy.exe` as one self-contained file,
+    `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in 768dcd4;
+    verified on the development PC (published, signed, `--check` runs)
 
 After the talk date (not planned here): `release.yml` with attestations and `SHA256SUMS` (R-07, R-09),
-single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-04 to O-08.
+Dependabot (R-08), CSV log (L-08), brightness (D-05), O-04 to O-08.
 Backlog on GitHub, milestone `v2`: issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
-26 and 28).
+26 and 28); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
+free for open source with a release history; Certum Open Source, about 25-69 EUR a year; a CA
+OV certificate, about 100 USD a year and up; Azure Artifact Signing is not available to
+individuals in Germany).
 
 ## Rollback
 
@@ -504,7 +523,8 @@ once (from step 39); issue #2, display check of the time scale-down from 100 min
 | Firmware build | `idf.py build` in `firmware/` | `Project build complete` |
 | Image provenance | `pwsh tools/check-image.ps1 firmware/build/speaker_buddy.elf` | exit 0, `no forbidden symbols` |
 | Pinning | `git ls-files firmware/dependencies.lock` | the path is listed |
-| CI | GitHub Actions on `main` | `laptop` and `firmware-host` green |
+| CI | GitHub Actions on `main` | `laptop`, `firmware-host` and `firmware-build` green |
+| Signature | `Get-AuthenticodeSignature laptop/publish/speaker-buddy.exe` | `Valid` on a machine that trusts the certificate, `UnknownError` on the development PC |
 | Deck | `speaker-buddy.exe --check <deck>` | marks listed, `0 problems` |
 | Board | steps 28, 33, 39, 46 | observed behaviour as stated per step |
 
