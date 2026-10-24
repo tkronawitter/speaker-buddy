@@ -1,20 +1,42 @@
-/* Board bring-up: solid background, "hello" label, touch coordinates on the console. */
+/* Speaker timer firmware: the timer owns the elapsed time and runs on its own without a laptop. */
 #include "bsp/esp-bsp.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "input.h"
 #include "lvgl.h"
+#include "timer_core/clock.h"
+#include "timer_core/view.h"
+#include "ui.h"
 
 static const char *TAG = "speaker_timer";
 
-static void on_touch(lv_event_t *e)
+#define UI_PERIOD_MS 100
+
+/*
+ * Clock and link state are only touched from the LVGL task (the UI timer and input events), so
+ * they need no lock of their own. The link stays offline until the serial link (plan step 30)
+ * feeds it.
+ */
+static tc_clock_t s_clock;
+static tc_link_state_t s_link;
+
+static uint32_t now_ms(void)
 {
-    lv_point_t point;
-    lv_indev_get_point(lv_indev_active(), &point);
-    ESP_LOGI(TAG, "touch %s x=%d y=%d",
-             lv_event_get_code(e) == LV_EVENT_PRESSED ? "down" : "up", (int)point.x, (int)point.y);
+    return (uint32_t)(esp_timer_get_time() / 1000);
+}
+
+static void on_ui_tick(lv_timer_t *timer)
+{
+    (void)timer;
+    tc_view_t view;
+    tc_view_compose(&s_clock, now_ms(), &s_link, &view);
+    ui_render(&view);
 }
 
 void app_main(void)
 {
+    tc_clock_init(&s_clock);
+
     lv_display_t *disp = bsp_display_start();
     if (disp == NULL) {
         ESP_LOGE(TAG, "display start failed");
@@ -25,19 +47,10 @@ void app_main(void)
     bsp_display_lock(0);
     bsp_display_brightness_set(80);
     bsp_display_rotate(disp, LV_DISPLAY_ROTATION_90);
-
-    lv_obj_t *scr = lv_screen_active();
-    lv_obj_set_style_bg_color(scr, lv_color_hex(0x00A000), 0);
-    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
-    lv_obj_add_event_cb(scr, on_touch, LV_EVENT_PRESSED, NULL);
-    lv_obj_add_event_cb(scr, on_touch, LV_EVENT_RELEASED, NULL);
-
-    lv_obj_t *label = lv_label_create(scr);
-    lv_label_set_text(label, "hello");
-    lv_obj_set_style_text_color(label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_48, 0);
-    lv_obj_center(label);
-
+    ui_create();
+    input_attach(lv_screen_active(), bsp_display_get_input_dev(), &s_clock, now_ms);
+    lv_timer_create(on_ui_tick, UI_PERIOD_MS, NULL);
     bsp_display_unlock();
-    ESP_LOGI(TAG, "bring-up screen shown");
+
+    ESP_LOGI(TAG, "timer ready, tap to start");
 }

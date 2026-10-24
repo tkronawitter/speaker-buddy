@@ -13,6 +13,7 @@ add_library(timer_core STATIC
     ${TIMER_CORE_DIR}/clock.c
     ${TIMER_CORE_DIR}/format.c
     ${TIMER_CORE_DIR}/line.c
+    ${TIMER_CORE_DIR}/view.c
 )
 target_include_directories(timer_core PUBLIC ${TIMER_CORE_DIR}/include)
 
@@ -22,7 +23,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
-foreach(name clock format line)
+foreach(name clock format line view)
     add_executable(test_${name} test_${name}.c)
     target_link_libraries(test_${name} PRIVATE timer_core)
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
