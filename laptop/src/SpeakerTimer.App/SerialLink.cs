@@ -118,6 +118,15 @@ public sealed class SerialLink : IDisposable
 
     private bool TryOpen(string portName)
     {
+        try
+        {
+            SafeLineState.TurnOff(portName);
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+
         var port = new SerialPort(portName, BaudRate)
         {
             DtrEnable = false,

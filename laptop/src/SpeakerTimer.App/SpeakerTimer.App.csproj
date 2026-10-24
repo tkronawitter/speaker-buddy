@@ -10,6 +10,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- The LibraryImport source generator for the Win32 serial line calls emits unsafe code -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>speaker-timer</AssemblyName>
     <RootNamespace>SpeakerTimer.App</RootNamespace>
   </PropertyGroup>
