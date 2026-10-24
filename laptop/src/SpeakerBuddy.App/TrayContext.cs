@@ -5,7 +5,8 @@ namespace SpeakerBuddy.App;
 
 /// <summary>
 /// Tray-only shell (plan step 37, A-03): a notification-area icon with "Open log" and "Stop and
-/// release port". No windows, balloons or toasts. The tooltip shows whether the timer is connected.
+/// release port". No windows, balloons or toasts. The tooltip and the icon (logo in colour or grey)
+/// show whether the timer is connected.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class TrayContext : ApplicationContext
@@ -13,6 +14,8 @@ public sealed class TrayContext : ApplicationContext
     private readonly TalkRunner _runner;
     private readonly FileLog _log;
     private readonly NotifyIcon _icon;
+    private readonly Icon _connectedIcon = LoadIcon("speaker-buddy.ico");
+    private readonly Icon _waitingIcon = LoadIcon("speaker-buddy-waiting.ico");
     private readonly System.Windows.Forms.Timer _status;
 
     public TrayContext(TalkRunner runner, FileLog log)
@@ -27,17 +30,36 @@ public sealed class TrayContext : ApplicationContext
 
         _icon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = _waitingIcon,
             Text = "Speaker Buddy",
             ContextMenuStrip = menu,
             Visible = true,
         };
 
         _status = new System.Windows.Forms.Timer { Interval = 1000 };
-        _status.Tick += (_, _) => _icon.Text = Tooltip(_runner.Port, _runner.Firmware);
+        _status.Tick += (_, _) => ShowStatus();
         _status.Start();
 
         _runner.Start();
+    }
+
+    // The icon in the size the notification area uses at the current DPI
+    private static Icon LoadIcon(string name)
+    {
+        using var stream = typeof(TrayContext).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"embedded icon {name} is missing");
+        return new Icon(stream, SystemInformation.SmallIconSize);
+    }
+
+    private void ShowStatus()
+    {
+        var icon = _runner.Port is null ? _waitingIcon : _connectedIcon;
+        if (!ReferenceEquals(_icon.Icon, icon))
+        {
+            _icon.Icon = icon;
+        }
+
+        _icon.Text = Tooltip(_runner.Port, _runner.Firmware);
     }
 
     // NotifyIcon refuses texts over 127 characters; the versions are at most 40 each
@@ -77,6 +99,8 @@ public sealed class TrayContext : ApplicationContext
         {
             _status.Dispose();
             _icon.Dispose();
+            _connectedIcon.Dispose();
+            _waitingIcon.Dispose();
         }
 
         base.Dispose(disposing);
