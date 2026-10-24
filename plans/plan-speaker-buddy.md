@@ -97,9 +97,10 @@ implement.
     5:00, else none; `tol = max(L / 45, 0:30)`; no marks means no evaluation. Expected: tests for
     45 min (1:00), 30 min (0:40), 15 min (0:30), 90 min (2:00), highest mark 4:00 without argument
     (no `L`)
-    - [ ] Follow-up (the owner, 2026-10-25 00:33-00:37): minimum tolerance 0:45, `tol = max(L / 45,
+    - [x] Follow-up (the owner, 2026-10-25 00:33-00:37): minimum tolerance 0:45, `tol = max(L / 45,
       0:45)` rounded down to whole seconds, `L` unknown gives 0:45. Expected tests: 45 min
-      (1:00), 30 min (0:45, the first talk), 15 min (0:45), 90 min (2:00). Pushed in 57c345d
+      (1:00), 30 min (0:45, the first talk), 15 min (0:45), 90 min (2:00). Pushed in 57c345d, tests 206/206,
+      CI run 40139694623 green
 11. [x] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
     slideIndex)`; a mark is reached the first time `slideIndex` is at or past its slide, evaluated
     once; going back re-evaluates nothing; jumping past marks reaches them; precedence B-06, then
@@ -110,7 +111,7 @@ implement.
     `## 10:00`: arrival at 10:40 green, at 12:00 purple, at 8:30 red and green again at 9:00 on
     the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
     rule
-    - [ ] Follow-up (the owner, 2026-10-25 00:33-00:37): the deviation `d` follows the colour live
+    - [x] Follow-up (the owner, 2026-10-25 00:33-00:37): the deviation `d` follows the colour live
       instead of freezing at a mark. Green: no deviation line (`d` null); red: how far ahead,
       negative; purple: how far behind, positive, measured against the overdue next mark when
       B-06 applies; overtime unchanged. Exact `m:ss`, no rounding (30 s rounding discussed and
@@ -119,7 +120,16 @@ implement.
       colour case passes, board check by the owner. Pushed in 57c345d; green sends `d` null, so the
       firmware needs no change. Purple after a late arrival shows the lateness at arrival, frozen,
       and switches to the live value once the next mark is overdue (B-06); confirmed by the owner
-      2026-10-25 00:46, each mark is an independent checkpoint
+      2026-10-25 00:46, each mark is an independent checkpoint.
+      Board check PASS per the owner 2026-10-25 01:05 and 01:08: run 00:59:44-01:05:15 with
+      34f0a86 (`--length 5`), app log `t=106` purple `d=46` live (next mark overdue), `t=138`
+      purple `d=78`, `t=139` green `d` null, `t=226` purple `d=46` counting, `t=251` purple
+      `d=71` frozen, `t=275` green `d` null, show end detected ("sah gut aus"). The red case was
+      not reached in this run and is covered by `EvaluatorTests`. Static test pictures (purple
+      `+1:10`, red `-0:55`, green without a line): "perfekt", readable and big enough. During
+      overtime (`t > L`) the timer shows only orange and ignores the laptop colour, as designed.
+      At the show end PowerPoint answered `RPC_E_SERVERCALL_RETRYLATER`; the tick was skipped,
+      no crash (91cfc39 holds in practice)
 12. [x] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
     unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass.
     Follow-up (dev, 2026-10-24, pushed in 49dc0f5): the protocol is flat JSON on both sides, no
