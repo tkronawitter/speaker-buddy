@@ -62,7 +62,7 @@ Sent once per second and immediately on every change of `c` or `d`.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `L` | integer, seconds | Planned talk length. With it the timer itself starts slow red blinking when `t > L` (rule B-07) and keeps blinking when the laptop disappears |
+| `L` | integer, seconds | Planned talk length. With it the timer itself switches to overtime when `t > L` (rule B-07): orange background, black digits, slow blinking. It keeps that when the laptop disappears |
 
 Sent once after the connection is established and again whenever `L` changes.
 
@@ -78,8 +78,9 @@ the neutral display.
 ## Connection loss
 
 The timer treats the link as lost when no valid laptop line arrived for 3 seconds. It keeps
-counting from its own `t`, shows the neutral colour with a small "disconnected" symbol, and keeps
-blinking if `t > L`. The next valid laptop line restores the connected display.
+counting from its own `t`, shows the neutral colour with a small "disconnected" symbol, and stays
+in overtime if `t > L`. Offline it also switches to overtime from 60:00 (D-06).
+The next valid laptop line restores the connected display.
 
 ## Versioning
 

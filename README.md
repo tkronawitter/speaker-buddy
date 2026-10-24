@@ -3,8 +3,8 @@
 [![ci](https://github.com/tkronawitter/speaker-timer/actions/workflows/ci.yml/badge.svg)](https://github.com/tkronawitter/speaker-timer/actions/workflows/ci.yml)
 
 A small display on the lectern that shows the elapsed talk time and colours its background by how
-the talk is going against time marks in the PowerPoint speaker notes: green on plan, red behind,
-purple ahead.
+the talk is going against time marks in the PowerPoint speaker notes: green on plan, purple when
+behind (talk faster), red when ahead (talk slower). Past the planned length it blinks orange.
 
 **Status:** work in progress, stage 1. Nothing here is ready to use yet.
 

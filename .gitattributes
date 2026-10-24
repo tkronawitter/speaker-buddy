@@ -1,0 +1,7 @@
+# Normalise text to LF in the repo and the working tree, matching .editorconfig, so local
+# dotnet format and CI see the same line endings.
+* text=auto eol=lf
+
+*.pptx binary
+*.png binary
+*.bin binary
