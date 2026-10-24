@@ -52,6 +52,16 @@ jobs:
           path: laptop/TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
 
+      # Composite action (its only JavaScript step runs on node24). fail_ci_if_error stays false until
+      # the CODECOV_TOKEN secret is set, so a missing token or a Codecov outage does not fail CI
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: laptop/TestResults
+          flags: laptop
+          fail_ci_if_error: false
+
   firmware-host:
     runs-on: ubuntu-latest
     steps:

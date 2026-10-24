@@ -1,0 +1,16 @@
+# Coverage is reported, not enforced yet: both status checks are informational and never fail a PR
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# The laptop flag carries the coverlet (Cobertura) report of the laptop CI job
+flags:
+  laptop:
+    paths:
+      - laptop/
+    carryforward: true
