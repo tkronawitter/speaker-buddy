@@ -249,7 +249,8 @@ implement.
     Follow-up 13a3e52 (the owner asked at 21:42): fixed-width elapsed time, every digit cell as wide
     as the widest digit, and times of 100 minutes and more are scaled
     down to fit. Build, `check-image` 0 and flash verified by the dev session; the look on screen
-    and the scale-down after 100 minutes are not verified yet (step 28). The scale-down lives in
+    and the scale-down after 100 minutes are not verified yet (step 28; the scale-down check is
+    in the backlog as issue #2). The scale-down lives in
     `main/ui.c` (`set_time_text`, LVGL transform), outside `timer_core`, so no host test covers
     it; it is a display check only.
     Regression from 13a3e52 (the owner, 22:06): long press no longer works. Cause confirmed by
@@ -263,7 +264,8 @@ implement.
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
     is covered by the host test, not waited for.
     Result 2026-10-24 22:10 (per the owner, after 618991f): PASS, tap and long press on the digits
-    work. Still open as a display check: the scale-down of the time from 100 minutes (step 26)
+    work. The display check of the scale-down from 100 minutes (step 26) moved to the backlog
+    by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v2`
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -433,7 +435,17 @@ implement.
 43. [ ] **(the owner)** Install the .NET 8 Desktop Runtime on the stage laptop and copy the published
     program (`dotnet publish laptop/src/SpeakerBuddy.App -c Release -r win-x64 --self-contained
     false`) to a local folder. Framework-dependent for the talk date; the self-contained single exe
-    comes after the talk date (O-03). Expected: exe starts into the tray
+    comes after the talk date (O-03). Expected: exe starts into the tray.
+    The stage laptop is the owner' private device; the exe is not signed for now (the owner,
+    2026-10-25 01:09). So that Windows does not block it:
+    - Copy the published folder without a browser download (private storage sync or USB stick), or run
+      `Get-ChildItem <folder> -Recurse | Unblock-File` after copying
+    - Start the exe once by hand before the rehearsal
+    - Check Smart App Control: Windows Security > App & browser control > Smart App Control, or
+      `Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy -Name VerifiedAndReputablePolicyState`
+      (0 = off, 1 = on, 2 = evaluation)
+    - If Smart App Control is on and blocks the exe: either sign it with a self-signed
+      certificate trusted on that laptop, or turn Smart App Control off. the owner decides then
 44. [ ] **(the owner)** Desk rehearsal with the the first talk deck on the development PC (milestone 5 on the private notes
     page). Expected: colours behave as intended; fixes go back into Tasks 2 to 6
 45. [ ] Tag the build that passed step 44 as `v0.1.0-rc1` and keep its `.bin` and exe next to the
@@ -461,7 +473,8 @@ implement.
 After the talk date (not planned here): `release.yml` with attestations and `SHA256SUMS` (R-07, R-09),
 single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-04 to O-08.
 Backlog on GitHub, milestone `v2`: issue #1, test the presentation lock with two slide shows at
-once (from step 39).
+once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
+26 and 28).
 
 ## Rollback
 
