@@ -369,7 +369,7 @@ implement.
     Step 39, with the owner starting the show by hand, is the first real run. The Ubuntu CI build of
     the WinForms App builds on Ubuntu (CI run 40126609656 green, jobs `laptop` and
     `firmware-host`)
-39. [ ] Desk test on the development PC with a 5-slide test deck carrying marks: start timer by tap, start the
+39. [x] Desk test on the development PC with a 5-slide test deck carrying marks: start timer by tap, start the
     slide show, page through on time, late and early. Expected: colours as in the worked example;
     PowerPoint never shows a dialog from the program. This is also the first test of the live COM
     path from steps 35-36, including a second deck in slide show at the same time (`FullName`
@@ -388,9 +388,12 @@ implement.
     Fixed before the run: 91cfc39 "laptop: survive a busy PowerPoint" (PowerPoint rejected a
     call at show start, `RPC_E_CALL_REJECTED` surfaced as `MissingMemberException` and crashed
     the app).
-    Still open, so step 39 stays unticked for a short watched rerun: two decks in slide show at
-    once (`FullName` lock), the board's overtime and end display during a real show, and no
-    PowerPoint dialog from the program (nobody was watching)
+    Per the owner 2026-10-25 00:24, who watched the board after all: "orange came. powerpoint did
+    not show messages. worked like i would have wanted it." So the board view during the show,
+    including overtime orange, and no PowerPoint dialog are confirmed.
+    Not tested by decision: two decks in slide show at once (`FullName` lock). the owner
+    2026-10-25 00:27: "won't be happening"; moved to the backlog as GitHub issue #1, milestone
+    `v2` (after the talk date)
 40. [x] Commit and push
 
 ### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
@@ -428,6 +431,8 @@ implement.
 
 After the talk date (not planned here): `release.yml` with attestations and `SHA256SUMS` (R-07, R-09),
 single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-04 to O-08.
+Backlog on GitHub, milestone `v2`: issue #1, test the presentation lock with two slide shows at
+once (from step 39).
 
 ## Rollback
 
