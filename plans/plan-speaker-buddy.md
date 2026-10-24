@@ -486,14 +486,25 @@ implement.
     `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in 768dcd4;
     verified on the development PC (published, signed, `--check` runs)
 53. [ ] Firmware version (the owner, 2026-10-25 01:17-01:19): the version from `git describe` in the
-    boot log and reported to the laptop; the laptop logs both versions. Dev session, commit
-    pending. Expected: boot log and laptop log show the same version as `git describe`
+    boot log and reported to the laptop; the laptop logs both versions. Expected: boot log and
+    laptop log show the same version as `git describe`.
+    Pushed in 647b0c2 "firmware and laptop: report their versions": line `{"v":1,"fw":"..."}`
+    (documented in `docs/protocol.md`), sent when the laptop comes online and every 10 s.
+    Result of the expected check not reported yet
 54. [ ] Release workflow, pulled forward in part from after the talk date (R-07, R-09): `release.yml` on
     a tag `v*` builds the firmware with the `check-image` gate and the single-file exe, writes
     `SHA256SUMS` and creates a GitHub release. The release exe is unsigned, because the signing
     key is not exportable from the development PC; the the first talk exe is signed locally (step 43). Attestations
     are not part of it yet. Dev session, commit pending. Expected: a test tag produces a release
     with firmware, exe and `SHA256SUMS`
+55. [ ] Tray icon and exe icon from the logo (the owner, 2026-10-25 01:27-01:32): logo D "face in
+    the colour ring", a three-colour ring (purple, green, red) around the dark Buddy face with
+    white eyes and a green smile; a grey "waiting" variant for the tray.
+    Design canvas: <private link>. Dev session, commit
+    pending. Expected: the exe in Explorer and the tray icon show the logo, grey while waiting
+56. [ ] Firmware startup screen of about 2 s with the logo, "Speaker Buddy" and the firmware
+    version (step 53), then the normal clock screen. Dev session, commit pending. Expected:
+    `check-image` 0, flash, the owner sees the screen after a restart
 
 After the talk date (not planned here): build attestations for the release (R-07), Dependabot (R-08),
 CSV log (L-08), brightness (D-05), O-04 to O-08.

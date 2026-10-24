@@ -43,6 +43,19 @@ side may log it locally.
 
 Sent once per second and immediately on every change of `run` or a reset of `t`.
 
+### Firmware version
+
+```json
+{"v":1,"fw":"v0.1.0-3-gabc1234"}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `fw` | string | Firmware version from `git describe` at build time, 1 to 40 characters of `0-9 A-Z a-z . _ + -`. The timer replaces any other character with `_`, cuts longer versions to 40 characters and sends `unknown` for an empty one. The laptop drops a line whose `fw` does not match |
+
+Sent when the laptop comes online and every 10 seconds, so a laptop that has not sent anything
+yet still learns it. The laptop program logs it next to its own version.
+
 ## Laptop to timer
 
 ### State
