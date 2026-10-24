@@ -7,8 +7,9 @@
 ## Goal
 
 A small AMOLED timer on the lectern shows the elapsed talk time and colours its background by
-how the speaker is doing against `## m:ss` marks in the PowerPoint speaker notes: green on plan,
-red behind, purple ahead. It has to be ready for the the first talk on the talk date.
+how the speaker is doing against `## m:ss` marks in the PowerPoint speaker notes. The colours are
+instructions: green = keep going, red = ahead, talk slower, purple = behind, talk faster, orange
+blinking = overtime. It has to be ready for the the first talk on the talk date.
 
 Approach: the timer owns the time `t` and runs alone without a laptop. A .NET 8 tray program on
 the laptop reads PowerPoint read-only over COM, evaluates the marks and sends one JSON line per
@@ -49,26 +50,26 @@ else is development session work.
 
 ### Task 1: Repository skeleton and laptop CI (by Mon 26.10.)
 
-1. [ ] Create `.gitignore` for .NET, ESP-IDF (`build/`, `managed_components/`, `sdkconfig`,
+1. [x] Create `.gitignore` for .NET, ESP-IDF (`build/`, `managed_components/`, `sdkconfig`,
    `sdkconfig.old`) and CMake host builds. Expected: `git status` after a build shows no build
    output
-2. [ ] Create `.editorconfig` (C#: file-scoped namespaces, 4 spaces; C: 4 spaces). Expected: file
+2. [x] Create `.editorconfig` (C#: file-scoped namespaces, 4 spaces; C: 4 spaces). Expected: file
    present
-3. [ ] Create `laptop/SpeakerTimer.sln` with `laptop/src/SpeakerTimer.Core` (`net8.0`, class
+3. [x] Create `laptop/SpeakerTimer.sln` with `laptop/src/SpeakerTimer.Core` (`net8.0`, class
    library) and `laptop/tests/SpeakerTimer.Core.Tests` (`net8.0`, xUnit, `coverlet.collector`).
    Expected: `dotnet test laptop/SpeakerTimer.sln` passes with one placeholder-free smoke test of
    a real type (for example `Mark` record equality)
-4. [ ] Create `docs/protocol.md`: the S-02 lines (timer to laptop `{"v":1,"t":612,"run":true}`;
+4. [x] Create `docs/protocol.md`: the S-02 lines (timer to laptop `{"v":1,"t":612,"run":true}`;
    laptop to timer `{"v":1,"c":"#00A000","d":90}`, `{"v":1,"L":2700}`,
    `{"v":1,"state":"ended"}`), 128-byte limit, drop rules, send cadence. Expected: the single
    source both sides implement against
-5. [ ] Create `.github/workflows/ci.yml`, job `laptop` on `ubuntu-latest`, path filter
+5. [x] Create `.github/workflows/ci.yml`, job `laptop` on `ubuntu-latest`, path filter
    `laptop/**` and the workflow file itself: `dotnet build -warnaserror`, `dotnet format
    --verify-no-changes`, `dotnet test --collect:"XPlat Code Coverage"`. Expected: green run on
    push
-6. [ ] Replace the generated `README.md` with an English README: purpose, hardware, repo layout,
+6. [x] Replace the generated `README.md` with an English README: purpose, hardware, repo layout,
    status "work in progress, stage 1". Expected: renders on GitHub
-7. [ ] Commit and push. Expected: CI `laptop` green on `main`
+7. [x] Commit and push. Expected: CI `laptop` green on `main`
 
 ### Task 2: Evaluation logic in SpeakerTimer.Core (by Wed 28.10.)
 
@@ -89,13 +90,18 @@ implement.
 11. [ ] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
     slideIndex)`; a mark is reached the first time `slideIndex` is at or past its slide, evaluated
     once; going back re-evaluates nothing; jumping past marks reaches them; precedence B-06, then
-    B-02 to B-04 on arrival, then B-05, then B-01; purple only while `t < m - tol`. Expected: the
-    worked example from the requirements page (slide 15, `## 10:00`, arrivals at 10:40, 12:00,
-    8:30 then 9:00, and 11:01 on slide 13) passes as a test, plus one test per rule
+    B-02 to B-04 on arrival, then B-05, then B-01; colours per the 2026-10-24 19:15 decision:
+    within `tol` green, behind (`t - m > tol`, B-03, and B-06) purple, ahead red, red only while
+    `t < m - tol`; overtime `t > L` (B-07) is its own state `overtime`. Expected: the worked
+    example from the requirements page passes as a test (`L = 45:00`, `tol = 1:00`, slide 15
+    `## 10:00`: arrival at 10:40 green, at 12:00 purple, at 8:30 red and green again at 9:00 on
+    the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
+    rule
 12. [ ] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
     unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass
-13. [ ] `ColorScheme`: maps evaluation result to RGB (`neutral`, `green`, `red`, `purple`),
-    defaults in one place so O-05 later only adds a config file. Expected: test pins the default
+13. [ ] `ColorScheme`: maps evaluation result to RGB (`neutral` white on black, `onPlan` green,
+    `ahead` red = talk slower, `behind` purple = talk faster, `overtime` orange with black digits,
+    blinking), defaults in one place so O-05 later only adds a config file. Expected: test pins the default
     values
 14. [ ] Commit and push. Expected: CI `laptop` green, coverage report produced as an artifact
 
@@ -157,8 +163,8 @@ implement.
 ### Task 4: Firmware clock and display (by Sun 01.11.)
 
 22. [ ] Create component `firmware/components/timer_core/` in plain C without IDF headers:
-    `clock.c` (start, pause, reset, `t` in seconds, `L`, blink decision for B-07, red from 60:00
-    offline for D-06), `line.c` (S-02 parsing and the timer-to-laptop line, 128-byte limit),
+    `clock.c` (start, pause, reset, `t` in seconds, `L`; overtime state for B-07 when `t > L`
+    and for D-06 offline from 60:00: orange, blinking, black digits), `line.c` (S-02 parsing and the timer-to-laptop line, 128-byte limit),
     `format.c` (`mm:ss`, `+1:30`). Expected: compiles inside the IDF build
 23. [ ] Create host tests in `firmware/test/host/` (`CMakeLists.txt`, a minimal assert runner, no
     PlatformIO) for `clock`, `line` and `format`. Expected: `cmake -S firmware/test/host -B
@@ -189,7 +195,7 @@ implement.
     by VID `303A` PID `1001` (L-06), open with `DtrEnable = false`, `RtsEnable = false` (A-03),
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
 32. [ ] Laptop test mode `speaker-timer.exe --demo`: cycles neutral, green, red, purple and a
-    deviation every 3 s, sends `L` once. Expected: builds
+    deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds
 33. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; then run `--demo`
     against the board on the development PC while the owner observes the board. Expected: colours
     and deviation change as sent; opening the port does not reset the board; unplugging the cable
