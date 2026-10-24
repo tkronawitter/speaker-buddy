@@ -21,6 +21,9 @@ public sealed record LengthLine(int LengthSeconds) : ProtocolLine;
 /// <summary>Laptop to timer: the slide show has ended.</summary>
 public sealed record EndedLine : ProtocolLine;
 
+/// <summary>Timer to laptop: the firmware version (git describe of the build), sent now and then.</summary>
+public sealed record FirmwareLine(string Version) : ProtocolLine;
+
 /// <summary>Serializes and parses protocol lines. Lines carry no terminator here.</summary>
 public static partial class Protocol
 {
@@ -32,10 +35,14 @@ public static partial class Protocol
     private const string EndedState = "ended";
 
     // Exactly one of these fields identifies the line type.
-    private static readonly string[] Discriminators = ["t", "c", "L", "state"];
+    private static readonly string[] Discriminators = ["t", "c", "L", "state", "fw"];
 
     [GeneratedRegex("^#[0-9A-Fa-f]{6}$", RegexOptions.CultureInvariant)]
     private static partial Regex HexColor();
+
+    // Characters the timer leaves in a version; it replaces anything else with '_' (line.c)
+    [GeneratedRegex("^[0-9A-Za-z._+-]{1,40}$", RegexOptions.CultureInvariant)]
+    private static partial Regex FirmwareVersion();
 
     /// <summary>Serializes a line to compact JSON without terminator.</summary>
     /// <exception cref="ArgumentException">The line holds a value the protocol does not allow.</exception>
@@ -78,6 +85,14 @@ public static partial class Protocol
                     break;
                 case EndedLine:
                     writer.WriteString("state", EndedState);
+                    break;
+                case FirmwareLine firmware:
+                    if (firmware.Version is null || !FirmwareVersion().IsMatch(firmware.Version))
+                    {
+                        throw new ArgumentException($"Firmware version must be 1 to 40 of [0-9A-Za-z._+-], got '{firmware.Version}'.", nameof(line));
+                    }
+
+                    writer.WriteString("fw", firmware.Version);
                     break;
                 default:
                     throw new ArgumentException($"Unknown line type {line.GetType().Name}.", nameof(line));
@@ -150,6 +165,7 @@ public static partial class Protocol
                 "t" => ParseStatus(root),
                 "c" => ParseState(root),
                 "L" => ParseLength(root),
+                "fw" => ParseFirmware(root),
                 _ => ParseEnded(root),
             };
             return result is not null;
@@ -195,6 +211,14 @@ public static partial class Protocol
     {
         var state = root.GetProperty("state");
         return state.ValueKind == JsonValueKind.String && state.GetString() == EndedState ? new EndedLine() : null;
+    }
+
+    private static FirmwareLine? ParseFirmware(JsonElement root)
+    {
+        var version = root.GetProperty("fw");
+        return version.ValueKind == JsonValueKind.String && FirmwareVersion().IsMatch(version.GetString()!)
+            ? new FirmwareLine(version.GetString()!)
+            : null;
     }
 
     private static bool IsFlatWithUniqueNames(JsonElement root)

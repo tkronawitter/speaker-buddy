@@ -13,7 +13,26 @@ public class ProtocolTests
         { new StateLine("#000000", null), """{"v":1,"c":"#000000","d":null}""" },
         { new LengthLine(2700), """{"v":1,"L":2700}""" },
         { new EndedLine(), """{"v":1,"state":"ended"}""" },
+        { new FirmwareLine("v0.1.0-3-gabc1234-dirty"), """{"v":1,"fw":"v0.1.0-3-gabc1234-dirty"}""" },
     };
+
+    [Theory]
+    [InlineData("""{"v":1,"fw":""}""")]
+    [InlineData("""{"v":1,"fw":"a b"}""")]
+    [InlineData("""{"v":1,"fw":"x/y"}""")]
+    [InlineData("""{"v":1,"fw":1}""")]
+    [InlineData("""{"v":1,"fw":"01234567890123456789012345678901234567890"}""")]
+    [InlineData("""{"v":1,"fw":"v0.1.0","t":5,"run":true}""")]
+    public void Invalid_firmware_lines_are_dropped(string line)
+    {
+        Assert.False(Protocol.TryParse(line, out _));
+    }
+
+    [Fact]
+    public void A_firmware_version_the_timer_would_not_send_is_not_serialized()
+    {
+        Assert.Throws<ArgumentException>(() => Protocol.Serialize(new FirmwareLine("a b")));
+    }
 
     [Theory]
     [MemberData(nameof(Lines))]

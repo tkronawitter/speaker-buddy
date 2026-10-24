@@ -320,3 +320,26 @@ int tc_line_format_status(char *buf, size_t size, uint32_t t, bool run)
                            (unsigned long)t, run ? "true" : "false");
     return (written < 0 || (size_t)written >= size) ? -1 : written;
 }
+
+static bool version_char_ok(char ch)
+{
+    return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '.'
+           || ch == '-' || ch == '+' || ch == '_';
+}
+
+int tc_line_format_version(char *buf, size_t size, const char *version)
+{
+    if (buf == NULL || size == 0) {
+        return -1;
+    }
+    char clean[TC_LINE_VERSION_MAX + 1];
+    size_t n = 0;
+    if (version != NULL) {
+        for (; n < TC_LINE_VERSION_MAX && version[n] != '\0'; n++) {
+            clean[n] = version_char_ok(version[n]) ? version[n] : '_';
+        }
+    }
+    clean[n] = '\0';
+    int written = snprintf(buf, size, "{\"v\":%d,\"fw\":\"%s\"}\n", TC_PROTOCOL_VERSION, n > 0 ? clean : "unknown");
+    return (written < 0 || (size_t)written >= size) ? -1 : written;
+}

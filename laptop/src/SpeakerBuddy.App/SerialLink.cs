@@ -41,6 +41,9 @@ public sealed class SerialLink : IDisposable
     /// <summary>Raised for every valid status line from the timer.</summary>
     public event Action<TimerStatusLine>? StatusReceived;
 
+    /// <summary>Raised for every valid firmware version line from the timer.</summary>
+    public event Action<FirmwareLine>? FirmwareReceived;
+
     public void Start()
     {
         if (_loop is not null)
@@ -190,9 +193,18 @@ public sealed class SerialLink : IDisposable
 
             foreach (var line in framer.Feed(buffer.AsSpan(0, count)))
             {
-                if (Protocol.TryParse(line, out var parsed) && parsed is TimerStatusLine status)
+                if (!Protocol.TryParse(line, out var parsed))
+                {
+                    continue;
+                }
+
+                if (parsed is TimerStatusLine status)
                 {
                     StatusReceived?.Invoke(status);
+                }
+                else if (parsed is FirmwareLine firmware)
+                {
+                    FirmwareReceived?.Invoke(firmware);
                 }
             }
         }

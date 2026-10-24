@@ -45,6 +45,16 @@ bool tc_line_parse(const char *line, size_t len, tc_line_t *out);
  */
 int tc_line_format_status(char *buf, size_t size, uint32_t t, bool run);
 
+/* Longest firmware version the version line carries; longer versions are cut */
+#define TC_LINE_VERSION_MAX 40
+
+/*
+ * Formats the firmware version line {"v":1,"fw":"<version>"} followed by '\n'. The protocol has no
+ * escapes, so characters other than letters, digits, '.', '-', '+' and '_' become '_', and an empty
+ * or NULL version becomes "unknown". Returns the length written, or -1 if the buffer is too small.
+ */
+int tc_line_format_version(char *buf, size_t size, const char *version);
+
 #ifdef __cplusplus
 }
 #endif

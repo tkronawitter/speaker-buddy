@@ -14,7 +14,23 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>speaker-buddy</AssemblyName>
     <RootNamespace>SpeakerBuddy.App</RootNamespace>
+    <!-- The informational version is the git describe of the build (target below), not 1.0.0+<sha> -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
+  <!-- Same form as the firmware: v0.1.0, v0.1.0-3-gabc1234, with -dirty for uncommitted changes -->
+  <Target Name="SetVersionFromGit" BeforeTargets="GetAssemblyVersion">
+    <Exec Command="git describe --tags --always --dirty" WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true" StandardOutputImportance="low" StandardErrorImportance="low"
+          IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true" ContinueOnError="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitDescribe" />
+      <Output TaskParameter="ExitCode" PropertyName="GitDescribeExitCode" />
+    </Exec>
+    <PropertyGroup>
+      <InformationalVersion Condition="'$(GitDescribeExitCode)' == '0' And '$(GitDescribe)' != ''">$(GitDescribe)</InformationalVersion>
+      <InformationalVersion Condition="'$(InformationalVersion)' == '' Or '$(GitDescribeExitCode)' != '0'">unknown</InformationalVersion>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />

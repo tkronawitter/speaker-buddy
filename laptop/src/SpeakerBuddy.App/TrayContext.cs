@@ -34,12 +34,20 @@ public sealed class TrayContext : ApplicationContext
         };
 
         _status = new System.Windows.Forms.Timer { Interval = 1000 };
-        _status.Tick += (_, _) => _icon.Text = _runner.Port is string port
-            ? $"Speaker Buddy: connected on {port}"
-            : "Speaker Buddy: waiting for the timer";
+        _status.Tick += (_, _) => _icon.Text = Tooltip(_runner.Port, _runner.Firmware);
         _status.Start();
 
         _runner.Start();
+    }
+
+    // NotifyIcon refuses texts over 127 characters; the versions are at most 40 each
+    private static string Tooltip(string? port, string? firmware)
+    {
+        var text = port is null
+            ? $"Speaker Buddy {AppVersion.Current}: waiting for the timer"
+            : $"Speaker Buddy {AppVersion.Current}: connected on {port}"
+              + (firmware is null ? string.Empty : $", timer {firmware}");
+        return text.Length <= 127 ? text : text[..127];
     }
 
     private void OpenLog()

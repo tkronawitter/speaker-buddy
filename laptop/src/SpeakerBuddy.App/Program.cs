@@ -148,7 +148,17 @@ internal static class Program
             }
         };
 
-        Console.WriteLine("demo running, Ctrl+C to stop");
+        string? lastFirmware = null;
+        link.FirmwareReceived += firmware =>
+        {
+            if (firmware.Version != lastFirmware)
+            {
+                Console.WriteLine($"timer firmware {firmware.Version}");
+                lastFirmware = firmware.Version;
+            }
+        };
+
+        Console.WriteLine($"demo running (speaker-buddy {AppVersion.Current}), Ctrl+C to stop");
         link.Start();
 
         var started = DateTime.UtcNow;

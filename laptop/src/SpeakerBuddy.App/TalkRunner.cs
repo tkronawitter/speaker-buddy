@@ -24,6 +24,7 @@ public sealed class TalkRunner : IDisposable
     private Thread? _thread;
     private TimerStatusLine? _timer;
     private string? _port;
+    private string? _firmware;
     private EvaluationRule? _lastRule;
 
     public TalkRunner(int? lengthArgument, string? fixedPort, FileLog log)
@@ -35,14 +36,18 @@ public sealed class TalkRunner : IDisposable
         _link.Connected += OnConnected;
         _link.Disconnected += OnDisconnected;
         _link.StatusReceived += status => _timer = status;
+        _link.FirmwareReceived += OnFirmware;
     }
 
     /// <summary>Port of the connected timer, or null.</summary>
     public string? Port => _port;
 
+    /// <summary>Firmware version the connected timer reported, or null until it did.</summary>
+    public string? Firmware => _firmware;
+
     public void Start()
     {
-        _log.Write("started");
+        _log.Write($"started, speaker-buddy {AppVersion.Current}");
         _link.Start();
         _thread = new Thread(Run) { IsBackground = true, Name = "talk" };
         _thread.Start();
@@ -74,10 +79,20 @@ public sealed class TalkRunner : IDisposable
         }
     }
 
+    private void OnFirmware(FirmwareLine firmware)
+    {
+        if (firmware.Version != _firmware)
+        {
+            _firmware = firmware.Version;
+            _log.Write($"timer firmware {firmware.Version}");
+        }
+    }
+
     private void OnDisconnected()
     {
         _port = null;
         _timer = null;
+        _firmware = null;
         _log.Write("timer disconnected");
     }
 

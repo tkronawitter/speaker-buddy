@@ -134,6 +134,42 @@ static void status_line_reports_a_too_small_buffer(void)
     CHECK_EQ_INT(-1, tc_line_format_status(buf, sizeof buf, 612, true));
 }
 
+static void version_line_is_formatted_with_terminator(void)
+{
+    char buf[TC_LINE_MAX_BYTES];
+    CHECK_EQ_INT(33, tc_line_format_version(buf, sizeof buf, "v0.1.0-3-gabc1234"));
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"v0.1.0-3-gabc1234\"}\n", buf);
+    tc_line_format_version(buf, sizeof buf, "1ac6a99-dirty");
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"1ac6a99-dirty\"}\n", buf);
+}
+
+static void version_line_replaces_unsafe_characters_and_cuts_long_versions(void)
+{
+    char buf[TC_LINE_MAX_BYTES];
+    tc_line_format_version(buf, sizeof buf, "a\"b\\c d/e");
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"a_b_c_d_e\"}\n", buf);
+    tc_line_format_version(buf, sizeof buf, "0123456789012345678901234567890123456789overflow");
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"0123456789012345678901234567890123456789\"}\n", buf);
+    CHECK(strlen(buf) <= TC_LINE_MAX_BYTES);
+}
+
+static void version_line_without_a_version_says_unknown(void)
+{
+    char buf[TC_LINE_MAX_BYTES];
+    tc_line_format_version(buf, sizeof buf, "");
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"unknown\"}\n", buf);
+    tc_line_format_version(buf, sizeof buf, NULL);
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"unknown\"}\n", buf);
+    char small[10];
+    CHECK_EQ_INT(-1, tc_line_format_version(small, sizeof small, "v0.1.0"));
+}
+
+static void version_line_is_not_a_laptop_line(void)
+{
+    tc_line_t l;
+    CHECK(!parse("{\"v\":1,\"fw\":\"v0.1.0\"}", &l));
+}
+
 int main(void)
 {
     RUN(state_line_with_deviation);
@@ -145,5 +181,9 @@ int main(void)
     RUN(null_arguments_are_rejected);
     RUN(status_line_is_formatted_with_terminator);
     RUN(status_line_reports_a_too_small_buffer);
+    RUN(version_line_is_formatted_with_terminator);
+    RUN(version_line_replaces_unsafe_characters_and_cuts_long_versions);
+    RUN(version_line_without_a_version_says_unknown);
+    RUN(version_line_is_not_a_laptop_line);
     return TEST_RESULT();
 }

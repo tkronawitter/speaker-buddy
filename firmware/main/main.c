@@ -1,5 +1,6 @@
 /* Speaker Buddy firmware: the timer owns the elapsed time and runs on its own without a laptop. */
 #include "bsp/esp-bsp.h"
+#include "esp_app_desc.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -88,5 +89,5 @@ void app_main(void)
     bsp_display_unlock();
 
     link_start(&s_clock, &s_session, now_ms);
-    ESP_LOGI(TAG, "timer ready, tap to start");
+    ESP_LOGI(TAG, "Speaker Buddy %s ready, tap to start", esp_app_get_description()->version);
 }

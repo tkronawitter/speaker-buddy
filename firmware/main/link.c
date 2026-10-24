@@ -6,6 +6,7 @@
 #include "bsp/esp-bsp.h"
 #include "driver/usb_serial_jtag.h"
 #include "driver/usb_serial_jtag_vfs.h"
+#include "esp_app_desc.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -17,6 +18,8 @@ static const char *TAG = "link";
 #define LINK_WRITE_TIMEOUT_MS 20
 #define LINK_TASK_STACK 4096
 #define LINK_TASK_PRIORITY 5
+/* The version line also goes out this often, so a laptop that sends nothing yet still learns it */
+#define LINK_VERSION_PERIOD_MS 10000
 
 static tc_clock_t *s_clock;
 static tc_session_t *s_session;
@@ -46,16 +49,42 @@ static void handle_line(const char *line, size_t len)
     }
 }
 
-/* Logs link transitions once, so the console shows when the laptop came and went */
-static void log_online_change(void)
+/*
+ * Logs link transitions once, so the console shows when the laptop came and went. Returns true
+ * when the laptop has just come online.
+ */
+static bool log_online_change(void)
 {
     static bool was_online;
     bsp_display_lock(0);
     bool online = tc_session_online(s_session, s_now_ms());
     bsp_display_unlock();
+    bool came_online = online && !was_online;
     if (online != was_online) {
         ESP_LOGI(TAG, "%s", online ? "laptop connected" : "laptop lost, running offline");
         was_online = online;
+    }
+    return came_online;
+}
+
+/* Sends {"v":1,"fw":"..."} when the laptop comes online and every LINK_VERSION_PERIOD_MS */
+static void send_version_if_due(bool came_online)
+{
+    static bool sent_any;
+    static uint32_t last_sent_ms;
+    uint32_t now = s_now_ms();
+    if (sent_any && !came_online && now - last_sent_ms < LINK_VERSION_PERIOD_MS) {
+        return;
+    }
+    sent_any = true;
+    last_sent_ms = now;
+
+    /* Leading newline for the same reason as on the status line */
+    char line[TC_LINE_MAX_BYTES + 1];
+    line[0] = '\n';
+    int len = tc_line_format_version(line + 1, sizeof line - 1, esp_app_get_description()->version);
+    if (len > 0) {
+        usb_serial_jtag_write_bytes(line, (size_t)len + 1, pdMS_TO_TICKS(LINK_WRITE_TIMEOUT_MS));
     }
 }
 
@@ -110,8 +139,9 @@ static void link_task(void *arg)
         if (count > 0) {
             feed(rx, count);
         }
-        log_online_change();
+        bool came_online = log_online_change();
         send_status_if_due();
+        send_version_if_due(came_online);
     }
 }
 
