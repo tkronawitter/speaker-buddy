@@ -29,7 +29,7 @@ public class MarkParserTests
     [InlineData(" ## 10:00")]
     [InlineData("\t## 10:00")]
     [InlineData("## 10:00 x")]
-    [InlineData("## 10:00 ")]
+    [InlineData("## 10:00\u00a0")]
     [InlineData("##  10:00")]
     [InlineData("# 10:00")]
     [InlineData("")]
@@ -41,7 +41,7 @@ public class MarkParserTests
     [Fact]
     public void Arabic_indic_digits_are_rejected()
     {
-        Assert.False(MarkParser.TryParseLine("## ١٠:٠٠", out _));
+        Assert.False(MarkParser.TryParseLine("## \u0661\u0660:\u0660\u0660", out _));
     }
 
     [Theory]
@@ -73,5 +73,39 @@ public class MarkParserTests
     public void Notes_without_a_mark_return_null(string? notes)
     {
         Assert.Null(MarkParser.ParseNotes(notes));
+    }
+
+    [Theory]
+    [InlineData("## 10:75")]
+    [InlineData("## 10:00 Demo")]
+    [InlineData("## 1:05:00")]
+    [InlineData("##10:00")]
+    [InlineData(" ## 10:00")]
+    [InlineData("# 10:00")]
+    [InlineData("### 10:00")]
+    [InlineData("## 100:00")]
+    [InlineData("## 10 : 00")]
+    public void Lines_that_look_like_marks_are_near_misses(string line)
+    {
+        Assert.True(MarkParser.IsNearMiss(line));
+    }
+
+    [Theory]
+    [InlineData("## 10:00")]
+    [InlineData("## 10:00 ")]
+    [InlineData("## Agenda")]
+    [InlineData("Start at 10:00")]
+    [InlineData("#hashtag")]
+    [InlineData("")]
+    public void Valid_marks_and_ordinary_text_are_not_near_misses(string line)
+    {
+        Assert.False(MarkParser.IsNearMiss(line));
+    }
+
+    [Fact]
+    public void Near_misses_are_collected_from_all_lines_of_the_notes()
+    {
+        Assert.Equal(new[] { "## 10:75", "##12:00" }, MarkParser.NearMisses("## 10:75\r## 11:00\v##12:00"));
+        Assert.Empty(MarkParser.NearMisses(null));
     }
 }

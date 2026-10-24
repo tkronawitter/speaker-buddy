@@ -51,6 +51,36 @@ public class TalkLengthTests
     }
 
     [Theory]
+    [InlineData("45", 2700)]
+    [InlineData("30", 1800)]
+    [InlineData(" 45 ", 2700)]
+    [InlineData("44:30", 2670)]
+    [InlineData("0:45", 45)]
+    [InlineData("120:00", 7200)]
+    public void Length_argument_accepts_minutes_or_m_ss(string text, int expected)
+    {
+        Assert.True(TalkLength.TryParseArgument(text, out var seconds));
+        Assert.Equal(expected, seconds);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("0")]
+    [InlineData("0:00")]
+    [InlineData("-5")]
+    [InlineData("45min")]
+    [InlineData("44:5")]
+    [InlineData("44:60")]
+    [InlineData("1:00:00")]
+    [InlineData("4,5")]
+    [InlineData("1000")]
+    public void Invalid_length_arguments_are_rejected(string? text)
+    {
+        Assert.False(TalkLength.TryParseArgument(text, out _));
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(-1)]
     public void Non_positive_argument_is_rejected(int argument)

@@ -18,6 +18,10 @@ public static partial class MarkParser
     [GeneratedRegex("^## ([0-9]{1,2}):([0-5][0-9])$", RegexOptions.CultureInvariant)]
     private static partial Regex MarkLine();
 
+    // Looks like an attempted mark: hashes, then a time-like "digits:digit" somewhere after them.
+    [GeneratedRegex(@"^\s*#{1,3}\s*[0-9]{1,3}\s*:\s*[0-9]", RegexOptions.CultureInvariant)]
+    private static partial Regex NearMissLine();
+
     /// <summary>Parses one line. Returns false unless the whole line, without trailing whitespace, is a mark.</summary>
     public static bool TryParseLine(string line, out int seconds)
     {
@@ -32,6 +36,20 @@ public static partial class MarkParser
         seconds = (int.Parse(match.Groups[1].ValueSpan) * 60) + int.Parse(match.Groups[2].ValueSpan);
         return true;
     }
+
+    /// <summary>
+    /// True for a line that looks like a mark but is not one, such as <c>## 10:75</c>,
+    /// <c>## 10:00 Demo</c>, <c>## 1:05:00</c> or <c>##10:00</c> (requirement L-09).
+    /// </summary>
+    public static bool IsNearMiss(string line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        return NearMissLine().IsMatch(line) && !TryParseLine(line, out _);
+    }
+
+    /// <summary>All lines of the notes that look like marks but are not (L-09).</summary>
+    public static IReadOnlyList<string> NearMisses(string? notes) =>
+        string.IsNullOrEmpty(notes) ? [] : notes.Split(LineSeparators).Where(IsNearMiss).ToList();
 
     /// <summary>Returns the first mark in the notes of one slide, or null if there is none.</summary>
     public static int? ParseNotes(string? notes)
