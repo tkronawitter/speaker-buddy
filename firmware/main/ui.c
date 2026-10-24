@@ -11,6 +11,9 @@
  */
 extern const lv_font_t digits_150;
 #define UI_TIME_FONT (&digits_150)
+/* Deviation line: the same glyphs at 76 px, half the time's digit height; "-10:15" is about 197 px wide */
+extern const lv_font_t digits_76;
+#define UI_DEVIATION_FONT (&digits_76)
 #define UI_SMALL_FONT (&lv_font_montserrat_28)
 
 /*
@@ -109,7 +112,7 @@ void ui_create(void)
 
     create_time();
 
-    s_deviation = create_label(UI_SMALL_FONT);
+    s_deviation = create_label(UI_DEVIATION_FONT);
     lv_obj_align(s_deviation, LV_ALIGN_BOTTOM_MID, 0, -40);
 
     s_disconnected = create_label(UI_SMALL_FONT);
