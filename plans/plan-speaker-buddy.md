@@ -482,13 +482,14 @@ implement.
 
 ### Stretch, before the talk date only if every core step above is on time
 
-50. [ ] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03).
+50. [x] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03).
     Pushed 2026-10-25 ("Upload laptop coverage to Codecov"): `ci.yml` job `laptop` with
     `codecov-action@v7`, flag `laptop`, `fail_ci_if_error: false` until the secret exists;
     `codecov.yml` with informational checks and carryforward for the `laptop` flag. README badge
     added. Local coverage (dev-Repository-2): lines 93.3 % (979/1049), branches 82.6 %.
-    Open: the owner sets the repository secret `CODECOV_TOKEN`; the step is done when the first
-    upload shows up on codecov.io
+    the owner set the repository secret `CODECOV_TOKEN` on 2026-10-25 at 01:46; CI run 40144113537
+    on c21addb uploaded the coverage report to Codecov. Follow-up for later:
+    `fail_ci_if_error` can go to `true` now that the token exists
 51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
     `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04).
     Pushed in 7072ada "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
@@ -535,6 +536,28 @@ implement.
     `timer_core/splash.c` with 5 host tests. Build without warnings, `check-image` 0, flashed by
     the dev session. PASS per the owner 2026-10-25 01:39 ("das logo und version waren toll.
     perfekt"). Not checked: a tap during the 2 s ends the splash and starts the clock
+
+Follow-ups from the code review of e57664c, decided by the owner 2026-10-25 01:51 ("alles so").
+Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
+
+57. [ ] Keepalive: while connected, the laptop sends a state line at least once per second, a
+    neutral one when no slide show runs and the last state while PowerPoint is busy. The
+    disconnected symbol then only means cable or program gone. After `state: ended` the laptop
+    keeps sending neutral, so the timer stays online and neutral (`docs/protocol.md` follows).
+    Commit pending. Expected: tests pass; on the board no disconnected symbol between shows
+58. [ ] New protocol line `{"v":1,"L":null}` = talk length unknown, clear it. The laptop sends
+    it after connecting and at show start when `L` is unknown; the firmware clears `L`. Commit
+    pending. Expected: host and laptop tests for the new line pass
+59. [ ] The clock survives an unexpected chip reset: RTC snapshot of `t` and the running state,
+    resumed after a reset unless it was a power-on or brownout. Commit pending. Expected: host
+    tests pass; on the board a reset during a running clock resumes it
+60. [ ] The laptop counts a timer reset only when `t == 0` and `run == false`. Commit pending.
+    Expected: tests pass
+61. [ ] Hardening without new decisions. Laptop: kill-switch crash fix, no dialogs, serial loop
+    robustness, log rate limit and cleanup, `--check` on files that are not `.pptx`, framer
+    tests. Firmware: panel reset retry, `MAX_FIELDS`. CI and tools: `check-image` robustness plus
+    a scan of the map file, actions pinned by SHA, `dependencies.lock` drift check, host tests in
+    the release workflow. Commit pending. Expected: CI green, tests pass
 
 After the talk date (not planned here): build attestations for the release (R-07), Dependabot (R-08),
 CSV log (L-08), brightness (D-05), O-04 to O-08.
