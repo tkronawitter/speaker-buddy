@@ -80,6 +80,9 @@ implement.
    0 to 99, seconds 00 to 59; first mark per slide wins. Tests cover `## 10:00`, `## 0:30`,
    `## 99:59` (valid) and `## 10:75`, `## 10:00 Demo`, `## 1:05:00`, `##10:00` (rejected).
    Expected: all pass
+   - [ ] Follow-up (the owner, 2026-10-24 19:19): trim trailing whitespace before matching, so
+     `## 10:00 ` is a mark; ` ## 10:00` (leading) and `## 10:00 Demo` stay rejected. Expected:
+     new tests for both cases pass, CI `laptop` green
 9. [x] `MarkSet` builder: input is a list of (slide index, hidden flag, notes text); hidden slides
    are ignored; a mark lower than an earlier one produces a warning and is dropped. Expected: tests
    for hidden slides and decreasing marks pass
@@ -102,8 +105,7 @@ implement.
 13. [x] `ColorScheme`: maps evaluation result to RGB (`neutral` white on black, `onPlan` green,
     `ahead` red = talk slower, `behind` purple = talk faster), defaults in one place so O-05 later
     only adds a config file. No orange here: the timer decides overtime alone from `t > L` and
-    draws orange, blinking, black digits itself (dev interpretation, pending confirmation by
-    the owner, see Unresolved Questions 4). Expected: test pins the default
+    draws orange, blinking, black digits itself (confirmed by the owner 2026-10-24 19:19). Expected: test pins the default
     values
 14. [x] Commit and push. Expected: CI `laptop` green, coverage report produced as an artifact
 
@@ -304,15 +306,19 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Unresolved Questions
 
-Open, dev interpretations from Task 2 (2026-10-24), implemented as stated, waiting for the owner:
+None open.
 
-1. Deviation `d` freezes at arrival of the last mark (no further marks to compare): OK?
-2. `L` unknown (no argument, highest mark below 5:00): `tol` = 0:30: OK?
-3. `## 10:00` with a trailing space is not a mark: OK? Coordinator recommends allowing it.
-4. Overtime orange decided and drawn by the timer only, laptop `ColorScheme` has no orange: OK?
-5. `tol` rounded down to whole seconds: OK?
+Answered by the owner on 2026-10-24 at 19:19, the five dev interpretations from Task 2:
 
-Answered: the first five questions, by the owner on 2026-10-24 at 18:43, folded into the steps:
+1. Deviation `d` freezes at arrival of the last mark: confirmed as implemented.
+2. `L` unknown (no argument, highest mark below 5:00): `tol` = 0:30: confirmed.
+3. Changed: trailing spaces after `## m:ss` are allowed and trimmed before matching; leading
+   whitespace and text after the time stay invalid. Code change needed in `MarkParser` (step 8).
+4. Overtime orange decided and drawn by the timer only, laptop `ColorScheme` has no orange:
+   confirmed (step 13).
+5. `tol` rounded down to whole seconds: confirmed.
+
+Answered by the owner on 2026-10-24 at 18:43, the first five questions, folded into the steps:
 `nm` check locally before every flash until step 51 (steps 19, 20), check mode via OpenXml
 (step 38), kill switch as tray entry only (step 37), framework-dependent exe for the talk date (step 43),
 `L` line `{"v":1,"L":2700}` confirmed (step 4).
