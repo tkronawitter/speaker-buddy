@@ -29,8 +29,9 @@ depends on the laptop program.
 | Path | Content |
 | --- | --- |
 | `laptop/` | Laptop program, C# / .NET 8. `SpeakerTimer.Core` holds the platform-neutral logic and its tests, `SpeakerTimer.App` is the Windows program (`speaker-timer.exe`) |
-| `firmware/` | ESP-IDF firmware for the timer (planned) |
+| `firmware/` | ESP-IDF firmware for the timer. `components/timer_core` holds the clock, protocol and display logic in plain C, with host tests in `test/host` |
 | `docs/protocol.md` | The serial protocol between timer and laptop |
+| `tools/` | `check-image.ps1` / `check-image.sh`: fail if the firmware image links Wi-Fi, Bluetooth, OTA updates or TinyUSB |
 | `.github/workflows/` | CI |
 
 ## Build and test the laptop logic
@@ -40,6 +41,29 @@ Requires the .NET 8 SDK.
 ```sh
 dotnet test laptop/SpeakerTimer.sln
 ```
+
+## Build and flash the firmware
+
+Requires ESP-IDF v5.5.5. The component versions are pinned in `firmware/dependencies.lock`. Test
+the plain C logic on the host first; this needs CMake and a C compiler (Linux or WSL):
+
+```sh
+cmake -S firmware/test/host -B build-host
+cmake --build build-host
+ctest --test-dir build-host
+```
+
+Build the image from an ESP-IDF shell, check it, then flash it (replace `COM4` with the board's
+port):
+
+```sh
+cd firmware
+idf.py build
+pwsh ../tools/check-image.ps1 build/speaker_timer.elf
+idf.py -p COM4 flash
+```
+
+`check-image` must exit 0 before every flash.
 
 ## Laptop program
 
