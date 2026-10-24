@@ -86,28 +86,36 @@ public sealed class TalkRunner : IDisposable
         var lastPeriodic = DateTime.MinValue;
         while (!_stop.IsCancellationRequested)
         {
-            var poll = _source.Poll();
-            if (poll.Ok)
+            try
             {
-                var now = DateTime.UtcNow;
-                var periodic = now - lastPeriodic >= PeriodicInterval;
-                if (periodic)
+                var poll = _source.Poll();
+                if (poll.Ok)
                 {
-                    lastPeriodic = now;
-                }
+                    var now = DateTime.UtcNow;
+                    var periodic = now - lastPeriodic >= PeriodicInterval;
+                    if (periodic)
+                    {
+                        lastPeriodic = now;
+                    }
 
-                IReadOnlyList<ProtocolLine> lines;
-                lock (_controllerLock)
-                {
-                    var marksBefore = _controller.Marks;
-                    lines = _controller.Tick(poll.Show, _timer, periodic);
-                    LogChanges(marksBefore);
-                }
+                    IReadOnlyList<ProtocolLine> lines;
+                    lock (_controllerLock)
+                    {
+                        var marksBefore = _controller.Marks;
+                        lines = _controller.Tick(poll.Show, _timer, periodic);
+                        LogChanges(marksBefore);
+                    }
 
-                foreach (var line in lines)
-                {
-                    _link.Send(line);
+                    foreach (var line in lines)
+                    {
+                        _link.Send(line);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                // The timer keeps counting on its own; one failed tick must never end the program mid-talk
+                _log.Write($"tick failed and was skipped: {e.GetType().Name} {e.Message}");
             }
 
             _stop.Token.WaitHandle.WaitOne(PollInterval);

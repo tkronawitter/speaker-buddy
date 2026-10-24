@@ -51,13 +51,20 @@ public sealed class PowerPointSource
             Unlock();
             return new PollResult(true, null);
         }
+        catch (COMException e)
+        {
+            _log($"PowerPoint not reachable, tick skipped: {e.Message}");
+            return new PollResult(false, null);
+        }
 
         try
         {
             return new PollResult(true, ReadShow(application));
         }
+        // A busy PowerPoint (RPC_E_CALL_REJECTED, for example while a show starts or during a
+        // transition) makes the late-bound call fail with MissingMemberException, not COMException
         catch (Exception e) when (e is COMException or InvalidCastException or RuntimeBinderException
-                                      or InvalidComObjectException or ArgumentException)
+                                      or InvalidComObjectException or ArgumentException or MissingMemberException)
         {
             _log($"PowerPoint call failed, tick skipped: {e.GetType().Name} {e.Message}");
             return new PollResult(false, null);
