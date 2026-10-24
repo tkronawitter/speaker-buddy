@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "ui.c" "input.c" "link.c" "fonts/digits_150.c" "fonts/digits_76.c"
+    SRCS "main.c" "ui.c" "startup.c" "input.c" "link.c" "fonts/digits_150.c" "fonts/digits_76.c"
     INCLUDE_DIRS "."
 )
 

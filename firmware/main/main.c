@@ -8,8 +8,10 @@
 #include "input.h"
 #include "link.h"
 #include "lvgl.h"
+#include "startup.h"
 #include "timer_core/clock.h"
 #include "timer_core/session.h"
+#include "timer_core/splash.h"
 #include "timer_core/view.h"
 #include "ui.h"
 
@@ -33,6 +35,9 @@ static const char *TAG = "speaker_buddy";
  */
 static tc_clock_t s_clock;
 static tc_session_t s_session;
+/* Startup screen state, only touched in the LVGL task */
+static tc_splash_t s_splash;
+static bool s_splash_shown = true;
 
 static uint32_t now_ms(void)
 {
@@ -48,6 +53,12 @@ static void on_ui_tick(lv_timer_t *timer)
     tc_session_link_state(&s_session, now, &link);
     tc_view_compose(&s_clock, now, &link, &view);
     ui_render(&view);
+
+    bool splash = tc_splash_visible(&s_splash, now, tc_clock_running(&s_clock));
+    if (splash != s_splash_shown) {
+        startup_set_visible(splash);
+        s_splash_shown = splash;
+    }
 }
 
 static void reset_panel(void)
@@ -84,6 +95,8 @@ void app_main(void)
     bsp_display_brightness_set(80);
     bsp_display_rotate(disp, LV_DISPLAY_ROTATION_90);
     ui_create();
+    startup_create(esp_app_get_description()->version);
+    tc_splash_init(&s_splash, now_ms());
     input_attach(lv_screen_active(), bsp_display_get_input_dev(), &s_clock, now_ms);
     lv_timer_create(on_ui_tick, UI_PERIOD_MS, NULL);
     bsp_display_unlock();
