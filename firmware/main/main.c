@@ -3,8 +3,10 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "input.h"
+#include "link.h"
 #include "lvgl.h"
 #include "timer_core/clock.h"
+#include "timer_core/session.h"
 #include "timer_core/view.h"
 #include "ui.h"
 
@@ -13,12 +15,11 @@ static const char *TAG = "speaker_timer";
 #define UI_PERIOD_MS 100
 
 /*
- * Clock and link state are only touched from the LVGL task (the UI timer and input events), so
- * they need no lock of their own. The link stays offline until the serial link (plan step 30)
- * feeds it.
+ * Clock and session are shared by the LVGL task (UI timer, input events) and the link task.
+ * The LVGL lock guards both: LVGL callbacks run with it held, the link task takes it.
  */
 static tc_clock_t s_clock;
-static tc_link_state_t s_link;
+static tc_session_t s_session;
 
 static uint32_t now_ms(void)
 {
@@ -28,14 +29,18 @@ static uint32_t now_ms(void)
 static void on_ui_tick(lv_timer_t *timer)
 {
     (void)timer;
+    uint32_t now = now_ms();
+    tc_link_state_t link;
     tc_view_t view;
-    tc_view_compose(&s_clock, now_ms(), &s_link, &view);
+    tc_session_link_state(&s_session, now, &link);
+    tc_view_compose(&s_clock, now, &link, &view);
     ui_render(&view);
 }
 
 void app_main(void)
 {
     tc_clock_init(&s_clock);
+    tc_session_init(&s_session);
 
     lv_display_t *disp = bsp_display_start();
     if (disp == NULL) {
@@ -52,5 +57,6 @@ void app_main(void)
     lv_timer_create(on_ui_tick, UI_PERIOD_MS, NULL);
     bsp_display_unlock();
 
+    link_start(&s_clock, &s_session, now_ms);
     ESP_LOGI(TAG, "timer ready, tap to start");
 }
