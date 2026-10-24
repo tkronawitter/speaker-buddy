@@ -111,6 +111,13 @@ public static partial class Protocol
             line = line[..^1];
         }
 
+        // Lines are flat and carry no escapes (docs/protocol.md); outside strings a backslash is
+        // invalid JSON anyway, so any backslash drops the line, as on the timer.
+        if (line.Contains('\\'))
+        {
+            return false;
+        }
+
         JsonDocument document;
         try
         {
@@ -125,6 +132,7 @@ public static partial class Protocol
         {
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object
+                || !IsFlatWithUniqueNames(root)
                 || !TryGetInt(root, "v", out var version)
                 || version != Version)
             {
@@ -187,6 +195,21 @@ public static partial class Protocol
     {
         var state = root.GetProperty("state");
         return state.ValueKind == JsonValueKind.String && state.GetString() == EndedState ? new EndedLine() : null;
+    }
+
+    private static bool IsFlatWithUniqueNames(JsonElement root)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in root.EnumerateObject())
+        {
+            if (!names.Add(property.Name)
+                || property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // TryGetInt32 rejects fractions and exponents such as 1.0 or 1e0, so only plain integers pass.

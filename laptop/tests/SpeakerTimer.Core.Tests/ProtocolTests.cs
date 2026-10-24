@@ -84,6 +84,11 @@ public class ProtocolTests
     [InlineData("""{"v":1,"L":0}""")]
     [InlineData("""{"v":1,"L":"2700"}""")]
     [InlineData("""{"v":1,"state":"paused"}""")]
+    [InlineData("""{"v":1,"L":2700,"x":[1]}""")]
+    [InlineData("""{"v":1,"L":2700,"x":{"y":1}}""")]
+    [InlineData("""{"v":1,"L":2700,"L":60}""")]
+    [InlineData("{\"v\":1,\"state\":\"end\\u0065d\"}")]
+    [InlineData("""{"v":1,"L":2700,"x":"a\"b"}""")]
     public void Broken_unknown_or_invalid_lines_are_dropped(string line)
     {
         Assert.False(Protocol.TryParse(line, out var parsed));

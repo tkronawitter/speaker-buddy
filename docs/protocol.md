@@ -9,6 +9,8 @@ transport: stage 1 uses USB serial, a later Bluetooth LE transport carries the s
 - Transport: USB Serial/JTAG of the ESP32-S3 (VID `303A`, PID `1001`), seen as a CDC serial port
   on Windows. The laptop opens the port with DTR and RTS deasserted so the board does not reset.
 - One JSON object per line, UTF-8, terminated by `\n`. A receiver also accepts `\r\n`.
+- The object is flat: every value is a string, an integer, a boolean or `null`. Strings carry no
+  escape sequences. This keeps the parser on the timer small.
 - A line is at most **128 bytes**, including the terminator.
 - Every line carries the protocol version `v`. This page describes `"v":1`.
 
@@ -18,6 +20,8 @@ A receiver drops a line, without an error reply and without changing its state, 
 
 - is longer than 128 bytes,
 - is not a valid JSON object,
+- contains a nested object or array, or a backslash (an escape sequence in a string),
+- repeats a field name,
 - has no `v` field or a `v` other than `1`,
 - matches none of the line types below.
 
