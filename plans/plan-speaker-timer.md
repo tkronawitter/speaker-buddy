@@ -132,7 +132,16 @@ implement.
     copy left), then the throwaway test app `%USERPROFILE%\esp\bsp-test` flashed (IDF v5.5.5,
     toolchain esp-14.2.0_20260121, `bsp_test.bin` 706 KB, SHA-256
     `6cccc1547e26b78e85ba0ad6b5154f6d164f947307d6c484784649e05d45ba31`, checked with `nm` by
-    the dev session, not with `tools/check-image`). Result: pending
+    the dev session, not with `tools/check-image`). Result (about 18:55): BOOT-mode test PASS,
+    archive SHA-256 matched, `erase_flash` OK (16.1 s), bsp-test flashed and hashes verified.
+    Revision V2 verified by the serial log (`Touch CST816S 0x15 found`, `CST816S: IC id: 183`,
+    probe `-> board V2`); PSRAM 8 MB octal OK; co5300 2.2.0 panel created. FAIL: display stays
+    white, the app stops after the touch-probe line (no `Label shown`, no panic). Suspected,
+    unverified: BSP 2.0.3 registers the QSPI CO5300 panel through `lvgl_port_add_disp_rgb`.
+    Next: diagnostic image (step logging, lock timeout, heartbeat), flash waits for a go.
+    Reset lessons for step 31 and the flash steps: after ROM download mode an RTS reset boots the
+    app only after one power cycle (otherwise `boot:0x23`); the Windows `usbser` driver needs a
+    dummy DTR write
 21. [ ] Commit and push. Expected: `main` contains a buildable firmware project
 
 ### Task 4: Firmware clock and display (by Sun 01.11.)
