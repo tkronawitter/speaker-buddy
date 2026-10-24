@@ -60,7 +60,8 @@ backwards.
 | `laptop/` | Laptop program, C# / .NET 8. `SpeakerBuddy.Core` holds the platform-neutral logic and its tests, `SpeakerBuddy.App` is the Windows program (`speaker-buddy.exe`) |
 | `firmware/` | ESP-IDF firmware for the timer. `components/timer_core` holds the clock, protocol and display logic in plain C, with host tests in `test/host` |
 | `docs/protocol.md` | The serial protocol between timer and laptop |
-| `tools/` | `check-image.ps1` / `check-image.sh`: fail if the firmware image links Wi-Fi, Bluetooth, OTA updates or TinyUSB |
+| `tools/` | `check-image.ps1` / `check-image.sh`: fail if the firmware image links Wi-Fi, Bluetooth, OTA updates or TinyUSB. `publish-laptop.ps1` and `sign.ps1`: see "Publish and sign". `make-icons.ps1`: builds the `.ico` files from the logo |
+| `assets/logo/` | Logo as SVG masters and the app and tray icons |
 | `.github/workflows/` | CI |
 
 ## Build and test the laptop logic

@@ -500,14 +500,29 @@ implement.
     key is not exportable from the development PC; the the first talk exe is signed locally (step 43). Attestations
     are not part of it yet. Pushed in bb195f6, not run yet (no tag). Expected: a test tag produces a release
     with firmware, exe and `SHA256SUMS`
-55. [ ] Tray icon and exe icon from the logo (the owner, 2026-10-25 01:27-01:32): logo D "face in
+55. [x] Tray icon and exe icon from the logo (the owner, 2026-10-25 01:27-01:32): logo D "face in
     the colour ring", a three-colour ring (purple, green, red) around the dark Buddy face with
     white eyes and a green smile; a grey "waiting" variant for the tray.
-    Design canvas: <private link>. Dev session, commit
-    pending. Expected: the exe in Explorer and the tray icon show the logo, grey while waiting
-56. [ ] Firmware startup screen of about 2 s with the logo, "Speaker Buddy" and the firmware
-    version (step 53), then the normal clock screen. Dev session, commit pending. Expected:
-    `check-image` 0, flash, the owner sees the screen after a restart
+    Design canvas: <private link>. Expected: the exe in
+    Explorer and the tray icon show the logo, grey while waiting.
+    Pushed in 6a4f0f9 (dev-Repository-2): SVG masters in `assets/logo/` (64, 32 and 16 px plus
+    waiting variants), `speaker-buddy.ico` and `speaker-buddy-waiting.ico` (16, 24, 32, 48 and
+    256 px) made by `tools/make-icons.ps1` (same SHA-256 over two runs), exe `ApplicationIcon`,
+    tray grey while waiting and in colour when connected. Verified by the dev session: build
+    without warnings, tests 215/215, format clean, render sheet at 16-256 px on light and dark.
+    Live check PASS per the owner 2026-10-25 01:41: tray app started with the board unplugged
+    showed the grey logo, after plugging in the colour logo. Not checked yet: 125 % and 150 %
+    display scaling, the icon in the single-file publish
+56. [x] Firmware startup screen of about 2 s with the logo, "Speaker Buddy" and the firmware
+    version (step 53), then the normal clock screen. Expected: `check-image` 0, flash, the owner
+    sees the screen after a restart.
+    Pushed in a77c977 "firmware: startup screen with logo and version":
+    logo D drawn with LVGL primitives (three arcs, face, eyes, smile arc; 160 px), "Speaker
+    Buddy" in Montserrat 48 and the version (`esp_app_get_description`, `git describe`) in
+    Montserrat 28 grey, on `lv_layer_top` for 2 s or until the clock runs, then gone for good;
+    `timer_core/splash.c` with 5 host tests. Build without warnings, `check-image` 0, flashed by
+    the dev session. PASS per the owner 2026-10-25 01:39 ("das logo und version waren toll.
+    perfekt"). Not checked: a tap during the 2 s ends the splash and starts the clock
 
 After the talk date (not planned here): build attestations for the release (R-07), Dependabot (R-08),
 CSV log (L-08), brightness (D-05), O-04 to O-08.
