@@ -258,7 +258,7 @@ implement.
     lost" about 3 s after the last line, `--demo` finds `COM4` via VID/PID and interface
     `MI_00` and sends colours. Still unverified: the Ubuntu CI build of the `net8.0-windows` App
     (`EnableWindowsTargeting`) is verified by CI run 40126609656, green
-33. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; then run `--demo`
+33. [x] Flash under the standing go, `tools/check-image.ps1` exits 0 first; then run `--demo`
     against the board on the development PC while the owner observes the board. Expected: colours
     and deviation change as sent; opening the port does not reset the board; unplugging the cable
     shows the disconnected symbol and the clock keeps running; replugging reconnects within a few
@@ -322,7 +322,10 @@ implement.
     `AllowUnsafeBlocks`). Replug test 3 of 3 with `boots=1`, reason 1 (23:45-23:48, replugs by
     the owner, reads by the dev session); before the fix 3 of 3 had `boots=2`, reason 11. The board
     runs the clean a507838 image again.
-    Still open for step 33: the retest of colours and the disconnected symbol with `--demo`
+    Retest PASS (per the owner 2026-10-24 23:55, "genau so"): `--demo` 23:54:39-23:55:09 on the
+    a507838 image with the e168210 laptop program; colours cycled with the deviation shown, and
+    after the demo stopped: black background, white time, USB symbol with an X. With the serial
+    reconnect and the replug fix above, step 33 passes
 34. [x] Commit and push
 
 ### Task 6: PowerPoint adapter and tray program (by Sun 08.11.)
