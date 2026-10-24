@@ -65,7 +65,7 @@ else is development session work.
    Expected: `dotnet test laptop/SpeakerBuddy.sln` passes with one placeholder-free smoke test of
    a real type (for example `Mark` record equality)
 4. [x] Create `docs/protocol.md`: the S-02 lines (timer to laptop `{"v":1,"t":612,"run":true}`;
-   laptop to timer `{"v":1,"c":"#00A000","d":90}`, `{"v":1,"L":2700}`,
+   laptop to timer `{"v":1,"c":"#8000A0","d":90}` (purple; green sends `d` null since 57c345d), `{"v":1,"L":2700}`,
    `{"v":1,"state":"ended"}`), 128-byte limit, drop rules, send cadence. Expected: the single
    source both sides implement against
 5. [x] Create `.github/workflows/ci.yml`, job `laptop` on `ubuntu-latest`, path filter
@@ -110,7 +110,10 @@ implement.
     example from the requirements page passes as a test (`L = 45:00`, `tol = 1:00`, slide 15
     `## 10:00`: arrival at 10:40 green, at 12:00 purple, at 8:30 red and green again at 9:00 on
     the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
-    rule
+    rule.
+    As built (corrected 2026-10-25 after the code review of e57664c): the `Evaluator` covers
+    B-01 to B-06 only. Overtime B-07 is decided by the timer alone (`timer_core` `clock.c` and
+    `view.c`, see step 13 and step 22), so there is no 45:01 overtime test in the laptop tests
     - [x] Follow-up (the owner, 2026-10-25 00:33-00:37): the deviation `d` follows the colour live
       instead of freezing at a mark. Green: no deviation line (`d` null); red: how far ahead,
       negative; purple: how far behind, positive, measured against the overdue next mark when
@@ -279,6 +282,9 @@ implement.
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
 32. [x] Laptop test mode `speaker-buddy.exe --demo`: cycles neutral, green, red, purple and a
     deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds.
+    As built (`DemoSequence.cs`): neutral without deviation, green `0`, green `+0:45`, purple
+    `+1:30`, purple `+2:05`, red `-1:30`, red `-10:15`, 3 s each, then again. The demo sends
+    these values directly, so its green steps carry a deviation, unlike the live evaluation.
     Deviation in the code (found by the coordinator 2026-10-24 22:30): `DemoSequence.LengthSeconds`
     is `45 * 60` (`laptop/src/SpeakerBuddy.Core/DemoSequence.cs:13`), so overtime orange does not
     show in the demo. the owner decided 2026-10-25 00:00: change the code, short `L` of about 60 s.
@@ -437,7 +443,7 @@ implement.
     70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in 768dcd4), then
     `pwsh tools/sign.ps1` (a570b83). Expected: exe starts into the tray.
     The stage laptop is the owner' private device. Signing (the owner, 2026-10-25 01:11, replacing
-    "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy`, thumbprint
+    "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy (self-signed)`, thumbprint
     `8E1E2DC50FFA1A5E5709FF6EDAF2DE142C3FC8C7`, valid until 2028-12-30, private key not
     exportable in `Cert:\CurrentUser\My` on the development PC. The public file is
     `<private backup>\Elektronik\ESP32\speaker-buddy-codesign.cer` in private storage; importing it on the
@@ -548,8 +554,8 @@ individuals in Germany).
   archive before the first flash
 - Steps 1 to 14, 22 to 27, 30 to 38 (code): `git revert <commit>`; nothing is deployed anywhere
   until a flash or a copy to the stage laptop
-- Step 43 (stage laptop): delete the program folder; uninstall the .NET 8 Desktop Runtime if it
-  was not there before
+- Step 43 (stage laptop): delete `speaker-buddy.exe` (one self-contained file, no runtime was
+  installed); remove the certificate as in the Machine-Sync-Queue row
 - Step 46 (rehearsal fails): stage runs on the offline timer alone (A-02); `v0.1.0-rc1` from step
   45 stays the last known-good build
 - During the talk: pull the cable. The timer continues offline; PowerPoint is unaffected because
@@ -613,5 +619,6 @@ Answered by the owner on 2026-10-24 at 19:19, the five dev interpretations from 
 
 Answered by the owner on 2026-10-24 at 18:43, the first five questions, folded into the steps:
 `nm` check locally before every flash until step 51 (steps 19, 20), check mode via OpenXml
-(step 38), kill switch as tray entry only (step 37), framework-dependent exe for the talk date (step 43),
-`L` line `{"v":1,"L":2700}` confirmed (step 4).
+(step 38), kill switch as tray entry only (step 37), framework-dependent exe for the talk date (step 43;
+replaced 2026-10-25 by the self-contained single file, step 52), `L` line `{"v":1,"L":2700}`
+confirmed (step 4).

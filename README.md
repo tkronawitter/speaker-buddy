@@ -105,7 +105,9 @@ menu ends it. It logs to `%LOCALAPPDATA%\speaker-buddy\logs`.
 | --- | --- |
 | `speaker-buddy --check deck.pptx` | Lists the time marks of a deck and reports likely typos, marks on hidden slides and decreasing marks, without PowerPoint |
 | `speaker-buddy --demo` | Sends a colour test pattern to the timer |
-| `speaker-buddy --length 45` | Sets the talk length instead of taking the highest mark |
+| `speaker-buddy --length 45` | Sets the talk length in minutes (or `m:ss`) instead of taking the highest mark |
+| `speaker-buddy --port COM4` | Uses this serial port instead of finding the timer by its USB ID; works with the tray mode and `--demo` |
+| `speaker-buddy --help` | Lists the options |
 
 From PowerShell, append `| Out-Host` to `--check` and `--demo` so the prompt waits for the output.
 
