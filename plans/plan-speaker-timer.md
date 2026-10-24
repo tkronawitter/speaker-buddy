@@ -1,6 +1,6 @@
 # Plan: Speaker Timer, stage 1
 
-**Status:** draft
+**Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
 **Last updated:** 2026-10-24
 **Target:** github.com/tkronawitter/speaker-timer (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner' Windows 11 laptop
 
@@ -106,21 +106,32 @@ implement.
 16. [ ] Check that the factory backup is intact before the first flash:
     `Get-FileHash -Algorithm SHA256 "<private backup> Dateien\Elektronik\ESP32\waveshare-esp32-s3-touch-amoled-1.8\factory\factory-dump.bin"`
     and compare with the `.sha256` file next to it. Expected: identical hash. This is the safety
-    net for step 19
+    net for step 20
 17. [ ] Create the ESP-IDF project under `firmware/`: `CMakeLists.txt`, `main/main.c`,
     `main/idf_component.yml` pinning `waveshare/esp32_s3_touch_amoled_1_8: "2.0.3"` and LVGL 9,
     `sdkconfig.defaults` (`CONFIG_BT_ENABLED=n`, PSRAM octal, 16 MB flash, USB Serial/JTAG
-    console), `partitions.csv` with `nvs`, `phy_init`, one `factory` app partition, no OTA.
+    console; `CONFIG_ESP_WIFI_ENABLED=y` is an IDF default and links nothing while Wi-Fi is never
+    initialised, the `nm` check in step 19 proves it), `partitions.csv` with `nvs`, `phy_init`, one `factory` app partition, no OTA.
     Expected: `idf.py set-target esp32s3` and `idf.py build` end with "Project build complete"
 18. [ ] Commit `dependencies.lock` together with the project. Expected: lock file in git, A-04
-    pinning satisfied
-19. [ ] **(the owner)** Go for the first flash, then `idf.py -p COM4 flash monitor` with a minimal
-    screen (solid colour plus "hello" text, touch coordinates logged). Expected: display shows the
-    screen, touch logs coordinates; this also confirms revision V2 (CO5300/CST816S) in practice
-20. [ ] Add `tools/check-image.ps1` and `tools/check-image.sh`: run `nm` from the IDF toolchain on
-    `build/speaker_timer.elf` and fail if symbols match `esp_wifi_`, `esp_bt`, `btdm_`,
-    `esp_ota_`, `tinyusb` or `tud_`. Expected: exit 0 on the current build (A-04, locally until
-    the CI firmware job exists)
+    pinning satisfied. Reference versions from the BSP test build on 2026-10-24: LVGL 9.6.0~1,
+    esp_lvgl_port 2.9.0, esp_lcd_co5300 2.2.0, cst816s 1.1.2, ft5x06 1.1.1, tca9554 2.0.3
+19. [ ] Add `tools/check-image.ps1` and `tools/check-image.sh`: run `nm` from the IDF toolchain on
+    `firmware/build/speaker_timer.elf` and fail if symbols match `esp_wifi_`, `esp_bt`, `btdm_`,
+    `esp_ota_`, `tinyusb` or `tud_`. Expected: exit 0 on the current build. A-04 check: runs
+    locally before every flash (steps 20, 28, 33 and any fix flashed during Task 7) until the CI firmware job (step 51) exists,
+    then in CI as well (the owner, 2026-10-24)
+20. [ ] **(the owner)** First flash, go given 2026-10-24 18:45, in this order: (a) BOOT-mode test:
+    hold BOOT while plugging in, the ROM bootloader answers on the port; this is the recovery
+    path, so it comes first; (b) `esptool erase_flash` of the whole chip, which removes xiaozhi
+    and the factory remnants (the archive from step 16 is the only copy left); (c) flash the
+    local BSP test project `%USERPROFILE%\esp\bsp-test` (not the repo project; built
+    2026-10-24 with IDF v5.5.5, toolchain esp-14.2.0_20260121, `bsp_test.bin` 706 KB, SHA-256
+    `6cccc1547e26b78e85ba0ad6b5154f6d164f947307d6c484784649e05d45ba31`, `nm` clean, BT off),
+    after `check-image` exits 0. Expected: display shows the test screen, the BSP log names the
+    touch chip; this is the final proof of revision V2 (CO5300/CST816S). The PCB itself is
+    marked "Rev 1.1". Note: BSP 2.0.3 ships only the CO5300 panel driver, so a V1 board would
+    need another driver. The repo project from step 17 is flashed from step 28 on
 21. [ ] Commit and push. Expected: `main` contains a buildable firmware project
 
 ### Task 4: Firmware clock and display (by Sun 01.11.)
@@ -142,7 +153,7 @@ implement.
     background, "disconnected" symbol. Expected: builds
 27. [ ] Implement `main/input.c`: short tap starts; long press pauses or resets (D-03), so a short
     tap never stops a running clock. Expected: builds
-28. [ ] **(the owner)** Go for flash, then test on the board: tap starts, long press pauses, long
+28. [ ] **(the owner)** Go for flash; `tools/check-image.ps1` exits 0 first; then test on the board: tap starts, long press pauses, long
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
     is covered by the host test, not waited for
 29. [ ] Commit and push. Expected: CI `firmware-host` green
@@ -158,7 +169,8 @@ implement.
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
 32. [ ] Laptop test mode `speaker-timer.exe --demo`: cycles neutral, green, red, purple and a
     deviation every 3 s, sends `L` once. Expected: builds
-33. [ ] **(the owner)** Go for flash, then run `--demo` against the board on the development PC. Expected: colours
+33. [ ] **(the owner)** Go for flash; `tools/check-image.ps1` exits 0 first; then run `--demo`
+    against the board on the development PC. Expected: colours
     and deviation change as sent; opening the port does not reset the board; unplugging the cable
     shows the disconnected symbol and the clock keeps running; replugging reconnects within a few
     seconds
@@ -179,12 +191,14 @@ implement.
     the laptop sends state every second and on change, `L` once after connect and on change,
     `state: ended` when the slide show ends (L-03, L-05). Expected: builds
 37. [ ] Tray shell (A-03): WinForms `ApplicationContext` with `NotifyIcon`, `OutputType WinExe` (no
-    console window), menu entries "Stop and release port" (kill switch) and "Open log"; no
+    console window), menu entries "Stop and release port" (the kill switch, no global hotkey; on
+    stage the cable pull per A-02 is the second way out) and "Open log"; no
     windows, balloons or toasts; log file under `%LOCALAPPDATA%\speaker-timer\logs`. Expected:
     starting the exe shows only a tray icon
 38. [ ] Check mode `speaker-timer.exe --check deck.pptx` (L-09): reads the .pptx with
     `DocumentFormat.OpenXml` in `SpeakerTimer.Core` (no PowerPoint needed, testable on Ubuntu),
-    prints marks per slide, near misses, hidden-slide marks and decreasing marks. Expected: unit
+    prints marks per slide, near misses, hidden-slide marks and decreasing marks (OpenXml
+    confirmed by the owner, 2026-10-24). Expected: unit
     test with a small fixture .pptx in `laptop/tests/fixtures/` passes in CI
 39. [ ] Desk test on the development PC with a 5-slide test deck carrying marks: start timer by tap, start the
     slide show, page through on time, late and early. Expected: colours as in the worked example;
@@ -198,7 +212,8 @@ implement.
     no decreasing marks, highest mark close to 30:00
 43. [ ] **(the owner)** Install the .NET 8 Desktop Runtime on the stage laptop and copy the published
     program (`dotnet publish laptop/src/SpeakerTimer.App -c Release -r win-x64 --self-contained
-    false`) to a local folder. Expected: exe starts into the tray
+    false`) to a local folder. Framework-dependent for the talk date; the self-contained single exe
+    comes after the talk date (O-03). Expected: exe starts into the tray
 44. [ ] **(the owner)** Desk rehearsal with the the first talk deck on the development PC (milestone 5 on the private notes
     page). Expected: colours behave as intended; fixes go back into Tasks 2 to 6
 45. [ ] Tag the build that passed step 44 as `v0.1.0-rc1` and keep its `.bin` and exe next to the
@@ -228,7 +243,8 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Rollback
 
-- Steps 19, 28, 33 (flash): the factory image is never restored. Rollback is flashing the last
+- Step 20 (b) erase_flash cannot be undone; the archived factory dump (step 16) stays archive only.
+- Steps 20, 28, 33 (flash): the factory image is never restored. Rollback is flashing the last
   own build that worked: `idf.py -p COM4 flash` from the previous commit, or `esptool.py -p COM4
   write_flash 0x0 <merged .bin>` from the archived build. If the board stops enumerating, hold
   BOOT while plugging in to enter the ROM bootloader, then flash again. Step 16 confirms the
@@ -258,11 +274,7 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Unresolved Questions
 
-1. A-04 wants the `nm` check in CI, but the firmware CI build is stretch. OK to run it locally
-   (step 20) until step 51 lands?
-2. Check mode via `DocumentFormat.OpenXml` instead of PowerPoint COM: OK? Keeps it testable on
-   Ubuntu, adds one NuGet dependency.
-3. Kill switch = tray menu entry "Stop and release port" enough, or also a global hotkey?
-4. Stage laptop: framework-dependent exe plus .NET 8 Desktop Runtime for the talk date, single-file
-   exe after (O-03)?
-5. `L` line format `{"v":1,"L":2700}` still marked as proposal on the private notes page: confirm.
+None. All five were answered by the owner on 2026-10-24 at 18:43 and are folded into the steps:
+`nm` check locally before every flash until step 51 (steps 19, 20), check mode via OpenXml
+(step 38), kill switch as tray entry only (step 37), framework-dependent exe for the talk date (step 43),
+`L` line `{"v":1,"L":2700}` confirmed (step 4).
