@@ -485,9 +485,22 @@ implement.
 52. [x] Pulled forward from after the talk date (O-03): `speaker-buddy.exe` as one self-contained file,
     `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in 768dcd4;
     verified on the development PC (published, signed, `--check` runs)
+53. [ ] Firmware version (the owner, 2026-10-25 01:17-01:19): the version from `git describe` in the
+    boot log and reported to the laptop; the laptop logs both versions. Dev session, commit
+    pending. Expected: boot log and laptop log show the same version as `git describe`
+54. [ ] Release workflow, pulled forward in part from after the talk date (R-07, R-09): `release.yml` on
+    a tag `v*` builds the firmware with the `check-image` gate and the single-file exe, writes
+    `SHA256SUMS` and creates a GitHub release. The release exe is unsigned, because the signing
+    key is not exportable from the development PC; the the first talk exe is signed locally (step 43). Attestations
+    are not part of it yet. Dev session, commit pending. Expected: a test tag produces a release
+    with firmware, exe and `SHA256SUMS`
 
-After the talk date (not planned here): `release.yml` with attestations and `SHA256SUMS` (R-07, R-09),
-Dependabot (R-08), CSV log (L-08), brightness (D-05), O-04 to O-08.
+After the talk date (not planned here): build attestations for the release (R-07), Dependabot (R-08),
+CSV log (L-08), brightness (D-05), O-04 to O-08.
+Roadmap (the owner, 2026-10-25 01:17-01:19): v1 for the first talk is USB only, no radio (A-04
+unchanged). v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
+allowed, Wi-Fi blocked". v3: Wi-Fi and OTA updates, issue #5, milestone `v3`; A-04 is lifted for
+Wi-Fi and OTA.
 Backlog on GitHub, milestone `v2`: issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
 26 and 28); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
