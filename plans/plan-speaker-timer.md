@@ -1,7 +1,7 @@
 # Plan: Speaker Timer, stage 1
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
-**Last updated:** 2026-10-24
+**Last updated:** 2026-10-25
 **Target:** github.com/tkronawitter/speaker-timer (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner' Windows 11 laptop
 
 ## Goal
@@ -250,7 +250,10 @@ implement.
     deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds.
     Deviation in the code (found by the coordinator 2026-10-24 22:30): `DemoSequence.LengthSeconds`
     is `45 * 60` (`laptop/src/SpeakerTimer.Core/DemoSequence.cs:13`), so overtime orange does not
-    show in the demo. Open question below: change the code or drop the short `L` from this step
+    show in the demo. the owner decided 2026-10-25 00:00: change the code, short `L` of about 60 s.
+    Done in 8424179: `DemoSequence.LengthSeconds = 60`, new test, `dotnet test` 204/204. Board
+    check per the owner 2026-10-25 00:06: overtime orange blink after 1:00 seen, the first view of
+    overtime on the board
     Status for 30-32 (2026-10-24, pushed in aa7d2c6 firmware link plus `timer_core/session`, and
     d7cdab2 laptop `SerialLink`, `TimerPort`, `LineFramer`, `DemoSequence`, App with `--demo`): `dotnet test` 150/150, host tests 5/5, `check-image` clean (6997 symbols). Verified by
     the dev session on the development PC without the owner: opening `COM4` with DTR/RTS low does not reset the
@@ -366,7 +369,10 @@ implement.
     slide show, page through on time, late and early. Expected: colours as in the worked example;
     PowerPoint never shows a dialog from the program. This is also the first test of the live COM
     path from steps 35-36, including a second deck in slide show at the same time (`FullName`
-    lock) and the end of the show (`state: ended`)
+    lock) and the end of the show (`state: ended`).
+    Test deck (2026-10-25): `<private backup> Dateien\Elektronik\ESP32\speaker-timer-desk-test.pptx`,
+    5 slides, marks 1:00, 2:00, 3:00 and 4:30; `--check` with `--length 5` reports 0 problems,
+    `tol` 0:30
 40. [x] Commit and push
 
 ### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
@@ -439,23 +445,23 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Unresolved Questions
 
-Open, dev interpretations from Task 4 (2026-10-24), implemented as stated, waiting for the owner:
+None open.
+
+Answered by the owner on 2026-10-24 at 22:30 and 2026-10-25 at 00:00, the dev interpretations
+from Task 4 and the questions from the board tests:
 
 1. Overtime blink alternates orange background with black digits and black background with
-   orange digits: OK?
-2. Digit colour white or black chosen by the background's luma: OK?
-3. Long press threshold 1.0 s: OK?
-4. Disconnected symbol: USB icon with an X, top right: OK?
-5. Deviation line in Montserrat 28 (the time uses the 150 px digit font from step 25): OK?
-   Answered by the owner 2026-10-24 22:30: no, `+0:45` in Montserrat 28 is far too small; the
-   deviation line must get much larger (code change in `main/ui.c`, step 26)
-6. `--demo` sends `L` = 45:00, so overtime orange never shows in the demo (step 32 planned a
-   short `L`). Shorten `L` in `DemoSequence` so the board test sees overtime, or check overtime
-   another way and drop it from step 32?
-7. Black panel after an extra USB reset (step 33): besides the laptop fix that stops the extra
-   reset, should the firmware also recover the panel (no reset line on this board)?
-   Superseded 2026-10-24 23:29: the panel needs a hardware reset through the TCA9554 expander
-   at every boot; the firmware fix goes that way, no separate decision needed
+   orange digits: keep as implemented.
+2. Digit colour white or black chosen by the background's luma: keep.
+3. Long press threshold 1.0 s: keep.
+4. Disconnected symbol, USB icon with an X, top right: keep.
+5. Deviation line in Montserrat 28: no, far too small (22:30). New: about half the height of the
+   time, about 70 px, as a generated font like step 25. Done in cf4de62 (`digits_76`,
+   Montserrat Medium 76 px); visual check PASS per the owner 2026-10-25 00:06, readable.
+6. `--demo` sent `L` = 45:00, so overtime never showed in the demo: yes, `--demo` sends a short
+   `L` (about 60 s) as step 32 planned. Done in 8424179 (`DemoSequence.LengthSeconds = 60`).
+7. Black panel after an extra USB reset (step 33): superseded 2026-10-24 23:29, the panel gets
+   a hardware reset through the TCA9554 expander at every boot (a507838).
 
 Answered by the owner on 2026-10-24 at 19:21: install `lv_font_conv` via `npx` (step 25) and a host
 C compiler (step 23) on the development PC; the dev session installs them.
