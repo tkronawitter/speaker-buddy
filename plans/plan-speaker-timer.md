@@ -80,9 +80,11 @@ implement.
    0 to 99, seconds 00 to 59; first mark per slide wins. Tests cover `## 10:00`, `## 0:30`,
    `## 99:59` (valid) and `## 10:75`, `## 10:00 Demo`, `## 1:05:00`, `##10:00` (rejected).
    Expected: all pass
-   - [ ] Follow-up (the owner, 2026-10-24 19:19): trim trailing whitespace before matching, so
+   - [x] Follow-up (the owner, 2026-10-24 19:19): trim trailing whitespace before matching, so
      `## 10:00 ` is a mark; ` ## 10:00` (leading) and `## 10:00 Demo` stay rejected. Expected:
-     new tests for both cases pass, CI `laptop` green
+     new tests for both cases pass, CI `laptop` green. Done in 38390e4: spaces and tabs are
+     trimmed; a trailing no-break space (U+00A0) stays invalid and check mode L-09 reports it.
+     CI run 40115712254 green
 9. [x] `MarkSet` builder: input is a list of (slide index, hidden flag, notes text); hidden slides
    are ignored; a mark lower than an earlier one produces a warning and is dropped. Expected: tests
    for hidden slides and decreasing marks pass
@@ -101,7 +103,10 @@ implement.
     the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
     rule
 12. [x] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
-    unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass
+    unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass.
+    Follow-up (dev, 2026-10-24, queued as Q3, not pushed yet): the protocol is flat JSON on both
+    sides, no nested values, no backslash escapes, no duplicate names; the laptop drops the same
+    lines as the timer
 13. [x] `ColorScheme`: maps evaluation result to RGB (`neutral` white on black, `onPlan` green,
     `ahead` red = talk slower, `behind` purple = talk faster), defaults in one place so O-05 later
     only adds a config file. No orange here: the timer decides overtime alone from `t > L` and
@@ -122,8 +127,9 @@ implement.
 17. [ ] Create the ESP-IDF project under `firmware/`: `CMakeLists.txt`, `main/main.c`,
     `main/idf_component.yml` pinning `waveshare/esp32_s3_touch_amoled_1_8: "2.0.3"` and LVGL 9,
     `sdkconfig.defaults` (`CONFIG_BT_ENABLED=n`, PSRAM octal, 16 MB flash, USB Serial/JTAG
-    console; `CONFIG_ESP_WIFI_ENABLED=y` is an IDF default and links nothing while Wi-Fi is never
-    initialised, the `nm` check in step 19 proves it), `partitions.csv` with `nvs`, `phy_init`, one `factory` app partition, no OTA.
+    console; `CONFIG_ESP_WIFI_ENABLED=y` cannot be switched off in IDF v5.5.5 (promptless bool,
+    default `y` if `SOC_WIFI_SUPPORTED`) and links nothing while Wi-Fi is never initialised, so
+    A-04 "no Wi-Fi in the image" is proven by the `nm` check in step 19 only), `partitions.csv` with `nvs`, `phy_init`, one `factory` app partition, no OTA.
     Expected: `idf.py set-target esp32s3` and `idf.py build` end with "Project build complete"
 18. [ ] Commit `dependencies.lock` together with the project. Expected: lock file in git, A-04
     pinning satisfied. Reference versions from the BSP test build on 2026-10-24: LVGL 9.6.0~1,
@@ -132,7 +138,14 @@ implement.
     `firmware/build/speaker_timer.elf` and fail if symbols match `esp_wifi_`, `esp_bt`, `btdm_`,
     `esp_ota_`, `tinyusb` or `tud_`. Expected: exit 0 on the current build. A-04 check: runs
     locally before every flash (steps 20, 28, 33 and any fix flashed during Task 7) until the CI firmware job (step 51) exists,
-    then in CI as well (the owner, 2026-10-24)
+    then in CI as well (the owner, 2026-10-24).
+    As built (dev, 2026-10-24), deviating from the list above: type-A symbols (absolute ROM
+    addresses from the ROM linker scripts, for example `btdm_*`) are skipped; OTA is matched only
+    by the update functions (`esp_ota_begin`, `esp_ota_write`, `esp_ota_end`,
+    `esp_ota_set_boot_partition`, `esp_https_ota`), because the IDF core always links
+    `esp_ota_get_running_partition`; Bluetooth prefixes are `esp_bt_`, `esp_ble_`,
+    `esp_bluedroid_`, `nimble_port_`, `btdm_`; `esp_wifi_`, `tud_` and `tinyusb` stay forbidden.
+    A negative test with a fake `nm` fails as intended
 20. [ ] First flash of the `firmware/` project under the standing go; the owner observes the board.
     Run `pwsh
     tools/check-image.ps1 firmware/build/speaker_timer.elf` (must exit 0), then `idf.py -p COM4
@@ -140,6 +153,10 @@ implement.
     logged). Expected: display shows the screen, touch logs coordinates, the BSP log names the
     touch chip (CO5300/CST816S = V2; BSP 2.0.3 ships only the CO5300 panel driver). The PCB is
     marked "Rev 1.1".
+    Result 2026-10-24 (flashed under the standing go): serial log PASS, partition table `nvs`,
+    `phy_init`, `factory` 3 MB, no OTA; `Touch CST816S` found; bring-up screen shown.
+    `speaker_timer.bin` is 0xa9a80 bytes, 78 % of the 3 MB factory partition free. Open for
+    the owner: visual check (green background, white "hello", landscape) and one touch tap.
     Done outside the plan, 2026-10-24 after the go of 18:45: BOOT-mode test, `erase_flash` of the
     whole chip (removes xiaozhi and the factory remnants; the archive from step 16 is the only
     copy left), then the throwaway test app `%USERPROFILE%\esp\bsp-test` flashed (IDF v5.5.5,
@@ -169,20 +186,32 @@ implement.
 22. [ ] Create component `firmware/components/timer_core/` in plain C without IDF headers:
     `clock.c` (start, pause, reset, `t` in seconds, `L`; overtime state for B-07 when `t > L`
     and for D-06 offline from 60:00: orange, blinking, black digits), `line.c` (S-02 parsing and the timer-to-laptop line, 128-byte limit),
-    `format.c` (`mm:ss`, `+1:30`). Expected: compiles inside the IDF build
+    `format.c` (`mm:ss`, `+1:30`). Expected: compiles inside the IDF build.
+    Status 2026-10-24: written together with steps 23-24, queued as Q4 (not pushed yet); host
+    tests 3/3 in WSL. Compiling `timer_core` inside the IDF build verified with Q5 (task 4b,
+    not pushed yet). Q5 also adds `timer_core/view` (pure C display decision) with `test_view`;
+    host tests 4/4
 23. [ ] Create host tests in `firmware/test/host/` (`CMakeLists.txt`, a minimal assert runner, no
     PlatformIO) for `clock`, `line` and `format`. Expected: `cmake -S firmware/test/host -B
     build-host && cmake --build build-host && ctest --test-dir build-host` reports "100% tests
-    passed"
+    passed". Note (2026-10-24): the development PC had no host C compiler; the owner approved installing one at
+    19:21 (dev session), until then the tests run in CI only (step 24)
 24. [ ] Add CI job `firmware-host` on `ubuntu-latest`, path filter `firmware/**`, running step 23.
     Expected: green run
 25. [ ] Create a font for the digits with `lv_font_conv` at the size that fills the landscape
     screen width for `88:88` (D-01), checked in as `firmware/main/fonts/digits_*.c` with the
-    generating command in a comment. Expected: builds, glyphs `0-9 : + -` only
+    generating command in a comment. Expected: builds, glyphs `0-9 : + -` only. Installing
+    `lv_font_conv` via `npx` on the development PC approved by the owner 2026-10-24 19:21.
+    BLOCKED 2026-10-24: the dev session's auto-mode classifier refused `npx lv_font_conv` (code
+    from an external source). the owner has to run it himself or approve it in the dev window.
+    Until then the UI uses Montserrat 48 for the time, too small for 1.5 m
 26. [ ] Implement `main/ui.c`: landscape layout, big `mm:ss`, small deviation line, full-screen
     background, "disconnected" symbol. Expected: builds
 27. [ ] Implement `main/input.c`: short tap starts; long press pauses or resets (D-03), so a short
-    tap never stops a running clock. Expected: builds
+    tap never stops a running clock. Expected: builds.
+    Status for 26 and 27 (Q5, not pushed yet): built, `check-image` clean, flashed under the
+    standing go; serial log `Touch CST816S 0x15 found`, `timer ready, tap to start`, 12 s
+    without panic; `speaker_timer.bin` 0xb6810 bytes, 76 % of the factory partition free
 28. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; the owner observes the
     board and tests: tap starts, long press pauses, long
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
@@ -199,12 +228,21 @@ implement.
     by VID `303A` PID `1001` (L-06), open with `DtrEnable = false`, `RtsEnable = false` (A-03),
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
 32. [ ] Laptop test mode `speaker-timer.exe --demo`: cycles neutral, green, red, purple and a
-    deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds
+    deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds.
+    Status for 30-32 (2026-10-24, queued as Q6 firmware link plus `timer_core/session`, and Q7
+    laptop `SerialLink`, `TimerPort`, `LineFramer`, `DemoSequence`, App with `--demo`; not pushed
+    yet): `dotnet test` 150/150, host tests 5/5, `check-image` clean (6997 symbols). Verified by
+    the dev session on the development PC without the owner: opening `COM4` with DTR/RTS low does not reset the
+    board, status lines about once per second, `L` applied, a broken line is ignored, "laptop
+    lost" about 3 s after the last line, `--demo` finds `COM4` via VID/PID and interface
+    `MI_00` and sends colours. Still unverified: the Ubuntu CI build of the `net8.0-windows` App
+    (`EnableWindowsTargeting`), until the push
 33. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; then run `--demo`
     against the board on the development PC while the owner observes the board. Expected: colours
     and deviation change as sent; opening the port does not reset the board; unplugging the cable
     shows the disconnected symbol and the clock keeps running; replugging reconnects within a few
-    seconds
+    seconds. Open for the owner: the visual check and the unplug/replug test (the serial side is
+    already verified, see step 32)
 34. [ ] Commit and push
 
 ### Task 6: PowerPoint adapter and tray program (by Sun 08.11.)
@@ -230,10 +268,21 @@ implement.
     `DocumentFormat.OpenXml` in `SpeakerTimer.Core` (no PowerPoint needed, testable on Ubuntu),
     prints marks per slide, near misses, hidden-slide marks and decreasing marks (OpenXml
     confirmed by the owner, 2026-10-24). Expected: unit
-    test with a small fixture .pptx in `laptop/tests/fixtures/` passes in CI
+    test with a small fixture .pptx in `laptop/tests/fixtures/` passes in CI.
+    Status for 35-38 (2026-10-24, code done, queued as Q8 Core `DeckReader`, `DeckCheck`,
+    `TalkController`, OpenXml 3.1.0, fixture .pptx, and Q9 App `PowerPointSource`, `TalkRunner`,
+    `TrayContext`, `FileLog`, modes tray, `--check` and `--demo`, README laptop section; not
+    pushed yet): tests 203/203. `--check` on the fixture works (exit 1, 3 problems).
+    NOT verified: the live COM path (show detection, `FullName` lock, slide index, show end, two
+    decks at once). On the development PC a deck opened via automation has 0 windows and `SlideShowSettings` is
+    null, so no slide show could be started by script; root cause unknown after 2 attempts.
+    Step 39, with the owner starting the show by hand, is the first real run. The Ubuntu CI build of
+    the WinForms App is also unverified until the push
 39. [ ] Desk test on the development PC with a 5-slide test deck carrying marks: start timer by tap, start the
     slide show, page through on time, late and early. Expected: colours as in the worked example;
-    PowerPoint never shows a dialog from the program
+    PowerPoint never shows a dialog from the program. This is also the first test of the live COM
+    path from steps 35-36, including a second deck in slide show at the same time (`FullName`
+    lock) and the end of the show (`state: ended`)
 40. [ ] Commit and push
 
 ### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
@@ -306,7 +355,19 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Unresolved Questions
 
-None open.
+Open, dev interpretations from Task 4 (2026-10-24), implemented as stated, waiting for the owner:
+
+1. Overtime blink alternates orange background with black digits and black background with
+   orange digits: OK?
+2. Digit colour white or black chosen by the background's luma: OK?
+3. Long press threshold 1.0 s: OK?
+4. Disconnected symbol: USB icon with an X, top right: OK?
+5. Deviation line in Montserrat 28 until the digit font from step 25 exists: OK?
+
+Blocked, needs the owner: run or approve `npx lv_font_conv` for step 25 (dev classifier refused it).
+
+Answered by the owner on 2026-10-24 at 19:21: install `lv_font_conv` via `npx` (step 25) and a host
+C compiler (step 23) on the development PC; the dev session installs them.
 
 Answered by the owner on 2026-10-24 at 19:19, the five dev interpretations from Task 2:
 
