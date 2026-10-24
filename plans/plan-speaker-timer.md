@@ -157,6 +157,8 @@ implement.
     `phy_init`, `factory` 3 MB, no OTA; `Touch CST816S` found; bring-up screen shown.
     `speaker_timer.bin` is 0xa9a80 bytes, 78 % of the 3 MB factory partition free. Open for
     the owner: visual check (green background, white "hello", landscape) and one touch tap.
+    Partial, per the owner 2026-10-24 evening: the 150 px font "looks good so far", seen before the
+    fixed-width change 13a3e52 (step 26); the final look check is still open.
     Done outside the plan, 2026-10-24 after the go of 18:45: BOOT-mode test, `erase_flash` of the
     whole chip (removes xiaozhi and the factory remnants; the archive from step 16 is the only
     copy left), then the throwaway test app `%USERPROFILE%\esp\bsp-test` flashed (IDF v5.5.5,
@@ -212,7 +214,19 @@ implement.
     tap never stops a running clock. Expected: builds.
     Status for 26 and 27 (pushed in 5582c33): built, `check-image` clean, flashed under the
     standing go; serial log `Touch CST816S 0x15 found`, `timer ready, tap to start`, 12 s
-    without panic; `speaker_timer.bin` 0xb6810 bytes, 76 % of the factory partition free
+    without panic; `speaker_timer.bin` 0xb6810 bytes, 76 % of the factory partition free.
+    Follow-up 13a3e52 (the owner asked at 21:42): fixed-width elapsed time, every digit cell as wide
+    as the widest digit, and times of 100 minutes and more are scaled
+    down to fit. Build, `check-image` 0 and flash verified by the dev session; the look on screen
+    and the scale-down after 100 minutes are not verified yet (step 28). The scale-down lives in
+    `main/ui.c` (`set_time_text`, LVGL transform), outside `timer_core`, so no host test covers
+    it; it is a display check only.
+    Regression from 13a3e52 (the owner, 22:06): long press no longer works. Cause confirmed by
+    the owner at 22:07 (long press on an empty corner works, a touch on the digits does nothing):
+    the new time container is clickable by LVGL default and swallows touches on the digit row,
+    so they never reach the screen. Fixed in 618991f: `lv_obj_set_clickable(s_time, false)`
+    clears `LV_OBJ_FLAG_CLICKABLE` on the container. Build without warnings, `check-image` 0 and
+    flash verified by the dev session; step 28 retests long press on the digits
 28. [ ] Flash under the standing go, `tools/check-image.ps1` exits 0 first; the owner observes the
     board and tests: tap starts, long press pauses, long
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
