@@ -13,8 +13,18 @@ extern const lv_font_t digits_150;
 #define UI_TIME_FONT (&digits_150)
 #define UI_SMALL_FONT (&lv_font_montserrat_28)
 
+/*
+ * The time is drawn one character per cell so it does not shift as digits change: every digit cell
+ * is as wide as the widest digit, the ':' cell as wide as the colon. 12 cells hold any uint32_t
+ * second count ("71582788:15").
+ */
+#define UI_TIME_CELLS 12
+
 static lv_obj_t *s_screen;
 static lv_obj_t *s_time;
+static lv_obj_t *s_time_cells[UI_TIME_CELLS];
+static int32_t s_digit_w;
+static int32_t s_colon_w;
 static lv_obj_t *s_deviation;
 static lv_obj_t *s_disconnected;
 static tc_view_t s_last;
@@ -35,6 +45,59 @@ static lv_obj_t *create_label(const lv_font_t *font)
     return label;
 }
 
+static void create_time(void)
+{
+    s_digit_w = 0;
+    for (uint32_t c = '0'; c <= '9'; c++) {
+        int32_t w = (int32_t)lv_font_get_glyph_width(UI_TIME_FONT, c, 0);
+        if (w > s_digit_w) {
+            s_digit_w = w;
+        }
+    }
+    s_colon_w = (int32_t)lv_font_get_glyph_width(UI_TIME_FONT, ':', 0);
+
+    s_time = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_time);
+    lv_obj_set_size(s_time, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(s_time, LV_FLEX_FLOW_ROW);
+    lv_obj_set_scrollable(s_time, false);
+    /* Font and colour set here are inherited by the cells */
+    lv_obj_set_style_text_font(s_time, UI_TIME_FONT, 0);
+    lv_obj_set_style_transform_pivot_x(s_time, lv_pct(50), 0);
+    lv_obj_set_style_transform_pivot_y(s_time, lv_pct(50), 0);
+    lv_obj_align(s_time, LV_ALIGN_CENTER, 0, -24);
+
+    for (int i = 0; i < UI_TIME_CELLS; i++) {
+        lv_obj_t *cell = lv_label_create(s_time);
+        lv_obj_set_style_text_align(cell, LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(cell, "");
+        lv_obj_set_hidden(cell, true);
+        s_time_cells[i] = cell;
+    }
+}
+
+static void set_time_text(const char *text)
+{
+    int32_t width = 0;
+    int i = 0;
+    for (; i < UI_TIME_CELLS && text[i] != '\0'; i++) {
+        char one[2] = {text[i], '\0'};
+        int32_t w = text[i] == ':' ? s_colon_w : s_digit_w;
+        lv_label_set_text(s_time_cells[i], one);
+        lv_obj_set_width(s_time_cells[i], w);
+        lv_obj_set_hidden(s_time_cells[i], false);
+        width += w;
+    }
+    for (; i < UI_TIME_CELLS; i++) {
+        lv_obj_set_hidden(s_time_cells[i], true);
+    }
+
+    /* "100:00" and longer do not fit the screen at full size: shrink the whole row to fit */
+    int32_t room = lv_obj_get_width(s_screen);
+    int32_t scale = (width > room && width > 0) ? (int32_t)(LV_SCALE_NONE * room / width) : LV_SCALE_NONE;
+    lv_obj_set_style_transform_scale(s_time, scale, 0);
+}
+
 void ui_create(void)
 {
     s_screen = lv_screen_active();
@@ -42,8 +105,7 @@ void ui_create(void)
     lv_obj_set_style_pad_all(s_screen, 0, 0);
     lv_obj_set_scrollable(s_screen, false);
 
-    s_time = create_label(UI_TIME_FONT);
-    lv_obj_align(s_time, LV_ALIGN_CENTER, 0, -24);
+    create_time();
 
     s_deviation = create_label(UI_SMALL_FONT);
     lv_obj_align(s_deviation, LV_ALIGN_BOTTOM_MID, 0, -40);
@@ -67,7 +129,7 @@ void ui_render(const tc_view_t *view)
     lv_obj_set_style_bg_color(s_screen, lv_color_hex(view->background), 0);
 
     if (tc_format_elapsed(text, sizeof text, view->seconds) > 0) {
-        lv_label_set_text(s_time, text);
+        set_time_text(text);
     }
     lv_obj_set_style_text_color(s_time, fg, 0);
 
