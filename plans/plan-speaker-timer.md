@@ -142,8 +142,12 @@ implement.
     suspicion (BSP 2.0.3 registers the QSPI panel through `lvgl_port_add_disp_rgb`) is not the
     cause per the dev session's diagnosis: `app_main` used the panel IO concurrently with the
     LVGL flush, the brightness call ran outside the LVGL lock. Third image sets brightness under
-    the lock; result pending after a power cycle. Lesson for Task 4: every panel IO call goes
-    through the LVGL lock.
+    the lock: PASS (the owner 19:03 "black screen and 00:00 in the middle", 19:05 landscape
+    confirmed; heartbeat `step=done`, `heap_ok=1`, `free_int 240915`, `free_psram 8237152`).
+    Root cause verified by the step log: `bsp_display_brightness_set` called
+    `esp_lcd_panel_io_tx_param` on the QSPI panel IO while the LVGL task flushed and blocked
+    forever. Lesson for Task 4: panel commands only under `bsp_display_lock`. Watch list: BSP
+    2.0.3 registers the QSPI panel through `lvgl_port_add_disp_rgb` (no visible effect so far)
     Reset lessons for step 31 and the flash steps: after ROM download mode an RTS reset boots the
     app only after one power cycle (otherwise `boot:0x23`); the Windows `usbser` driver needs a
     dummy DTR write
