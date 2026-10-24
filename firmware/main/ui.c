@@ -58,6 +58,8 @@ static void create_time(void)
 
     s_time = lv_obj_create(s_screen);
     lv_obj_remove_style_all(s_time);
+    /* lv_obj_create() makes it clickable, which would take taps and long presses from the screen */
+    lv_obj_set_clickable(s_time, false);
     lv_obj_set_size(s_time, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(s_time, LV_FLEX_FLOW_ROW);
     lv_obj_set_scrollable(s_time, false);
