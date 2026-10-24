@@ -485,17 +485,20 @@ implement.
 52. [x] Pulled forward from after the talk date (O-03): `speaker-buddy.exe` as one self-contained file,
     `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in 768dcd4;
     verified on the development PC (published, signed, `--check` runs)
-53. [ ] Firmware version (the owner, 2026-10-25 01:17-01:19): the version from `git describe` in the
+53. [x] Firmware version (the owner, 2026-10-25 01:17-01:19): the version from `git describe` in the
     boot log and reported to the laptop; the laptop logs both versions. Expected: boot log and
     laptop log show the same version as `git describe`.
     Pushed in 647b0c2 "firmware and laptop: report their versions": line `{"v":1,"fw":"..."}`
     (documented in `docs/protocol.md`), sent when the laptop comes online and every 10 s.
-    Result of the expected check not reported yet
+    Check PASS on the development PC (dev session, 2026-10-25 01:27): boot log `Speaker Buddy d1cceed-dirty
+    ready, tap to start`, wire `{"v":1,"fw":"d1cceed-dirty"}` every 10 s; tray log `started,
+    speaker-buddy c92d65b-dirty` and `timer firmware d1cceed-dirty` 8 s after connect; both match
+    `git describe` of their builds. Not checked: the version in the tray tooltip
 54. [ ] Release workflow, pulled forward in part from after the talk date (R-07, R-09): `release.yml` on
     a tag `v*` builds the firmware with the `check-image` gate and the single-file exe, writes
     `SHA256SUMS` and creates a GitHub release. The release exe is unsigned, because the signing
     key is not exportable from the development PC; the the first talk exe is signed locally (step 43). Attestations
-    are not part of it yet. Dev session, commit pending. Expected: a test tag produces a release
+    are not part of it yet. Pushed in bb195f6, not run yet (no tag). Expected: a test tag produces a release
     with firmware, exe and `SHA256SUMS`
 55. [ ] Tray icon and exe icon from the logo (the owner, 2026-10-25 01:27-01:32): logo D "face in
     the colour ring", a three-colour ring (purple, green, red) around the dark Buddy face with

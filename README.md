@@ -123,6 +123,14 @@ signature as valid only on machines that trust it, and it is not expected to sat
 Control.
 Copy the exe without a browser download, or run `Unblock-File` on it after copying.
 
+## Releases
+
+Pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`: it builds the firmware,
+runs `check-image` on it, runs the laptop tests, publishes the single-file exe and creates a
+GitHub release with `SHA256SUMS`. A tag with a hyphen, such as `v0.1.0-rc1`, becomes a
+pre-release. Firmware and laptop program report their version from `git describe`. The exe in a
+release is not code-signed, because the signing key stays on the machine it was created on.
+
 ## License
 
 [MIT](LICENSE)
