@@ -28,6 +28,8 @@ static const char *TAG = "speaker_buddy";
 #define PANEL_RESET_PINS (IO_EXPANDER_PIN_NUM_0 | IO_EXPANDER_PIN_NUM_1 | IO_EXPANDER_PIN_NUM_2 | IO_EXPANDER_PIN_NUM_6)
 #define PANEL_RESET_LOW_MS 20
 #define PANEL_RESET_SETTLE_MS 150
+#define PANEL_RELEASE_TRIES 3
+#define PANEL_RELEASE_RETRY_MS 10
 
 /*
  * Clock and session are shared by the LVGL task (UI timer, input events) and the link task.
@@ -61,20 +63,40 @@ static void on_ui_tick(lv_timer_t *timer)
     }
 }
 
-static void reset_panel(void)
+/* Returns false if the pulse could not start (expander missing or the low phase failed) */
+static bool pulse_panel_reset(void)
 {
     esp_io_expander_handle_t expander = bsp_io_expander_init();
     if (expander == NULL
         || esp_io_expander_set_dir(expander, PANEL_RESET_PINS, IO_EXPANDER_OUTPUT) != ESP_OK
         || esp_io_expander_set_level(expander, PANEL_RESET_PINS, 0) != ESP_OK) {
-        ESP_LOGE(TAG, "panel reset via IO expander failed");
-        return;
+        return false;
     }
     vTaskDelay(pdMS_TO_TICKS(PANEL_RESET_LOW_MS));
-    if (esp_io_expander_set_level(expander, PANEL_RESET_PINS, 1) != ESP_OK) {
-        ESP_LOGE(TAG, "panel reset release via IO expander failed");
+
+    /* Lines left low would hold the panel in reset, so the release gets a few tries */
+    bool released = false;
+    for (int attempt = 0; attempt < PANEL_RELEASE_TRIES && !released; attempt++) {
+        if (attempt > 0) {
+            vTaskDelay(pdMS_TO_TICKS(PANEL_RELEASE_RETRY_MS));
+        }
+        released = esp_io_expander_set_level(expander, PANEL_RESET_PINS, 1) == ESP_OK;
+    }
+    if (!released) {
+        ESP_LOGE(TAG, "panel reset release via IO expander failed %d times", PANEL_RELEASE_TRIES);
     }
     vTaskDelay(pdMS_TO_TICKS(PANEL_RESET_SETTLE_MS));
+    return true;
+}
+
+static void reset_panel(void)
+{
+    if (!pulse_panel_reset()) {
+        ESP_LOGW(TAG, "panel reset via IO expander failed, trying once more");
+        if (!pulse_panel_reset()) {
+            ESP_LOGE(TAG, "panel reset via IO expander failed");
+        }
+    }
 }
 
 void app_main(void)
