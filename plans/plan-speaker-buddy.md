@@ -1,8 +1,8 @@
-# Plan: Speaker Timer, stage 1
+# Plan: Speaker Buddy, stage 1
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
 **Last updated:** 2026-10-25
-**Target:** github.com/tkronawitter/speaker-timer (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner' Windows 11 laptop
+**Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner' Windows 11 laptop
 
 ## Goal
 
@@ -18,8 +18,11 @@ on Ubuntu; the firmware stays a display plus clock, built with ESP-IDF, the Wave
 LVGL 9.
 
 The confirmed requirements (IDs L-, D-, S-, B-, R-, O-, A-) are in the private notes page
-`IT-Infrastructure/IoT Devices/Speaker-Timer-Requirements` (German). This plan refers to them by
+`IT-Infrastructure/IoT Devices/Speaker-Buddy-Requirements` (German). This plan refers to them by
 ID and does not restate them.
+
+The project was renamed from "Speaker Timer" to "Speaker Buddy" on 2026-10-25 at 00:40 (the owner;
+code in 7aa9b73). Commit hashes before the rename are kept as they were.
 
 ## Constraints
 
@@ -57,9 +60,9 @@ else is development session work.
    output
 2. [x] Create `.editorconfig` (C#: file-scoped namespaces, 4 spaces; C: 4 spaces). Expected: file
    present
-3. [x] Create `laptop/SpeakerTimer.sln` with `laptop/src/SpeakerTimer.Core` (`net8.0`, class
-   library) and `laptop/tests/SpeakerTimer.Core.Tests` (`net8.0`, xUnit, `coverlet.collector`).
-   Expected: `dotnet test laptop/SpeakerTimer.sln` passes with one placeholder-free smoke test of
+3. [x] Create `laptop/SpeakerBuddy.sln` with `laptop/src/SpeakerBuddy.Core` (`net8.0`, class
+   library) and `laptop/tests/SpeakerBuddy.Core.Tests` (`net8.0`, xUnit, `coverlet.collector`).
+   Expected: `dotnet test laptop/SpeakerBuddy.sln` passes with one placeholder-free smoke test of
    a real type (for example `Mark` record equality)
 4. [x] Create `docs/protocol.md`: the S-02 lines (timer to laptop `{"v":1,"t":612,"run":true}`;
    laptop to timer `{"v":1,"c":"#00A000","d":90}`, `{"v":1,"L":2700}`,
@@ -73,7 +76,7 @@ else is development session work.
    status "work in progress, stage 1". Expected: renders on GitHub
 7. [x] Commit and push. Expected: CI `laptop` green on `main`
 
-### Task 2: Evaluation logic in SpeakerTimer.Core (by Wed 28.10.)
+### Task 2: Evaluation logic in SpeakerBuddy.Core (by Wed 28.10.)
 
 Test first for every step: write the xUnit cases from the requirement text, see them fail, then
 implement.
@@ -94,6 +97,9 @@ implement.
     5:00, else none; `tol = max(L / 45, 0:30)`; no marks means no evaluation. Expected: tests for
     45 min (1:00), 30 min (0:40), 15 min (0:30), 90 min (2:00), highest mark 4:00 without argument
     (no `L`)
+    - [ ] Follow-up (the owner, 2026-10-25 00:33-00:37): minimum tolerance 0:45, `tol = max(L / 45,
+      0:45)` rounded down to whole seconds, `L` unknown gives 0:45. Expected tests: 45 min
+      (1:00), 30 min (0:45, the first talk), 15 min (0:45), 90 min (2:00). Pushed in 57c345d
 11. [x] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
     slideIndex)`; a mark is reached the first time `slideIndex` is at or past its slide, evaluated
     once; going back re-evaluates nothing; jumping past marks reaches them; precedence B-06, then
@@ -104,6 +110,16 @@ implement.
     `## 10:00`: arrival at 10:40 green, at 12:00 purple, at 8:30 red and green again at 9:00 on
     the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
     rule
+    - [ ] Follow-up (the owner, 2026-10-25 00:33-00:37): the deviation `d` follows the colour live
+      instead of freezing at a mark. Green: no deviation line (`d` null); red: how far ahead,
+      negative; purple: how far behind, positive, measured against the overdue next mark when
+      B-06 applies; overtime unchanged. Exact `m:ss`, no rounding (30 s rounding discussed and
+      dropped). Reason: the step 39 log showed the frozen `d` contradicting the colour (`t=90`
+      green with `d=-38`, `t=211` purple with `d=-38`). Laptop side only. Expected: a test per
+      colour case passes, board check by the owner. Pushed in 57c345d; green sends `d` null, so the
+      firmware needs no change. Purple after a late arrival shows the lateness at arrival, frozen,
+      and switches to the live value once the next mark is overdue (B-06); confirmed by the owner
+      2026-10-25 00:46, each mark is an independent checkpoint
 12. [x] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
     unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass.
     Follow-up (dev, 2026-10-24, pushed in 49dc0f5): the protocol is flat JSON on both sides, no
@@ -137,7 +153,7 @@ implement.
     pinning satisfied. Reference versions from the BSP test build on 2026-10-24: LVGL 9.6.0~1,
     esp_lvgl_port 2.9.0, esp_lcd_co5300 2.2.0, cst816s 1.1.2, ft5x06 1.1.1, tca9554 2.0.3
 19. [x] Add `tools/check-image.ps1` and `tools/check-image.sh`: run `nm` from the IDF toolchain on
-    `firmware/build/speaker_timer.elf` and fail if symbols match `esp_wifi_`, `esp_bt`, `btdm_`,
+    `firmware/build/speaker_buddy.elf` and fail if symbols match `esp_wifi_`, `esp_bt`, `btdm_`,
     `esp_ota_`, `tinyusb` or `tud_`. Expected: exit 0 on the current build. A-04 check: runs
     locally before every flash (steps 20, 28, 33 and any fix flashed during Task 7) until the CI firmware job (step 51) exists,
     then in CI as well (the owner, 2026-10-24).
@@ -148,19 +164,22 @@ implement.
     `esp_ota_get_running_partition`; Bluetooth prefixes are `esp_bt_`, `esp_ble_`,
     `esp_bluedroid_`, `nimble_port_`, `btdm_`; `esp_wifi_`, `tud_` and `tinyusb` stay forbidden.
     A negative test with a fake `nm` fails as intended
-20. [ ] First flash of the `firmware/` project under the standing go; the owner observes the board.
+20. [x] First flash of the `firmware/` project under the standing go; the owner observes the board.
     Run `pwsh
-    tools/check-image.ps1 firmware/build/speaker_timer.elf` (must exit 0), then `idf.py -p COM4
+    tools/check-image.ps1 firmware/build/speaker_buddy.elf` (must exit 0), then `idf.py -p COM4
     flash monitor` with a minimal screen (solid colour plus "hello" text, touch coordinates
     logged). Expected: display shows the screen, touch logs coordinates, the BSP log names the
     touch chip (CO5300/CST816S = V2; BSP 2.0.3 ships only the CO5300 panel driver). The PCB is
     marked "Rev 1.1".
     Result 2026-10-24 (flashed under the standing go): serial log PASS, partition table `nvs`,
     `phy_init`, `factory` 3 MB, no OTA; `Touch CST816S` found; bring-up screen shown.
-    `speaker_timer.bin` is 0xa9a80 bytes, 78 % of the 3 MB factory partition free. Open for
+    `speaker_buddy.bin` is 0xa9a80 bytes, 78 % of the 3 MB factory partition free. Open for
     the owner: visual check (green background, white "hello", landscape) and one touch tap.
     Partial, per the owner 2026-10-24 evening: the 150 px font "looks good so far", seen before the
-    fixed-width change 13a3e52 (step 26); the final look check is still open.
+    fixed-width change 13a3e52 (step 26).
+    Final look PASS per the owner 2026-10-25 00:32 ("passt"), seen with `--demo` on the clean
+    cf4de62 firmware: fixed-width 150 px time, 76 px deviation line, all backgrounds including
+    the overtime orange.
     Done outside the plan, 2026-10-24 after the go of 18:45: BOOT-mode test, `erase_flash` of the
     whole chip (removes xiaozhi and the factory remnants; the archive from step 16 is the only
     copy left), then the throwaway test app `%USERPROFILE%\esp\bsp-test` flashed (IDF v5.5.5,
@@ -216,7 +235,7 @@ implement.
     tap never stops a running clock. Expected: builds.
     Status for 26 and 27 (pushed in 5582c33): built, `check-image` clean, flashed under the
     standing go; serial log `Touch CST816S 0x15 found`, `timer ready, tap to start`, 12 s
-    without panic; `speaker_timer.bin` 0xb6810 bytes, 76 % of the factory partition free.
+    without panic; `speaker_buddy.bin` 0xb6810 bytes, 76 % of the factory partition free.
     Follow-up 13a3e52 (the owner asked at 21:42): fixed-width elapsed time, every digit cell as wide
     as the widest digit, and times of 100 minutes and more are scaled
     down to fit. Build, `check-image` 0 and flash verified by the dev session; the look on screen
@@ -243,13 +262,13 @@ implement.
     `c`, `d`, `L`, `state`; send `{"v":1,"t":..,"run":..}` every second and on change; after 3 s
     without a valid line switch to offline display with the disconnected symbol, keep counting,
     keep blinking if `t > L` (D-04). Expected: builds, host tests still pass
-31. [x] Laptop `laptop/src/SpeakerTimer.App` (`net8.0-windows`), class `SerialLink`: find the port
+31. [x] Laptop `laptop/src/SpeakerBuddy.App` (`net8.0-windows`), class `SerialLink`: find the port
     by VID `303A` PID `1001` (L-06), open with `DtrEnable = false`, `RtsEnable = false` (A-03),
     reconnect after unplug, read timer lines, write laptop lines. Expected: builds on Windows
-32. [x] Laptop test mode `speaker-timer.exe --demo`: cycles neutral, green, red, purple and a
+32. [x] Laptop test mode `speaker-buddy.exe --demo`: cycles neutral, green, red, purple and a
     deviation every 3 s, sends `L` once (a short `L` so overtime orange shows within the demo). Expected: builds.
     Deviation in the code (found by the coordinator 2026-10-24 22:30): `DemoSequence.LengthSeconds`
-    is `45 * 60` (`laptop/src/SpeakerTimer.Core/DemoSequence.cs:13`), so overtime orange does not
+    is `45 * 60` (`laptop/src/SpeakerBuddy.Core/DemoSequence.cs:13`), so overtime orange does not
     show in the demo. the owner decided 2026-10-25 00:00: change the code, short `L` of about 60 s.
     Done in 8424179: `DemoSequence.LengthSeconds = 60`, new test, `dotnet test` 204/204. Board
     check per the owner 2026-10-25 00:06: overtime orange blink after 1:00 seen, the first view of
@@ -335,7 +354,7 @@ implement.
 
 ### Task 6: PowerPoint adapter and tray program (by Sun 08.11.)
 
-35. [x] Class `PowerPointSource` in `SpeakerTimer.App`: `Marshal.GetActiveObject`-equivalent for
+35. [x] Class `PowerPointSource` in `SpeakerBuddy.App`: `Marshal.GetActiveObject`-equivalent for
     .NET 8 (`[DllImport("oleaut32")] GetActiveObject`) on `PowerPoint.Application`, never starts
     PowerPoint; reads notes per slide, hidden flag (`SlideShowTransition.Hidden`), current
     `SlideShowWindows(1).View.Slide.SlideIndex`, slide show running or not, by polling once per
@@ -350,10 +369,10 @@ implement.
 37. [x] Tray shell (A-03): WinForms `ApplicationContext` with `NotifyIcon`, `OutputType WinExe` (no
     console window), menu entries "Stop and release port" (the kill switch, no global hotkey; on
     stage the cable pull per A-02 is the second way out) and "Open log"; no
-    windows, balloons or toasts; log file under `%LOCALAPPDATA%\speaker-timer\logs`. Expected:
+    windows, balloons or toasts; log file under `%LOCALAPPDATA%\speaker-buddy\logs`. Expected:
     starting the exe shows only a tray icon
-38. [x] Check mode `speaker-timer.exe --check deck.pptx` (L-09): reads the .pptx with
-    `DocumentFormat.OpenXml` in `SpeakerTimer.Core` (no PowerPoint needed, testable on Ubuntu),
+38. [x] Check mode `speaker-buddy.exe --check deck.pptx` (L-09): reads the .pptx with
+    `DocumentFormat.OpenXml` in `SpeakerBuddy.Core` (no PowerPoint needed, testable on Ubuntu),
     prints marks per slide, near misses, hidden-slide marks and decreasing marks (OpenXml
     confirmed by the owner, 2026-10-24). Expected: unit
     test with a small fixture .pptx in `laptop/tests/fixtures/` passes in CI.
@@ -376,7 +395,7 @@ implement.
     lock) and the end of the show (`state: ended`).
     Test deck (2026-10-25): `<private backup> Dateien\Elektronik\ESP32\speaker-timer-desk-test.pptx`,
     5 slides, marks 1:00, 2:00, 3:00 and 4:30; `--check` with `--length 5` reports 0 problems,
-    `tol` 0:30.
+    `tol` 0:30 (0:45 once the step 10 follow-up is in).
     Run 1, 2026-10-25 00:16:57-00:22:44, unattended at the owner' request (00:13): a test-only
     diagnostic image with clock autostart (not committed; the clean image was flashed back
     afterwards), tray app 91cfc39 with `--length 5`, show started over COM and paged by a
@@ -399,10 +418,10 @@ implement.
 ### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
 
 41. [ ] **(the owner)** Add `## m:ss` marks to the the first talk deck. Due before step 43
-42. [ ] **(the owner)** Run `speaker-timer.exe --check <the first talk deck>`. Expected: no near misses,
+42. [ ] **(the owner)** Run `speaker-buddy.exe --check <the first talk deck>`. Expected: no near misses,
     no decreasing marks, highest mark close to 30:00
 43. [ ] **(the owner)** Install the .NET 8 Desktop Runtime on the stage laptop and copy the published
-    program (`dotnet publish laptop/src/SpeakerTimer.App -c Release -r win-x64 --self-contained
+    program (`dotnet publish laptop/src/SpeakerBuddy.App -c Release -r win-x64 --self-contained
     false`) to a local folder. Framework-dependent for the talk date; the self-contained single exe
     comes after the talk date (O-03). Expected: exe starts into the tray
 44. [ ] **(the owner)** Desk rehearsal with the the first talk deck on the development PC (milestone 5 on the private notes
@@ -427,7 +446,7 @@ implement.
 
 50. [ ] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03)
 51. [ ] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
-    `nm` check from step 20, upload `speaker_timer.bin` as artifact (R-02, A-04)
+    `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04)
 
 After the talk date (not planned here): `release.yml` with attestations and `SHA256SUMS` (R-07, R-09),
 single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-04 to O-08.
@@ -456,19 +475,25 @@ once (from step 39).
 
 | Check | Command | Expected output |
 | --- | --- | --- |
-| Laptop logic | `dotnet test laptop/SpeakerTimer.sln` | `Passed!  - Failed: 0` |
-| Laptop format | `dotnet format laptop/SpeakerTimer.sln --verify-no-changes` | exit 0, no output |
+| Laptop logic | `dotnet test laptop/SpeakerBuddy.sln` | `Passed!  - Failed: 0` |
+| Laptop format | `dotnet format laptop/SpeakerBuddy.sln --verify-no-changes` | exit 0, no output |
 | Firmware host tests | `ctest --test-dir build-host` | `100% tests passed` |
 | Firmware build | `idf.py build` in `firmware/` | `Project build complete` |
-| Image provenance | `pwsh tools/check-image.ps1 firmware/build/speaker_timer.elf` | exit 0, `no forbidden symbols` |
+| Image provenance | `pwsh tools/check-image.ps1 firmware/build/speaker_buddy.elf` | exit 0, `no forbidden symbols` |
 | Pinning | `git ls-files firmware/dependencies.lock` | the path is listed |
 | CI | GitHub Actions on `main` | `laptop` and `firmware-host` green |
-| Deck | `speaker-timer.exe --check <deck>` | marks listed, `0 problems` |
+| Deck | `speaker-buddy.exe --check <deck>` | marks listed, `0 problems` |
 | Board | steps 28, 33, 39, 46 | observed behaviour as stated per step |
 
 ## Unresolved Questions
 
 None open.
+
+Answered by the owner on 2026-10-25 at 00:46: purple after a late arrival keeps the lateness at the
+arrival (as built in 57c345d) and does not count up. Reason in his words: a mark is always the
+time where he wants to be at that slide; earlier marks do not matter once he reaches it. He sets
+marks on slides where he can talk more or less, to win time back, not on every slide. The README
+section "How to set marks" describes this.
 
 Answered by the owner on 2026-10-24 at 22:30 and 2026-10-25 at 00:00, the dev interpretations
 from Task 4 and the questions from the board tests:
@@ -491,8 +516,10 @@ C compiler (step 23) on the development PC; the dev session installs them.
 
 Answered by the owner on 2026-10-24 at 19:19, the five dev interpretations from Task 2:
 
-1. Deviation `d` freezes at arrival of the last mark: confirmed as implemented.
-2. `L` unknown (no argument, highest mark below 5:00): `tol` = 0:30: confirmed.
+1. Deviation `d` freezes at arrival of the last mark: confirmed as implemented. Replaced
+   2026-10-25: `d` follows the colour live (step 11 follow-up).
+2. `L` unknown (no argument, highest mark below 5:00): `tol` = 0:30: confirmed. Replaced
+   2026-10-25: 0:45 (step 10 follow-up).
 3. Changed: trailing spaces after `## m:ss` are allowed and trimmed before matching; leading
    whitespace and text after the time stay invalid. Code change needed in `MarkParser` (step 8).
 4. Overtime orange decided and drawn by the timer only, laptop `ColorScheme` has no orange:

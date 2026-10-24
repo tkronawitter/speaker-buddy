@@ -1,6 +1,6 @@
-# speaker-timer
+# Speaker Buddy
 
-[![ci](https://github.com/tkronawitter/speaker-timer/actions/workflows/ci.yml/badge.svg)](https://github.com/tkronawitter/speaker-timer/actions/workflows/ci.yml)
+[![ci](https://github.com/tkronawitter/speaker-buddy/actions/workflows/ci.yml/badge.svg)](https://github.com/tkronawitter/speaker-buddy/actions/workflows/ci.yml)
 
 A small display on the lectern that shows the elapsed talk time and colours its background by how
 the talk is going against time marks in the PowerPoint speaker notes: green on plan, purple when
@@ -18,6 +18,35 @@ the resulting colour to the timer over USB once per second.
 The timer owns the clock. Unplug the cable and it keeps counting on its own, so the talk never
 depends on the laptop program.
 
+## How to set marks
+
+A mark says "this is where I want to be when this slide comes up". It is not a schedule for
+every slide. Put marks on the few slides where you can talk a little more or a little less: a
+demo you can shorten, an example you can skip, a story you can stretch. Those are the places
+where you can win time back or spend time you have, so those are the places where you want to
+know how you are doing.
+
+Each mark stands on its own. When you reach a marked slide, the timer compares the elapsed time
+with that mark only; what earlier marks said does not matter any more. If you were behind at
+10:00 and are on time at 20:00, the slide at 20:00 is green.
+
+- One mark every few minutes is enough. Put the last mark close to the end of the talk
+- Write the mark on its own line in the speaker notes: `## 10:00`, two hashes, a space, then
+  minutes and seconds
+- Green means within the tolerance of the mark: a 45-minute talk allows 1:00 either way, shorter
+  talks at least 0:45
+- Without `--length`, the highest mark is taken as the talk length if it is at least 5:00
+- Marks on hidden slides are ignored
+
+Check a deck before the talk:
+
+```sh
+speaker-buddy --check deck.pptx
+```
+
+It lists the marks per slide and reports likely typos, marks on hidden slides and marks that go
+backwards.
+
 ## Hardware
 
 - [Waveshare ESP32-S3-Touch-AMOLED-1.8](https://www.waveshare.com/esp32-s3-touch-amoled-1.8.htm),
@@ -28,7 +57,7 @@ depends on the laptop program.
 
 | Path | Content |
 | --- | --- |
-| `laptop/` | Laptop program, C# / .NET 8. `SpeakerTimer.Core` holds the platform-neutral logic and its tests, `SpeakerTimer.App` is the Windows program (`speaker-timer.exe`) |
+| `laptop/` | Laptop program, C# / .NET 8. `SpeakerBuddy.Core` holds the platform-neutral logic and its tests, `SpeakerBuddy.App` is the Windows program (`speaker-buddy.exe`) |
 | `firmware/` | ESP-IDF firmware for the timer. `components/timer_core` holds the clock, protocol and display logic in plain C, with host tests in `test/host` |
 | `docs/protocol.md` | The serial protocol between timer and laptop |
 | `tools/` | `check-image.ps1` / `check-image.sh`: fail if the firmware image links Wi-Fi, Bluetooth, OTA updates or TinyUSB |
@@ -39,7 +68,7 @@ depends on the laptop program.
 Requires the .NET 8 SDK.
 
 ```sh
-dotnet test laptop/SpeakerTimer.sln
+dotnet test laptop/SpeakerBuddy.sln
 ```
 
 ## Build and flash the firmware
@@ -59,7 +88,7 @@ port):
 ```sh
 cd firmware
 idf.py build
-pwsh ../tools/check-image.ps1 build/speaker_timer.elf
+pwsh ../tools/check-image.ps1 build/speaker_buddy.elf
 idf.py -p COM4 flash
 ```
 
@@ -67,15 +96,15 @@ idf.py -p COM4 flash
 
 ## Laptop program
 
-`speaker-timer.exe` runs on Windows with PowerPoint. Started without options it sits in the
+`speaker-buddy.exe` runs on Windows with PowerPoint. Started without options it sits in the
 notification area, follows the slide show and drives the timer; "Stop and release port" in its
-menu ends it.
+menu ends it. It logs to `%LOCALAPPDATA%\speaker-buddy\logs`.
 
 | Command | Purpose |
 | --- | --- |
-| `speaker-timer --check deck.pptx` | Lists the time marks of a deck and reports likely typos, marks on hidden slides and decreasing marks, without PowerPoint |
-| `speaker-timer --demo` | Sends a colour test pattern to the timer |
-| `speaker-timer --length 45` | Sets the talk length instead of taking the highest mark |
+| `speaker-buddy --check deck.pptx` | Lists the time marks of a deck and reports likely typos, marks on hidden slides and decreasing marks, without PowerPoint |
+| `speaker-buddy --demo` | Sends a colour test pattern to the timer |
+| `speaker-buddy --length 45` | Sets the talk length instead of taking the highest mark |
 
 From PowerShell, append `| Out-Host` to `--check` and `--demo` so the prompt waits for the output.
 

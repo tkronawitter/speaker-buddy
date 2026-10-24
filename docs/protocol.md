@@ -48,13 +48,13 @@ Sent once per second and immediately on every change of `run` or a reset of `t`.
 ### State
 
 ```json
-{"v":1,"c":"#00A000","d":90}
+{"v":1,"c":"#8000A0","d":90}
 ```
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `c` | string `#RRGGBB` | Background colour to show. The laptop decides the colour, so colours change without reflashing |
-| `d` | integer seconds, or `null` | Deviation from the last reached mark, `t - m`: positive means behind plan (`+1:30`), negative ahead (`-0:45`). `null` hides the deviation line |
+| `d` | integer seconds, or `null` | Deviation that matches the colour: positive means behind plan (`+1:30`), negative ahead (`-0:45`). Red: `t - m` against the last reached mark, live. Purple: the lateness at the arrival on the last reached mark, or, while the next mark is overdue, `t` minus that next mark, live. Green and neutral send `null`, which hides the deviation line |
 
 Sent once per second and immediately on every change of `c` or `d`.
 
