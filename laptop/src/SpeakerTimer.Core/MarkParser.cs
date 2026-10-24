@@ -4,19 +4,24 @@ namespace SpeakerTimer.Core;
 
 /// <summary>
 /// Reads time marks from speaker notes (requirement L-01). A mark is a line consisting of exactly
-/// <c>## m:ss</c>: minutes 0 to 99 with one or two digits, seconds 00 to 59, nothing else on the line.
+/// <c>## m:ss</c>: minutes 0 to 99 with one or two digits, seconds 00 to 59, nothing else on the line
+/// except trailing spaces or tabs.
 /// </summary>
 public static partial class MarkParser
 {
     // PowerPoint separates paragraphs with \r and line breaks within a paragraph with \v.
     private static readonly char[] LineSeparators = ['\r', '\n', '\v'];
 
+    // Trailing whitespace is invisible in the notes pane, so it does not invalidate a mark.
+    private static readonly char[] TrailingWhitespace = [' ', '\t'];
+
     [GeneratedRegex("^## ([0-9]{1,2}):([0-5][0-9])$", RegexOptions.CultureInvariant)]
     private static partial Regex MarkLine();
 
-    /// <summary>Parses one line. Returns false unless the whole line is a mark.</summary>
+    /// <summary>Parses one line. Returns false unless the whole line, without trailing whitespace, is a mark.</summary>
     public static bool TryParseLine(string line, out int seconds)
     {
+        line = line.TrimEnd(TrailingWhitespace);
         var match = MarkLine().Match(line);
         if (!match.Success || match.Length != line.Length)
         {

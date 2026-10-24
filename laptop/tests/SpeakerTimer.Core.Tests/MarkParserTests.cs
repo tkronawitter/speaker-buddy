@@ -9,6 +9,10 @@ public class MarkParserTests
     [InlineData("## 0:30", 30)]
     [InlineData("## 99:59", 5999)]
     [InlineData("## 05:00", 300)]
+    [InlineData("## 10:00 ", 600)]
+    [InlineData("## 10:00   ", 600)]
+    [InlineData("## 10:00\t", 600)]
+    [InlineData("## 10:00 \t ", 600)]
     public void Valid_mark_lines_are_parsed(string line, int expectedSeconds)
     {
         Assert.True(MarkParser.TryParseLine(line, out var seconds));
@@ -23,7 +27,9 @@ public class MarkParserTests
     [InlineData("## 100:00")]
     [InlineData("## 10:0")]
     [InlineData(" ## 10:00")]
-    [InlineData("## 10:00 ")]
+    [InlineData("\t## 10:00")]
+    [InlineData("## 10:00 x")]
+    [InlineData("## 10:00 ")]
     [InlineData("##  10:00")]
     [InlineData("# 10:00")]
     [InlineData("")]
