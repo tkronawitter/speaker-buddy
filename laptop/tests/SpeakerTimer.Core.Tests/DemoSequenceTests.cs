@@ -43,6 +43,13 @@ public class DemoSequenceTests
     }
 
     [Fact]
+    public void Shows_every_colour_before_overtime_and_overtime_within_two_minutes()
+    {
+        Assert.InRange(DemoSequence.LengthSeconds, DemoSequence.Length * DemoSequence.StepSeconds, 120);
+        Assert.True(Protocol.TryParse(Protocol.Serialize(new LengthLine(DemoSequence.LengthSeconds)), out _));
+    }
+
+    [Fact]
     public void Every_step_serializes_as_a_valid_line()
     {
         for (var step = 0; step < DemoSequence.Length; step++)

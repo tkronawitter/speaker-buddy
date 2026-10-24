@@ -9,8 +9,11 @@ public static class DemoSequence
 {
     public const int StepSeconds = 3;
 
-    /// <summary>Talk length sent once after connecting, 45 minutes.</summary>
-    public const int LengthSeconds = 45 * 60;
+    /// <summary>
+    /// Talk length sent once after connecting, one minute: once the timer has run that long it blinks
+    /// overtime orange, so a board test sees overtime too.
+    /// </summary>
+    public const int LengthSeconds = 60;
 
     private static readonly (EvaluationColor Color, int? Deviation)[] Steps =
     [
