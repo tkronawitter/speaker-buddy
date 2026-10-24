@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - "laptop/**"
+      - "firmware/**"
       - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "laptop/**"
+      - "firmware/**"
       - ".github/workflows/ci.yml"
 
 permissions:
@@ -47,3 +49,17 @@ jobs:
           name: coverage-laptop
           path: laptop/TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
+
+  firmware-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S firmware/test/host -B build-host
+
+      - name: Build
+        run: cmake --build build-host
+
+      - name: Test
+        run: ctest --test-dir build-host --output-on-failure
