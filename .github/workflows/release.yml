@@ -1,0 +1,108 @@
+name: release
+
+# Builds both halves from a version tag and publishes them as a GitHub release. Push a tag such as
+# v0.1.0 or v0.1.0-rc1; a tag with a hyphen becomes a pre-release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    container:
+      # Same pinned image as the ci workflow
+      image: espressif/idf:v5.5.5@sha256:a9231d0697ab8f7517cc072e93b7c83e04907bfbfba80b6440d7dbbf90665cf2
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The firmware version is git describe, which needs the tags
+          fetch-depth: 0
+
+      - name: Build
+        working-directory: firmware
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          . "$IDF_PATH/export.sh"
+          idf.py build
+          idf.py merge-bin -o speaker_buddy-merged.bin
+
+      - name: Check image (A-04)
+        run: |
+          . "$IDF_PATH/export.sh"
+          sh tools/check-image.sh firmware/build/speaker_buddy.elf
+
+      - name: Collect
+        run: |
+          mkdir -p dist
+          cp firmware/build/speaker_buddy-merged.bin firmware/build/speaker_buddy.bin \
+             firmware/build/bootloader/bootloader.bin firmware/build/partition_table/partition-table.bin dist/
+          # Release assets have no folders, so flash_args names the parts without their build paths
+          sed -e 's#bootloader/##' -e 's#partition_table/##' firmware/build/flash_args > dist/flash_args
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: firmware
+          path: dist/
+          if-no-files-found: error
+
+  laptop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The program version is git describe, which needs the tags
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test
+        run: dotnet test laptop/SpeakerBuddy.sln
+
+      - name: Publish
+        shell: pwsh
+        run: ./tools/publish-laptop.ps1 -Output dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: laptop
+          path: dist/speaker-buddy.exe
+          if-no-files-found: error
+
+  release:
+    needs: [firmware, laptop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: assets
+        run: sha256sum -- * > SHA256SUMS
+
+      - name: Release notes
+        run: sed "s/@TAG@/${GITHUB_REF_NAME}/g" .github/release-notes.md > notes.md
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" assets/* \
+            --verify-tag $prerelease \
+            --title "Speaker Buddy $GITHUB_REF_NAME" \
+            --notes-file notes.md
