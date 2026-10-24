@@ -2,6 +2,8 @@
 #include "bsp/esp-bsp.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "input.h"
 #include "link.h"
 #include "lvgl.h"
@@ -13,6 +15,16 @@
 static const char *TAG = "speaker_timer";
 
 #define UI_PERIOD_MS 100
+
+/*
+ * The panel has no reset GPIO, and the BSP never drives the TCA9554 IO expander that carries the
+ * board's reset and power control lines. After a chip reset the panel can stay black and ignore
+ * every command, software reset included; pulsing these lines recovers it. So pulse them before
+ * every panel init, as Waveshare's own examples do (pins 0, 1, 2 and 6 low for 20 ms, then high).
+ */
+#define PANEL_RESET_PINS (IO_EXPANDER_PIN_NUM_0 | IO_EXPANDER_PIN_NUM_1 | IO_EXPANDER_PIN_NUM_2 | IO_EXPANDER_PIN_NUM_6)
+#define PANEL_RESET_LOW_MS 20
+#define PANEL_RESET_SETTLE_MS 150
 
 /*
  * Clock and session are shared by the LVGL task (UI timer, input events) and the link task.
@@ -37,10 +49,28 @@ static void on_ui_tick(lv_timer_t *timer)
     ui_render(&view);
 }
 
+static void reset_panel(void)
+{
+    esp_io_expander_handle_t expander = bsp_io_expander_init();
+    if (expander == NULL
+        || esp_io_expander_set_dir(expander, PANEL_RESET_PINS, IO_EXPANDER_OUTPUT) != ESP_OK
+        || esp_io_expander_set_level(expander, PANEL_RESET_PINS, 0) != ESP_OK) {
+        ESP_LOGE(TAG, "panel reset via IO expander failed");
+        return;
+    }
+    vTaskDelay(pdMS_TO_TICKS(PANEL_RESET_LOW_MS));
+    if (esp_io_expander_set_level(expander, PANEL_RESET_PINS, 1) != ESP_OK) {
+        ESP_LOGE(TAG, "panel reset release via IO expander failed");
+    }
+    vTaskDelay(pdMS_TO_TICKS(PANEL_RESET_SETTLE_MS));
+}
+
 void app_main(void)
 {
     tc_clock_init(&s_clock);
     tc_session_init(&s_session);
+
+    reset_panel();
 
     lv_display_t *disp = bsp_display_start();
     if (disp == NULL) {
