@@ -76,18 +76,18 @@ else is development session work.
 Test first for every step: write the xUnit cases from the requirement text, see them fail, then
 implement.
 
-8. [ ] `MarkParser` (L-01): split on `\r`, `\n`, `\v`; a mark is a whole line `## m:ss`, minutes
+8. [x] `MarkParser` (L-01): split on `\r`, `\n`, `\v`; a mark is a whole line `## m:ss`, minutes
    0 to 99, seconds 00 to 59; first mark per slide wins. Tests cover `## 10:00`, `## 0:30`,
    `## 99:59` (valid) and `## 10:75`, `## 10:00 Demo`, `## 1:05:00`, `##10:00` (rejected).
    Expected: all pass
-9. [ ] `MarkSet` builder: input is a list of (slide index, hidden flag, notes text); hidden slides
+9. [x] `MarkSet` builder: input is a list of (slide index, hidden flag, notes text); hidden slides
    are ignored; a mark lower than an earlier one produces a warning and is dropped. Expected: tests
    for hidden slides and decreasing marks pass
-10. [ ] `TalkLength` (L-07): `L` from argument if given, else the highest mark if it is at least
+10. [x] `TalkLength` (L-07): `L` from argument if given, else the highest mark if it is at least
     5:00, else none; `tol = max(L / 45, 0:30)`; no marks means no evaluation. Expected: tests for
     45 min (1:00), 30 min (0:40), 15 min (0:30), 90 min (2:00), highest mark 4:00 without argument
     (no `L`)
-11. [ ] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
+11. [x] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
     slideIndex)`; a mark is reached the first time `slideIndex` is at or past its slide, evaluated
     once; going back re-evaluates nothing; jumping past marks reaches them; precedence B-06, then
     B-02 to B-04 on arrival, then B-05, then B-01; colours per the 2026-10-24 19:15 decision:
@@ -97,13 +97,15 @@ implement.
     `## 10:00`: arrival at 10:40 green, at 12:00 purple, at 8:30 red and green again at 9:00 on
     the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
     rule
-12. [ ] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
+12. [x] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
     unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass
-13. [ ] `ColorScheme`: maps evaluation result to RGB (`neutral` white on black, `onPlan` green,
-    `ahead` red = talk slower, `behind` purple = talk faster, `overtime` orange with black digits,
-    blinking), defaults in one place so O-05 later only adds a config file. Expected: test pins the default
+13. [x] `ColorScheme`: maps evaluation result to RGB (`neutral` white on black, `onPlan` green,
+    `ahead` red = talk slower, `behind` purple = talk faster), defaults in one place so O-05 later
+    only adds a config file. No orange here: the timer decides overtime alone from `t > L` and
+    draws orange, blinking, black digits itself (dev interpretation, pending confirmation by
+    the owner, see Unresolved Questions 4). Expected: test pins the default
     values
-14. [ ] Commit and push. Expected: CI `laptop` green, coverage report produced as an artifact
+14. [x] Commit and push. Expected: CI `laptop` green, coverage report produced as an artifact
 
 ### Task 3: Firmware toolchain and board bring-up (by Thu 29.10.)
 
@@ -302,7 +304,15 @@ single-file exe (O-03), Dependabot (R-08), CSV log (L-08), brightness (D-05), O-
 
 ## Unresolved Questions
 
-None. All five were answered by the owner on 2026-10-24 at 18:43 and are folded into the steps:
+Open, dev interpretations from Task 2 (2026-10-24), implemented as stated, waiting for the owner:
+
+1. Deviation `d` freezes at arrival of the last mark (no further marks to compare): OK?
+2. `L` unknown (no argument, highest mark below 5:00): `tol` = 0:30: OK?
+3. `## 10:00` with a trailing space is not a mark: OK? Coordinator recommends allowing it.
+4. Overtime orange decided and drawn by the timer only, laptop `ColorScheme` has no orange: OK?
+5. `tol` rounded down to whole seconds: OK?
+
+Answered: the first five questions, by the owner on 2026-10-24 at 18:43, folded into the steps:
 `nm` check locally before every flash until step 51 (steps 19, 20), check mode via OpenXml
 (step 38), kill switch as tray entry only (step 37), framework-dependent exe for the talk date (step 43),
 `L` line `{"v":1,"L":2700}` confirmed (step 4).
