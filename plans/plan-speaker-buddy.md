@@ -744,7 +744,23 @@ secrets; build and tests are green. Decision (the owner, 15:56): no Codecov secr
 Dependabot; dev-Repository-2 changes `ci.yml` so a failed Codecov upload does not fail runs by
 `dependabot[bot]` (`fail_ci_if_error` false for them). Also 15:56: the firmware moves to the
 newest versions now, Renovate for #21 is decided later; dev-Repository compares ESP-IDF 6.1 and
-5.5.6 against the BSP and component ranges, then raises the pins.
+5.5.6 against the BSP and component ranges, then raises the pins. cfa9f54 sets
+`fail_ci_if_error` false only for `dependabot[bot]`; Dependabot was asked to rebase #16-#20.
+Decision (the owner, 16:20): ESP-IDF 6.1, a major version. Trial by dev-Repository: every
+component manifest allows it (no upper bounds); BSP 2.0.3 has a rule for 6.x that adds
+`espressif/usb` `^1.0.0` (resolves to 1.6.0); build with 0 errors and 0 warnings; app 831,520
+bytes instead of 854,400 (picolibc); no removed API in use; esp_codec_dev stays 1.5.11 (BSP
+`~1.5`) and cmake_utilities 0.5.3 (co5300 and panel_io_additions `0.*`), no overrides.
+Change: `idf_component.yml` pins idf `==6.1.0` (the tag `v6.1` names the same release); the
+CI and release image is `espressif/idf:v6.1` with the Docker Hub digest of that tag in
+`ci.yml` and `release.yml`; BSP stays `==2.0.3`, lvgl `>=9.6.0,<10`; `dependencies.lock`
+format 3.0.0 (component manager 3.1.2); picolibc is the default C library from 6.0; no
+`sdkconfig.defaults` setting changed. `check-image` exit 0 on the 6.1 build including the
+linker map: no TinyUSB or `tud_` symbols, no radio archives, so `espressif/usb` adds no
+TinyUSB code. Commands unchanged. Board (dev-Repository): flashed, boot log "ESP-IDF v6.1",
+the laptop program from f7143cf connected and received the firmware line. Open in the owner's
+board check: unplug and replug, tray "Stop and release port"; the alpha release follows only
+after it. README version mentions updated by the documentation session.
 New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
 the owner's ask 2026-10-25 15:22). Options: a Renovate custom regex manager, a scheduled
 workflow running `idf.py update-dependencies`, Dependabot `docker` for the image digest. State on
