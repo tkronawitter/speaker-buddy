@@ -80,6 +80,26 @@ public class DeckReaderTests
     }
 
     [Fact]
+    public void A_file_that_is_no_deck_is_released_after_the_failed_read()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pptx");
+        File.WriteAllText(path, "not a deck");
+        try
+        {
+            var e = Record.Exception(() => DeckReader.Read(path));
+
+            Assert.True(e is not null && DeckReader.IsUnreadable(e));
+        }
+        finally
+        {
+            // Throws IOException "used by another process" while the read still holds the file
+            File.Delete(path);
+        }
+
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
     public void Missing_arguments_are_rejected()
     {
         Assert.Throws<ArgumentNullException>(() => DeckReader.Read((string)null!));

@@ -18,18 +18,7 @@ public sealed class ConsoleModesTests : IDisposable
     {
         _output.Dispose();
         _error.Dispose();
-        try
-        {
-            Directory.Delete(_folder, recursive: true);
-        }
-        catch (IOException)
-        {
-            // PresentationDocument.Open(path) leaves the file open when it throws on a file that is no
-            // zip; its finalizer closes it
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            Directory.Delete(_folder, recursive: true);
-        }
+        Directory.Delete(_folder, recursive: true);
     }
 
     /// <summary>Writes a deck with one notes text per slide (null for a slide without notes).</summary>

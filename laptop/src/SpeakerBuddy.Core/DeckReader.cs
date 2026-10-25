@@ -16,8 +16,10 @@ public static class DeckReader
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
 
-        using var document = PresentationDocument.Open(path, isEditable: false);
-        return Read(document);
+        // Opened here, not by PresentationDocument.Open(path): that leaves the file open when it throws
+        // on a file that is no zip. FileShare.Read is what the SDK uses for a read-only open.
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Read(stream);
     }
 
     public static IReadOnlyList<SlideNotes> Read(Stream stream)
