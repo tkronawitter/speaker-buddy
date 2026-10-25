@@ -544,10 +544,14 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     neutral one when no slide show runs and the last state while PowerPoint is busy. The
     disconnected symbol then only means cable or program gone. After `state: ended` the laptop
     keeps sending neutral, so the timer stays online and neutral (`docs/protocol.md` follows).
-    Commit pending. Expected: tests pass; on the board no disconnected symbol between shows
+    Pushed in e0cd62b "Keep the timer link alive once per second" (tests 217/217); not seen on
+    the board yet. Expected: tests pass; on the board no disconnected symbol between shows
 58. [ ] New protocol line `{"v":1,"L":null}` = talk length unknown, clear it. The laptop sends
-    it after connecting and at show start when `L` is unknown; the firmware clears `L`. Commit
-    pending. Expected: host and laptop tests for the new line pass
+    it after connecting and at show start when `L` is unknown; the firmware clears `L`.
+    Firmware pushed in f095fdb, board-checked by the dev session (`L` 60 logged, `L` null
+    cleared it, `L` 0 dropped). Laptop side pushed in 4683c39: sends `L` null after connecting
+    when unknown and at every show start that leaves `L` unknown; a show end forgets the deck's
+    `L`, `--length` stays. Expected: host and laptop tests for the new line pass
 59. [ ] The clock survives an unexpected chip reset: RTC snapshot of `t` and the running state,
     resumed after a reset unless it was a power-on or brownout. Commit pending. Expected: host
     tests pass; on the board a reset during a running clock resumes it
@@ -557,12 +561,23 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     robustness, log rate limit and cleanup, `--check` on files that are not `.pptx`, framer
     tests. Firmware: panel reset retry, `MAX_FIELDS`. CI and tools: `check-image` robustness plus
     a scan of the map file, actions pinned by SHA, `dependencies.lock` drift check, host tests in
-    the release workflow. Commit pending. Expected: CI green, tests pass
+    the release workflow. Expected: CI green, tests pass.
+    Pushed so far: 4ec9f33 actions pinned by commit, tokens kept out of checkouts, lock file gate;
+    2c19348 kill switch safe to run twice, bc831b1 never an error dialog (log
+    and recover), 841fde6 panel reset pulse retried, f4854bd `check-image` also checks the
+    linker map and the ELF (radio blobs in the map are fatal, `libesp_phy` allowed; fewer than
+    1000 symbols or no `app_main` fails; ROM type-A radio symbols are reported). The rest is
+    pending
 
-After the talk date (not planned here): build attestations for the release (R-07), Dependabot (R-08),
-CSV log (L-08), brightness (D-05), O-04 to O-08.
-Roadmap (the owner, 2026-10-25 01:17-01:19): v1 for the first talk is USB only, no radio (A-04
-unchanged). v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
+After the talk date (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
+the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
+#10 flashing from the browser (O-04), #11 settings without code changes (O-05), #12 technical
+follow-ups (Codecov `fail_ci_if_error`, firmware coverage with gcov, an App test project, the
+icon check at 125 % and 150 % scaling, COM intermediates, a tap during the startup screen).
+Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
+Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): the first talk is v0.x, USB
+only, no radio (A-04 unchanged), tags `v0.1.0-rc1` and `v0.1.0` as in steps 45 and 47. v1.0 is
+the first stable USB release after the first talk, with its own milestone for the backlog issues. v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
 allowed, Wi-Fi blocked". v3: Wi-Fi and OTA updates, issue #5, milestone `v3`; A-04 is lifted for
 Wi-Fi and OTA.
 Backlog on GitHub, milestone `v2`: issue #1, test the presentation lock with two slide shows at

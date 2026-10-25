@@ -69,7 +69,11 @@ yet still learns it. The laptop program logs it next to its own version.
 | `c` | string `#RRGGBB` | Background colour to show. The laptop decides the colour, so colours change without reflashing |
 | `d` | integer seconds, or `null` | Deviation that matches the colour: positive means behind plan (`+1:30`), negative ahead (`-0:45`). Red: `t - m` against the last reached mark, live. Purple: the lateness at the arrival on the last reached mark, or, while the next mark is overdue, `t` minus that next mark, live. Green and neutral send `null`, which hides the deviation line |
 
-Sent once per second and immediately on every change of `c` or `d`.
+Sent once per second and immediately on every change of `c` or `d`. The line is also the
+keepalive: while connected, the laptop sends at least one line per second. With no slide show
+running, or before the timer's first status line, it sends the neutral state
+(`{"v":1,"c":"#000000","d":null}`); while PowerPoint is busy it repeats the last state. So the
+timer shows its "disconnected" symbol only when the cable or the laptop program is gone.
 
 ### Talk length
 
@@ -79,9 +83,12 @@ Sent once per second and immediately on every change of `c` or `d`.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `L` | integer, seconds | Planned talk length. With it the timer itself switches to overtime when `t > L` (rule B-07): orange background, black digits, slow blinking. It keeps that when the laptop disappears |
+| `L` | integer seconds above 0, or `null` | Planned talk length. With it the timer itself switches to overtime when `t > L` (rule B-07): orange background, black digits, slow blinking. It keeps that when the laptop disappears. `null` means the length is unknown: the timer clears its `L`. `0` and negative values are dropped |
 
-Sent once after the connection is established and again whenever `L` changes.
+Sent once after the connection is established and again whenever `L` changes. When the length is
+unknown, the laptop sends `{"v":1,"L":null}` after connecting and at every slide show start that
+leaves `L` unknown. When a show ends, the laptop forgets the length taken from that deck; a
+length given with `--length` stays.
 
 ### End of slide show
 
@@ -90,7 +97,8 @@ Sent once after the connection is established and again whenever `L` changes.
 ```
 
 Sent once when the PowerPoint slide show ends. The timer keeps its clock running and returns to
-the neutral display.
+the neutral display. After that the laptop keeps sending the neutral state once per second, so the
+timer stays connected.
 
 ## Connection loss
 
