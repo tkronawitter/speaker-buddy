@@ -1,8 +1,23 @@
-using System.IO.Ports;
 using System.Runtime.Versioning;
 using SpeakerBuddy.Core;
 
 namespace SpeakerBuddy.App;
+
+/// <summary>The connection to the timer as <see cref="TalkRunner"/> uses it; the tests fake it.</summary>
+internal interface ITimerLink : IDisposable
+{
+    event Action<string>? Connected;
+
+    event Action? Disconnected;
+
+    event Action<TimerStatusLine>? StatusReceived;
+
+    event Action<FirmwareLine>? FirmwareReceived;
+
+    void Start();
+
+    bool Send(ProtocolLine line);
+}
 
 /// <summary>
 /// Serial connection to the timer (requirements L-06, A-03): finds the port, opens it with DTR and
@@ -10,30 +25,32 @@ namespace SpeakerBuddy.App;
 /// after the cable was pulled. Events are raised on the link's background thread.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed class SerialLink : IDisposable
+public sealed class SerialLink : ITimerLink
 {
-    private const int BaudRate = 115200;
-    private const int IoTimeoutMs = 500;
     private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
 
-    // While no program reads the port the timer keeps up to 1 KB of old status lines queued; they
-    // arrive within milliseconds of the open and are dropped, so the first t the laptop sees is live.
-    private static readonly TimeSpan BacklogDrainTime = TimeSpan.FromMilliseconds(300);
-
     private readonly Func<string?> _findPort;
+    private readonly Func<string, ISerialDevice> _open;
     private readonly Action<string> _log;
     private readonly CancellationTokenSource _stop = new();
     private readonly object _portLock = new();
-    private SerialPort? _port;
+    private ISerialDevice? _port;
     private Task? _loop;
     private int _disposed;
 
     /// <param name="findPort">Returns the port to use, or null while no timer is attached.</param>
     /// <param name="log">Receives failures the link recovered from; the link never throws them on.</param>
     public SerialLink(Func<string?> findPort, Action<string> log)
+        : this(findPort, WindowsSerialDevice.Open, log)
+    {
+    }
+
+    /// <param name="open">Opens the named port, or throws as <see cref="WindowsSerialDevice.Open"/> does.</param>
+    internal SerialLink(Func<string?> findPort, Func<string, ISerialDevice> open, Action<string> log)
     {
         _findPort = findPort ?? throw new ArgumentNullException(nameof(findPort));
+        _open = open ?? throw new ArgumentNullException(nameof(open));
         _log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
@@ -172,32 +189,13 @@ public sealed class SerialLink : IDisposable
 
     private bool TryOpen(string portName)
     {
+        ISerialDevice port;
         try
         {
-            SafeLineState.TurnOff(portName);
-        }
-        catch (IOException)
-        {
-            return false;
-        }
-
-        var port = new SerialPort(portName, BaudRate)
-        {
-            DtrEnable = false,
-            RtsEnable = false,
-            Handshake = Handshake.None,
-            ReadTimeout = IoTimeoutMs,
-            WriteTimeout = IoTimeoutMs,
-        };
-        try
-        {
-            port.Open();
-            Thread.Sleep(BacklogDrainTime);
-            port.DiscardInBuffer();
+            port = _open(portName);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {
-            port.Dispose();
             return false;
         }
 
@@ -213,7 +211,7 @@ public sealed class SerialLink : IDisposable
     {
         while (!stop.IsCancellationRequested)
         {
-            SerialPort? port;
+            ISerialDevice? port;
             lock (_portLock)
             {
                 port = _port;

@@ -44,7 +44,7 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // The icon in the size the notification area uses at the current DPI
-    private static Icon LoadIcon(string name)
+    internal static Icon LoadIcon(string name)
     {
         using var stream = typeof(TrayContext).Assembly.GetManifestResourceStream(name)
             ?? throw new InvalidOperationException($"embedded icon {name} is missing");
@@ -63,7 +63,7 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // NotifyIcon refuses texts over 127 characters; the versions are at most 40 each
-    private static string Tooltip(string? port, string? firmware)
+    internal static string Tooltip(string? port, string? firmware)
     {
         var text = port is null
             ? $"Speaker Buddy {AppVersion.Current}: waiting for the timer"

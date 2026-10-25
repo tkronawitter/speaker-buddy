@@ -16,9 +16,9 @@ public sealed class TalkRunner : IDisposable
     private static readonly TimeSpan PeriodicInterval = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
 
-    private readonly FileLog _log;
-    private readonly SerialLink _link;
-    private readonly PowerPointSource _source;
+    private readonly Action<string> _log;
+    private readonly ITimerLink _link;
+    private readonly Func<PollResult> _poll;
     private readonly TalkController _controller;
     private readonly object _controllerLock = new();
     private readonly CancellationTokenSource _stop = new();
@@ -27,14 +27,25 @@ public sealed class TalkRunner : IDisposable
     private string? _port;
     private string? _firmware;
     private EvaluationRule? _lastRule;
+    private DateTime _lastPeriodic = DateTime.MinValue;
+    private ShowState? _lastShow;
     private int _disposed;
 
     public TalkRunner(int? lengthArgument, string? fixedPort, FileLog log)
+        : this(lengthArgument, log is null ? throw new ArgumentNullException(nameof(log)) : log.Write,
+               fixedPort, null, null)
+    {
+    }
+
+    /// <param name="poll">Reads the show; null polls PowerPoint.</param>
+    /// <param name="link">The connection to the timer; null opens the serial link.</param>
+    internal TalkRunner(int? lengthArgument, Action<string> log, string? fixedPort = null,
+                        Func<PollResult>? poll = null, ITimerLink? link = null)
     {
         _log = log ?? throw new ArgumentNullException(nameof(log));
         _controller = new TalkController(lengthArgument, ColorScheme.Default);
-        _source = new PowerPointSource(_log.Write);
-        _link = new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort(), _log.Write);
+        _poll = poll ?? new PowerPointSource(_log).Poll;
+        _link = link ?? new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort(), _log);
         _link.Connected += OnConnected;
         _link.Disconnected += OnDisconnected;
         _link.StatusReceived += status => _timer = status;
@@ -49,7 +60,7 @@ public sealed class TalkRunner : IDisposable
 
     public void Start()
     {
-        _log.Write($"started, speaker-buddy {AppVersion.Current}");
+        _log($"started, speaker-buddy {AppVersion.Current}");
         _link.Start();
         _thread = new Thread(Run) { IsBackground = true, Name = "talk" };
         _thread.Start();
@@ -77,13 +88,13 @@ public sealed class TalkRunner : IDisposable
             _stop.Dispose();
         }
 
-        _log.Write(ended ? "stopped, port released" : "stopped, port released, talk thread did not end in time");
+        _log(ended ? "stopped, port released" : "stopped, port released, talk thread did not end in time");
     }
 
     private void OnConnected(string port)
     {
         _port = port;
-        _log.Write($"timer connected on {port}");
+        _log($"timer connected on {port}");
         IReadOnlyList<ProtocolLine> lines;
         lock (_controllerLock)
         {
@@ -101,7 +112,7 @@ public sealed class TalkRunner : IDisposable
         if (firmware.Version != _firmware)
         {
             _firmware = firmware.Version;
-            _log.Write($"timer firmware {firmware.Version}");
+            _log($"timer firmware {firmware.Version}");
         }
     }
 
@@ -115,52 +126,54 @@ public sealed class TalkRunner : IDisposable
             _controller.OnDisconnected();
         }
 
-        _log.Write("timer disconnected");
+        _log("timer disconnected");
     }
 
     private void Run()
     {
-        var lastPeriodic = DateTime.MinValue;
-        ShowState? lastShow = null;
         while (!_stop.IsCancellationRequested)
         {
-            try
-            {
-                // A busy PowerPoint skips the poll, not the tick: the last good show keeps the
-                // state line going once per second, so the timer never sees the link as lost
-                var poll = _source.Poll();
-                if (poll.Ok)
-                {
-                    lastShow = poll.Show;
-                }
-
-                var now = DateTime.UtcNow;
-                var periodic = now - lastPeriodic >= PeriodicInterval;
-                if (periodic)
-                {
-                    lastPeriodic = now;
-                }
-
-                IReadOnlyList<ProtocolLine> lines;
-                lock (_controllerLock)
-                {
-                    var marksBefore = _controller.Marks;
-                    lines = _controller.Tick(lastShow, _timer, periodic);
-                    LogChanges(marksBefore);
-                }
-
-                foreach (var line in lines)
-                {
-                    _link.Send(line);
-                }
-            }
-            catch (Exception e)
-            {
-                // The timer keeps counting on its own; one failed tick must never end the program mid-talk
-                _log.Write($"tick failed and was skipped: {e.GetType().Name} {e.Message}");
-            }
-
+            Tick(DateTime.UtcNow);
             _stop.Token.WaitHandle.WaitOne(PollInterval);
+        }
+    }
+
+    /// <summary>One poll of the talk thread at <paramref name="now"/> (UTC); the tests call it directly.</summary>
+    internal void Tick(DateTime now)
+    {
+        try
+        {
+            // A busy PowerPoint skips the poll, not the tick: the last good show keeps the
+            // state line going once per second, so the timer never sees the link as lost
+            var poll = _poll();
+            if (poll.Ok)
+            {
+                _lastShow = poll.Show;
+            }
+
+            var periodic = now - _lastPeriodic >= PeriodicInterval;
+            if (periodic)
+            {
+                _lastPeriodic = now;
+            }
+
+            IReadOnlyList<ProtocolLine> lines;
+            lock (_controllerLock)
+            {
+                var marksBefore = _controller.Marks;
+                lines = _controller.Tick(_lastShow, _timer, periodic);
+                LogChanges(marksBefore);
+            }
+
+            foreach (var line in lines)
+            {
+                _link.Send(line);
+            }
+        }
+        catch (Exception e)
+        {
+            // The timer keeps counting on its own; one failed tick must never end the program mid-talk
+            _log($"tick failed and was skipped: {e.GetType().Name} {e.Message}");
         }
     }
 
@@ -169,21 +182,21 @@ public sealed class TalkRunner : IDisposable
         var marks = _controller.Marks;
         if (marks is not null && !ReferenceEquals(marks, marksBefore))
         {
-            _log.Write($"{marks.Marks.Count} marks, highest {marks.HighestSeconds?.ToString() ?? "none"} s");
+            _log($"{marks.Marks.Count} marks, highest {marks.HighestSeconds?.ToString() ?? "none"} s");
             foreach (var warning in marks.Warnings)
             {
-                _log.Write($"slide {warning.SlideIndex}: mark {warning.Seconds} s below {warning.PreviousSeconds} s, ignored");
+                _log($"slide {warning.SlideIndex}: mark {warning.Seconds} s below {warning.PreviousSeconds} s, ignored");
             }
 
             if (_controller.Length is { } length)
             {
-                _log.Write($"talk length {length.Seconds?.ToString() ?? "unknown"} s from {length.Source}"
+                _log($"talk length {length.Seconds?.ToString() ?? "unknown"} s from {length.Source}"
                            + (length.SlideIndex is int slide ? $" on slide {slide}" : string.Empty));
             }
 
             foreach (var extra in marks.ExtraSessionLengths)
             {
-                _log.Write($"slide {extra.SlideIndex}: second session length {extra.Seconds} s, ignored");
+                _log($"slide {extra.SlideIndex}: second session length {extra.Seconds} s, ignored");
             }
         }
 
@@ -193,7 +206,7 @@ public sealed class TalkRunner : IDisposable
             _lastRule = evaluation?.Rule;
             if (evaluation is not null)
             {
-                _log.Write($"t={_timer?.Seconds} {evaluation.Rule} {evaluation.Color} d={evaluation.Deviation}");
+                _log($"t={_timer?.Seconds} {evaluation.Rule} {evaluation.Color} d={evaluation.Deviation}");
             }
         }
     }

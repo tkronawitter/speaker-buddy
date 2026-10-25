@@ -44,6 +44,11 @@
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>
 
+  <!-- The test seams (fake port, fake PowerPoint source) are internal -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="SpeakerBuddy.App.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SpeakerBuddy.Core\SpeakerBuddy.Core.csproj" />
   </ItemGroup>

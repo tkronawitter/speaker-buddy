@@ -41,9 +41,10 @@ jobs:
       - name: Format
         run: dotnet format laptop/SpeakerBuddy.sln --no-restore --verify-no-changes
 
+      # Core only: the App tests need the Windows desktop runtime and run in the laptop-app job
       - name: Test
         run: >
-          dotnet test laptop/SpeakerBuddy.sln --no-build
+          dotnet test laptop/tests/SpeakerBuddy.Core.Tests/SpeakerBuddy.Core.Tests.csproj --no-build
           --collect:"XPlat Code Coverage"
           --results-directory laptop/TestResults
 
@@ -57,6 +58,34 @@ jobs:
 
       # Composite action (its only JavaScript step runs on node24). The CODECOV_TOKEN secret is set,
       # so a failed upload fails CI instead of leaving a silent gap in the coverage history
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: laptop/TestResults
+          flags: laptop
+          fail_ci_if_error: true
+
+  # TalkRunner, SerialLink, TrayContext and the COM release with a fake port and a fake PowerPoint
+  # source; WinForms, the registry and COM need Windows. Coverage joins the laptop flag
+  laptop-app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in CI pushes, so the token is not left in the checkout
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test
+        run: >
+          dotnet test laptop/tests/SpeakerBuddy.App.Tests/SpeakerBuddy.App.Tests.csproj
+          --collect:"XPlat Code Coverage"
+          --results-directory laptop/TestResults
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
