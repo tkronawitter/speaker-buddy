@@ -12,16 +12,30 @@ namespace SpeakerBuddy.App;
 public sealed class TrayContext : ApplicationContext
 {
     private readonly TalkRunner _runner;
-    private readonly FileLog _log;
+    private readonly Action<string> _log;
+    private readonly Func<string> _logFile;
+    private readonly Action<string> _openFile;
     private readonly NotifyIcon _icon;
     private readonly Icon _connectedIcon = LoadIcon("speaker-buddy.ico");
     private readonly Icon _waitingIcon = LoadIcon("speaker-buddy-waiting.ico");
     private readonly System.Windows.Forms.Timer _status;
 
     public TrayContext(TalkRunner runner, FileLog log)
+        : this(runner,
+               log is null ? throw new ArgumentNullException(nameof(log)) : log.Write,
+               () => log.CurrentFile,
+               path => Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }))
+    {
+    }
+
+    /// <param name="logFile">Returns the path of today's log file.</param>
+    /// <param name="openFile">Opens a file in its associated program; the tests record the path.</param>
+    internal TrayContext(TalkRunner runner, Action<string> log, Func<string> logFile, Action<string> openFile)
     {
         _runner = runner ?? throw new ArgumentNullException(nameof(runner));
         _log = log ?? throw new ArgumentNullException(nameof(log));
+        _logFile = logFile ?? throw new ArgumentNullException(nameof(logFile));
+        _openFile = openFile ?? throw new ArgumentNullException(nameof(openFile));
 
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open log", null, (_, _) => OpenLog());
@@ -51,7 +65,14 @@ public sealed class TrayContext : ApplicationContext
         return new Icon(stream, SystemInformation.SmallIconSize);
     }
 
-    private void ShowStatus()
+    /// <summary>The notification-area icon with its menu, tooltip and visibility; for the tests.</summary>
+    internal NotifyIcon NotifyIcon => _icon;
+
+    /// <summary>True while the icon shows the logo in colour (timer connected).</summary>
+    internal bool ShowsConnected => ReferenceEquals(_icon.Icon, _connectedIcon);
+
+    // Runs once per second on the status timer; the tests call it directly
+    internal void ShowStatus()
     {
         var icon = _runner.Port is null ? _waitingIcon : _connectedIcon;
         if (!ReferenceEquals(_icon.Icon, icon))
@@ -74,14 +95,14 @@ public sealed class TrayContext : ApplicationContext
 
     private void OpenLog()
     {
-        _log.Write("log opened from the tray");
+        _log("log opened from the tray");
         try
         {
-            Process.Start(new ProcessStartInfo(_log.CurrentFile) { UseShellExecute = true });
+            _openFile(_logFile());
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or FileNotFoundException)
         {
-            _log.Write($"opening the log failed: {e.Message}");
+            _log($"opening the log failed: {e.Message}");
         }
     }
 
