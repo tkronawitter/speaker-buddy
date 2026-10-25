@@ -1,68 +1,53 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using SpeakerBuddy.Core;
 
 [assembly: SupportedOSPlatform("windows")]
 
 namespace SpeakerBuddy.App;
 
+/// <summary>
+/// The shell around <see cref="CommandLine"/> and <see cref="ConsoleModes"/>: console, serial port,
+/// Ctrl+C and the tray message loop, the parts that need a real Windows session.
+/// </summary>
 internal static class Program
 {
-    private const string Usage = """
-        Usage:
-          speaker-buddy [--length <minutes|m:ss>] [--port COMn]
-              Starts in the notification area, follows the PowerPoint slide show and drives the timer
-          speaker-buddy --check <deck.pptx> [--length <minutes|m:ss>]
-              Lists the time marks of a deck and reports near misses, hidden and decreasing marks
-          speaker-buddy --demo [--port COMn]
-              Sends a colour and deviation test pattern to the timer
-
-        --length   Talk length L; without it a "## session length m:ss" line in the notes counts,
-                   else the highest mark if it is at least 5:00
-        --port     Use this port instead of finding the timer by its USB ID
-        From PowerShell, append "| Out-Host" to --check and --demo so the prompt waits for the output.
-        """;
-
     private const int AttachParentProcess = -1;
 
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Contains("--check") || args.Contains("--demo") || args.Contains("--help"))
-        {
-            // The program is a Windows (tray) application; console modes borrow the caller's console.
-            if (!Console.IsOutputRedirected)
-            {
-                AttachConsole(AttachParentProcess);
-            }
+        var command = CommandLine.Parse(args);
 
-            if (args.Contains("--help"))
-            {
-                Console.WriteLine(Usage);
-                return 0;
-            }
-
-            if (!TryReadOptions(args, out var length, out var port))
-            {
-                Console.Error.WriteLine(Usage);
-                return 2;
-            }
-
-            return args.Contains("--check") ? Check(args, length) : Demo(port);
-        }
-
-        if (!TryReadOptions(args, out var talkLength, out var fixedPort) || args.Any(a => a.StartsWith("--", StringComparison.Ordinal) && a is not ("--length" or "--port")))
+        // The program is a Windows (tray) application; console modes borrow the caller's console.
+        if (command.ConsoleRequested && !Console.IsOutputRedirected)
         {
             AttachConsole(AttachParentProcess);
-            Console.Error.WriteLine(Usage);
-            return 2;
+        }
+
+        switch (command.Mode)
+        {
+            case Mode.Help:
+                Console.WriteLine(CommandLine.Usage);
+                return 0;
+            case Mode.Invalid:
+                if (!command.ConsoleRequested)
+                {
+                    AttachConsole(AttachParentProcess);
+                }
+
+                Console.Error.WriteLine(CommandLine.Usage);
+                return 2;
+            case Mode.Check:
+                return ConsoleModes.Check(command.DeckPath!, command.Length, Console.Out, Console.Error);
+            case Mode.Demo:
+                return Demo(command.Port);
         }
 
         var log = new FileLog();
         LogUnhandledExceptions(log);
         log.DeleteOldFiles();
         ApplicationConfiguration.Initialize();
-        using var runner = new TalkRunner(talkLength, fixedPort, log);
+        using var runner = new TalkRunner(command.Length, command.Port, log);
         Application.Run(new TrayContext(runner, log));
         return 0;
     }
@@ -84,62 +69,6 @@ internal static class Program
         };
     }
 
-    private static bool TryReadOptions(string[] args, out int? length, out string? port)
-    {
-        length = null;
-        port = null;
-
-        var lengthIndex = Array.IndexOf(args, "--length");
-        if (lengthIndex >= 0)
-        {
-            if (lengthIndex + 1 >= args.Length || !TalkLength.TryParseArgument(args[lengthIndex + 1], out var seconds))
-            {
-                return false;
-            }
-
-            length = seconds;
-        }
-
-        var portIndex = Array.IndexOf(args, "--port");
-        if (portIndex >= 0)
-        {
-            if (portIndex + 1 >= args.Length)
-            {
-                return false;
-            }
-
-            port = args[portIndex + 1];
-        }
-
-        return true;
-    }
-
-    private static int Check(string[] args, int? length)
-    {
-        var index = Array.IndexOf(args, "--check");
-        if (index + 1 >= args.Length)
-        {
-            Console.Error.WriteLine(Usage);
-            return 2;
-        }
-
-        var path = args[index + 1];
-        IReadOnlyList<SlideNotes> slides;
-        try
-        {
-            slides = DeckReader.Read(path);
-        }
-        catch (Exception e) when (DeckReader.IsUnreadable(e))
-        {
-            Console.Error.WriteLine($"Cannot read {path}: {e.Message}");
-            return 2;
-        }
-
-        var result = DeckCheck.Run(slides, length);
-        Console.WriteLine(DeckCheck.Format(result));
-        return result.ProblemCount == 0 ? 0 : 1;
-    }
-
     private static int Demo(string? fixedPort)
     {
         using var stop = new CancellationTokenSource();
@@ -150,53 +79,8 @@ internal static class Program
         };
 
         using var link = new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort(), Console.Error.WriteLine);
-        TimerStatusLine? lastStatus = null;
-
-        link.Connected += port =>
-        {
-            Console.WriteLine($"connected on {port}");
-            link.Send(new LengthLine(DemoSequence.LengthSeconds));
-        };
-        link.Disconnected += () => Console.WriteLine("disconnected, waiting for the timer");
-        link.StatusReceived += status =>
-        {
-            if (status != lastStatus)
-            {
-                Console.WriteLine($"timer t={status.Seconds} run={status.Run}");
-                lastStatus = status;
-            }
-        };
-
-        string? lastFirmware = null;
-        link.FirmwareReceived += firmware =>
-        {
-            if (firmware.Version != lastFirmware)
-            {
-                Console.WriteLine($"timer firmware {firmware.Version}");
-                lastFirmware = firmware.Version;
-            }
-        };
-
-        Console.WriteLine($"demo running (speaker-buddy {AppVersion.Current}), Ctrl+C to stop");
-        link.Start();
-
-        var started = DateTime.UtcNow;
-        StateLine? lastSent = null;
-        while (!stop.IsCancellationRequested)
-        {
-            var elapsed = (int)(DateTime.UtcNow - started).TotalSeconds;
-            var state = DemoSequence.At(elapsed, ColorScheme.Default);
-            if (link.Send(state) && state != lastSent)
-            {
-                Console.WriteLine($"sent colour {state.Color} deviation {state.Deviation?.ToString() ?? "none"}");
-                lastSent = state;
-            }
-
-            stop.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(1));
-        }
-
-        link.Send(new EndedLine());
-        return 0;
+        return ConsoleModes.Demo(link, Console.Out, stop.Token, () => DateTime.UtcNow,
+            () => stop.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(1)));
     }
 
     [DllImport("kernel32.dll")]
