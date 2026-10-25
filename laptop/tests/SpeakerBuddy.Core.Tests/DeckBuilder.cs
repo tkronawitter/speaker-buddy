@@ -47,16 +47,49 @@ internal static class DeckBuilder
         return stream;
     }
 
-    private static Shape Placeholder(PlaceholderValues type, string[] paragraphs) =>
-        new(
+    /// <summary>
+    /// Builds a deck whose presentation part <paramref name="configure"/> fills by hand, for shapes
+    /// of a file that <see cref="Build(ValueTuple{bool, string[]}[])"/> never produces.
+    /// </summary>
+    public static MemoryStream Build(Action<PresentationPart> configure)
+    {
+        var stream = new MemoryStream();
+        using (var document = PresentationDocument.Create(stream, PresentationDocumentType.Presentation))
+        {
+            configure(document.AddPresentationPart());
+        }
+
+        stream.Position = 0;
+        return stream;
+    }
+
+    /// <summary>A notes placeholder shape; a null type leaves the type out, null paragraphs the text body.</summary>
+    public static Shape Placeholder(PlaceholderValues? type, string[]? paragraphs) =>
+        PlaceholderOf(type, paragraphs?.Select(Paragraph).ToArray());
+
+    /// <summary>A notes placeholder shape holding the given paragraph elements as they are.</summary>
+    public static Shape PlaceholderOf(PlaceholderValues? type, A.Paragraph[]? paragraphs)
+    {
+        var placeholder = new PlaceholderShape();
+        if (type is { } value)
+        {
+            placeholder.Type = value;
+        }
+
+        var shape = new Shape(
             new NonVisualShapeProperties(
-                new NonVisualDrawingProperties { Id = 2, Name = type.ToString() },
+                new NonVisualDrawingProperties { Id = 2, Name = type?.ToString() ?? "Placeholder" },
                 new NonVisualShapeDrawingProperties(),
-                new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = type })),
-            new ShapeProperties(),
-            new TextBody(
-                new OpenXmlElement[] { new A.BodyProperties(), new A.ListStyle() }
-                    .Concat(paragraphs.Select(Paragraph))));
+                new ApplicationNonVisualDrawingProperties(placeholder)),
+            new ShapeProperties());
+        if (paragraphs is not null)
+        {
+            shape.Append(new TextBody(
+                new OpenXmlElement[] { new A.BodyProperties(), new A.ListStyle() }.Concat(paragraphs)));
+        }
+
+        return shape;
+    }
 
     private static A.Paragraph Paragraph(string text)
     {
