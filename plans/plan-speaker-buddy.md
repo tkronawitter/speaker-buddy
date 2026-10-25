@@ -547,12 +547,13 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     keeps sending neutral, so the timer stays online and neutral (`docs/protocol.md` follows).
     Pushed in e0cd62b "Keep the timer link alive once per second" (tests 217/217); not seen on
     the board yet. Expected: tests pass; on the board no disconnected symbol between shows
-58. [ ] New protocol line `{"v":1,"L":null}` = talk length unknown, clear it. The laptop sends
+58. [x] New protocol line `{"v":1,"L":null}` = talk length unknown, clear it. The laptop sends
     it after connecting and at show start when `L` is unknown; the firmware clears `L`.
     Firmware pushed in f095fdb, board-checked by the dev session (`L` 60 logged, `L` null
     cleared it, `L` 0 dropped). Laptop side pushed in 4683c39: sends `L` null after connecting
     when unknown and at every show start that leaves `L` unknown; a show end forgets the deck's
-    `L`, `--length` stays. Expected: host and laptop tests for the new line pass
+    `L`, `--length` stays. Expected: host and laptop tests for the new line pass. Laptop tests
+    223/223, CI on 4683c39 green
 59. [x] The clock survives an unexpected chip reset: RTC snapshot of `t` and the running state,
     resumed after a reset unless it was a power-on or brownout. Expected: host tests pass; on
     the board a reset during a running clock resumes it.
@@ -565,15 +566,18 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     `run=false`
 61. [ ] Hardening without new decisions. Expected: CI green, tests pass.
     Done: 4ec9f33 actions pinned by commit, tokens kept out of checkouts, `dependencies.lock`
-    gate; 2c19348 kill switch safe to run twice; bc831b1 never an error dialog (log and
-    recover); 841fde6 panel reset pulse retried; f4854bd `check-image` also checks the linker map
+    gate, the release workflow runs the firmware host tests as its own job; 2c19348 kill switch
+    safe to run twice; bc831b1 never an error dialog (log and recover) and a robust serial loop
+    (each iteration caught and retried, guarded event handlers, closing the port always clears
+    it); 841fde6 panel reset pulse retried; f4854bd `check-image` also checks the linker map
     and the ELF (radio blobs in the map are fatal, `libesp_phy` allowed; fewer than 1000 symbols
     or no `app_main` fails; ROM type-A radio symbols are reported); 2e4d872 `--check` on
     unreadable or non-`.pptx` files, log rate limit and 30-day cleanup (tests 245/245); c0df8ab
     firmware parses lines with up to 32 fields (`MAX_FIELDS` 8 to 32; 9-field and 20-plus-field
     lines parse, the test fails with 8; board: `L` 60, null and 0 as before).
-    Open: serial loop robustness, the line framer with its tests (dev session, in progress),
-    host tests in the release workflow
+    CI green on all of them except c0df8ab (running); the map scan and the lock gate pass inside
+    the IDF container.
+    Open: the line framer with its tests (dev session, in progress)
 
 After the talk date (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
