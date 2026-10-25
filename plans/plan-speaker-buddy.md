@@ -776,7 +776,9 @@ with "What is in it / Known limitations", written by the coordinator in the rele
 the generated notes. Checked by dev-Repository: all 6 assets match `SHA256SUMS`;
 `speaker_buddy-merged.bin` flashed at 0x0 with esptool 5.6.0, boot log "App version:
 v0.1.0-alpha.1" and "ESP-IDF: v6.1"; the release exe (unsigned, product version
-v0.1.0-alpha.1) connected on COM4 at 17:53:13. The owner's smoke test is open. esptool 5
+v0.1.0-alpha.1) connected on COM4 at 17:53:13. Smoke test PASS (the owner, 2026-10-25 17:55;
+release firmware on the board, release exe on the development PC): tray icon in colour, a tap
+starts the clock from 00:00, a 1 s press resets it to 00:00. esptool 5
 renames `write_flash` to `write-flash` (the old name still works with a warning); README,
 `.github/release-notes.md` and the rollback below use the new name.
 New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
