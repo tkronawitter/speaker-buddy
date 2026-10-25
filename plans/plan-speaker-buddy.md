@@ -270,7 +270,22 @@ implement.
     work. The display check of the scale-down from 100 minutes (step 26) moved to the backlog
     by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v1.0`. Pulled back by the owner
     2026-10-25 09:35: issue #2 goes into the user test block of 2026-10-25; dev-Repository-2
-    builds the way to reach 100 minutes on the board
+    builds the way to reach 100 minutes on the board. 2c93aed moves the width and scale maths of
+    the time row from `ui.c` into `timer_core` (`tc_time_row_width`, `tc_time_row_scale`), host
+    tests with the real font widths: 99:59 unscaled, 100:00 is 534 px wide and scaled to 446 px
+    on the 448 px row; CI green (run 40181498702). For the board check a test-only image (an
+    uncommitted `main.c` line, clock starts at 99:50) runs on the board; the clean image is
+    flashed back afterwards. Issue #2 stays open until the board check passes.
+    Board check 2026-10-25 12:27 (per the owner, confirmed 12:29): FAIL. 99:59 is drawn, from
+    100:00 the time row stays black. The firmware keeps running (serial `t` 6053 to 6057 with
+    `run` true, no reboot). Cause (dev-Repository-2 from config and code, timing confirmed by the
+    owner): the LVGL transform scale on the 534 x 108 px row needs a layer buffer of about
+    230 KB, the LVGL builtin pool is `CONFIG_LV_MEM_SIZE` 64 KB, the allocation fails and LVGL
+    skips the row. Present since 638f266, not caused by 2c93aed; the host tests cover only the
+    maths. Affects only talks past 100 minutes. Decision (the owner, 12:30): fix A, a second digit
+    font of about 125 px for a row that does not fit, no transform; this matches the requirement
+    "large digits as a font of the right size, not scaled". Option B (LVGL on the PSRAM heap)
+    rejected for its blast radius. Owner: dev-Repository-2; board re-check in the user test block
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -609,7 +624,7 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     2026-10-25 03:01). The force pushes of the history rewrite did not trigger `ci.yml` (no code
     change between the old and new tips); CI green with the next code push, run 40175800237 on
     65a35a3 (2026-10-25)
-63. [ ] At slide show end the laptop also sends `{"v":1,"L":null}`, so the timer stops the
+63. [x] At slide show end the laptop also sends `{"v":1,"L":null}`, so the timer stops the
     overtime blink after the show and keeps counting neutral (the owner, 2026-10-25 03:07; found
     by the fact check of the README: today the timer keeps the old `L` and stays orange after a
     show that ran long). A length given with `--length` stays. Owner: dev-Repository-2, next
@@ -619,8 +634,11 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     `--length`, `TalkController` sends `{"v":1,"L":null}` right after `{"v":1,"state":"ended"}`;
     with `--length` only the end line. `docs/protocol.md` (Talk length, End of slide show, typical
     session) and the README screen table updated in the same commit. Tests 281/281 locally
-    (dev-Repository-2, 2026-10-25), 3 new; CI green (run 40175800237 on 65a35a3). Board check open (user test block
-    2026-10-25), step stays open until it passes
+    (dev-Repository-2, 2026-10-25), 3 new; CI green (run 40175800237 on 65a35a3). Board check 2026-10-25 12:31
+    (per the owner): PASS, "das orange ging aus als der präsentationsmodus aus gegangen ist".
+    Setup: the laptop program from 2c93aed (single file, self-signed), a deck copy with
+    `## session length 1:00` (log: talk length 60 s from slide 2, show started 12:31:22, ended
+    12:31:31); board on the #2 test image `7b83e44-dirty`, clock stopped at 99:50
 
 After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
@@ -631,8 +649,20 @@ From #12 done on 2026-10-25: Codecov `fail_ci_if_error: true` (f894051, CI green
 40175768809; the laptop upload passed with it in run 40175800237) and a host test for a tap
 during the startup screen (65a35a3, CI green; board PASS by the owner at 02:27). Also from #12,
 pushed 2026-10-25: firmware host-test coverage with gcov/gcovr under the Codecov flag `firmware`
-(bac64f8; locally lines 96.6 %, functions 100 %; CI green in run 40177225061) and `PowerPointSource` releasing
-every COM object on each poll (b07f2ee; build clean, live check in the user test block).
+(bac64f8; locally lines 96.6 %, functions 100 %; CI green in run 40177225061), `PowerPointSource`
+releasing every COM object on each poll (b07f2ee; live check 2026-10-25 12:31: PowerPoint exits
+and the app survives, PASS, verified by the coordinator: after PowerPoint was closed
+`POWERPNT.EXE` was gone and `speaker-buddy.exe` kept running; the log shows one "tick skipped"
+at show start, `0x8001010A` busy, and one at PowerPoint exit, `0x800706BE` at 12:31:58, no
+repeats. Open finding (the owner, 12:32): closing PowerPoint after the show had ended made the
+board blink orange once; the board ran the test image at 99:50, so above the offline 60:00
+overtime rule. Suspected, not verified: a blocking COM call into the exiting PowerPoint stalls
+the keepalive for more than 3 s and the timer goes offline. Cause unknown, dev-Repository
+investigates), and an App test project (c92cef4): internal seams `ISerialDevice`/`WindowsSerialDevice`,
+`ITimerLink`, a poll delegate and `TalkRunner.Tick`; 26 App tests run in a new `windows-latest`
+CI job, the Ubuntu job tests Core only. CI green on 2c93aed (run 40181498702, 4 jobs). #12 code
+done; the issue stays open for the tray icon checks at 125 % and 150 % scaling (next user test
+block).
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
