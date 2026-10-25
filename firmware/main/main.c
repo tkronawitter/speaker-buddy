@@ -1,7 +1,9 @@
 /* Speaker Buddy firmware: the timer owns the elapsed time and runs on its own without a laptop. */
 #include "bsp/esp-bsp.h"
 #include "esp_app_desc.h"
+#include "esp_attr.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -11,6 +13,7 @@
 #include "startup.h"
 #include "timer_core/clock.h"
 #include "timer_core/session.h"
+#include "timer_core/snapshot.h"
 #include "timer_core/splash.h"
 #include "timer_core/view.h"
 #include "ui.h"
@@ -41,6 +44,12 @@ static tc_session_t s_session;
 static tc_splash_t s_splash;
 static bool s_splash_shown = true;
 
+/*
+ * Clock snapshot in RTC memory, which a chip reset (USB, watchdog, panic) leaves alone but a power
+ * cut does not. Written on every UI tick, so a tap, long press or new L is in it within 100 ms.
+ */
+RTC_NOINIT_ATTR static tc_snapshot_t s_snapshot;
+
 static uint32_t now_ms(void)
 {
     return (uint32_t)(esp_timer_get_time() / 1000);
@@ -55,6 +64,7 @@ static void on_ui_tick(lv_timer_t *timer)
     tc_session_link_state(&s_session, now, &link);
     tc_view_compose(&s_clock, now, &link, &view);
     ui_render(&view);
+    tc_snapshot_encode(&s_clock, now, &s_snapshot);
 
     bool splash = tc_splash_visible(&s_splash, now, tc_clock_running(&s_clock));
     if (splash != s_splash_shown) {
@@ -99,10 +109,29 @@ static void reset_panel(void)
     }
 }
 
+/*
+ * After a chip reset the talk goes on: the clock comes back from the snapshot, running if it ran,
+ * and only the reset gap is lost. A power-on or brownout always starts clean, since RTC memory holds
+ * no valid snapshot then.
+ */
+static void restore_clock(void)
+{
+    esp_reset_reason_t reason = esp_reset_reason();
+    bool clean_start = reason == ESP_RST_POWERON || reason == ESP_RST_BROWNOUT || reason == ESP_RST_UNKNOWN;
+    if (!clean_start && tc_snapshot_decode(&s_snapshot, now_ms(), &s_clock)) {
+        ESP_LOGW(TAG, "clock restored after reset (reason %d): t=%lu s, %s, L=%lu s", (int)reason,
+                 (unsigned long)tc_clock_seconds(&s_clock, now_ms()), tc_clock_running(&s_clock) ? "running" : "stopped",
+                 (unsigned long)s_clock.length_s);
+        return;
+    }
+    tc_snapshot_clear(&s_snapshot);
+}
+
 void app_main(void)
 {
     tc_clock_init(&s_clock);
     tc_session_init(&s_session);
+    restore_clock();
 
     reset_panel();
 
