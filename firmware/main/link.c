@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "timer_core/framer.h"
 #include "timer_core/line.h"
 
 static const char *TAG = "link";
@@ -25,10 +26,8 @@ static tc_clock_t *s_clock;
 static tc_session_t *s_session;
 static uint32_t (*s_now_ms)(void);
 
-/* Current incoming line without terminator; a line longer than the protocol limit is dropped */
-static char s_line[TC_LINE_MAX_BYTES];
-static size_t s_line_len;
-static bool s_line_too_long;
+/* Incoming bytes become lines here; a line longer than the protocol limit is dropped */
+static tc_framer_t s_framer;
 
 static void handle_line(const char *line, size_t len)
 {
@@ -95,17 +94,10 @@ static void send_version_if_due(bool came_online)
 static void feed(const uint8_t *data, int count)
 {
     for (int i = 0; i < count; i++) {
-        char ch = (char)data[i];
-        if (ch == '\n') {
-            if (!s_line_too_long) {
-                handle_line(s_line, s_line_len);
-            }
-            s_line_len = 0;
-            s_line_too_long = false;
-        } else if (s_line_len < sizeof s_line - 1) {
-            s_line[s_line_len++] = ch;
-        } else {
-            s_line_too_long = true;
+        const char *line;
+        size_t len;
+        if (tc_framer_push(&s_framer, (char)data[i], &line, &len)) {
+            handle_line(line, len);
         }
     }
 }
@@ -154,6 +146,7 @@ void link_start(tc_clock_t *clock, tc_session_t *session, uint32_t (*now_ms)(voi
     s_clock = clock;
     s_session = session;
     s_now_ms = now_ms;
+    tc_framer_init(&s_framer);
 
     usb_serial_jtag_driver_config_t config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
     config.rx_buffer_size = 512;

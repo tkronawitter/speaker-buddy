@@ -12,6 +12,7 @@ set(TIMER_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../components/timer_core)
 add_library(timer_core STATIC
     ${TIMER_CORE_DIR}/clock.c
     ${TIMER_CORE_DIR}/format.c
+    ${TIMER_CORE_DIR}/framer.c
     ${TIMER_CORE_DIR}/line.c
     ${TIMER_CORE_DIR}/session.c
     ${TIMER_CORE_DIR}/snapshot.c
@@ -26,7 +27,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
-foreach(name clock format line session snapshot splash view)
+foreach(name clock format framer line session snapshot splash view)
     add_executable(test_${name} test_${name}.c)
     target_link_libraries(test_${name} PRIVATE timer_core)
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
