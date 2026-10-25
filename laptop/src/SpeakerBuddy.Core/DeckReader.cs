@@ -28,6 +28,16 @@ public static class DeckReader
         return Read(document);
     }
 
+    /// <summary>
+    /// True for the exceptions <see cref="Read(string)"/> throws on a file it cannot read: missing or
+    /// locked (IOException, UnauthorizedAccessException), not a zip at all, such as an old .ppt, an
+    /// encrypted .pptx or any other file (FileFormatException, a FormatException, not an
+    /// IOException), or a zip without a presentation.
+    /// </summary>
+    public static bool IsUnreadable(Exception e) =>
+        e is IOException or UnauthorizedAccessException or FileFormatException or InvalidDataException
+            or OpenXmlPackageException;
+
     private static List<SlideNotes> Read(PresentationDocument document)
     {
         var presentationPart = document.PresentationPart

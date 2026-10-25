@@ -59,6 +59,7 @@ internal static class Program
 
         var log = new FileLog();
         LogUnhandledExceptions(log);
+        log.DeleteOldFiles();
         ApplicationConfiguration.Initialize();
         using var runner = new TalkRunner(talkLength, fixedPort, log);
         Application.Run(new TrayContext(runner, log));
@@ -127,8 +128,7 @@ internal static class Program
         {
             slides = DeckReader.Read(path);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException
-                                      or DocumentFormat.OpenXml.Packaging.OpenXmlPackageException)
+        catch (Exception e) when (DeckReader.IsUnreadable(e))
         {
             Console.Error.WriteLine($"Cannot read {path}: {e.Message}");
             return 2;

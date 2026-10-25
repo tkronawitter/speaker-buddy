@@ -34,6 +34,48 @@ public class DeckReaderTests
         Assert.Equal("Demo time\v## 12:00", DeckReader.Read(deck)[0].Notes);
     }
 
+    // An old .ppt and an encrypted .pptx both are OLE compound files with this signature
+    private static readonly byte[] OleSignature = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+    public static TheoryData<string, byte[]> BrokenDecks => new()
+    {
+        { "plain text", "not a deck"u8.ToArray() },
+        { "empty file", [] },
+        { "old .ppt or encrypted .pptx", [.. OleSignature, .. new byte[504]] },
+        { "truncated zip", [0x50, 0x4B, 0x03, 0x04, 1, 2, 3] },
+        { "zip without a presentation", ZipWithoutPresentation() },
+    };
+
+    private static byte[] ZipWithoutPresentation()
+    {
+        using var stream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            archive.CreateEntry("readme.txt");
+        }
+
+        return stream.ToArray();
+    }
+
+    [Theory]
+    [MemberData(nameof(BrokenDecks))]
+    public void A_file_that_is_no_deck_fails_with_an_unreadable_exception(string kind, byte[] content)
+    {
+        var e = Record.Exception(() => DeckReader.Read(new MemoryStream(content)));
+
+        Assert.NotNull(e);
+        Assert.True(DeckReader.IsUnreadable(e), $"{kind}: {e.GetType().FullName} is not classed as unreadable");
+    }
+
+    [Fact]
+    public void A_missing_file_is_unreadable()
+    {
+        var e = Record.Exception(() => DeckReader.Read(Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pptx")));
+
+        Assert.NotNull(e);
+        Assert.True(DeckReader.IsUnreadable(e));
+    }
+
     [Fact]
     public void A_deck_saved_by_powerpoint_is_read_like_the_object_model_reports_it()
     {
