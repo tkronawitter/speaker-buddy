@@ -712,6 +712,20 @@ done; the tray icon checks at 125 % and 150 % scaling passed (step 55) and the p
 its live proof; #12 complete, closed on GitHub 2026-10-25 13:31.
 Also in milestone `v1.0` since 2026-10-25: #15 even spacing around the digit 1 in the time
 display (from the #2 board check).
+#7 pushed 2026-10-25: c741329 `.github/dependabot.yml` (weekly; GitHub Actions in one group
+including majors; NuGet minor and patch in one group, majors as single pull requests); the
+ESP-IDF component manager is no Dependabot ecosystem, so 18a73c3 adds the README section
+"Dependency updates" with the monthly manual check (`idf.py update-dependencies`, exact pins
+ESP-IDF 5.5.5 and BSP 2.0.3). #7 closes after CI.
+Decisions of the owner, 2026-10-25 15:11: (1) an alpha release `v0.1.0-alpha.1` when work stops
+on 2026-10-25; it also gives the README link "latest release" a target. (2) #8 CSV rehearsal
+log: comma as separator; dev-Repository-2 reworks it, the README rationale changes with it.
+(3) #1 two slide shows: the laptop program follows only the show it started with, and switching
+must not disturb the timer; shows that are already running when the followed show ends are
+ignored. Owner: dev-Repository. Live result before the change (2026-10-25 15:08-15:09, real
+PowerPoint, harness, no board): the lock holds while show B runs (issue steps 3-4 PASS); after
+show A ended, B was taken about 315 ms later (step 5 FAIL against the issue text), which the
+change removes.
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
