@@ -22,7 +22,7 @@ private requirements notes (German). This plan refers to them by
 ID and does not restate them.
 
 The project was renamed from "Speaker Timer" to "Speaker Buddy" on 2026-10-25 at 00:40 (the owner;
-code in 7aa9b73). Commit hashes before the rename are kept as they were.
+code in 82316f3). Commit hashes before the rename are kept as they were.
 
 ## Constraints
 
@@ -65,7 +65,7 @@ else is development session work.
    Expected: `dotnet test laptop/SpeakerBuddy.sln` passes with one placeholder-free smoke test of
    a real type (for example `Mark` record equality)
 4. [x] Create `docs/protocol.md`: the S-02 lines (timer to laptop `{"v":1,"t":612,"run":true}`;
-   laptop to timer `{"v":1,"c":"#8000A0","d":90}` (purple; green sends `d` null since 57c345d), `{"v":1,"L":2700}`,
+   laptop to timer `{"v":1,"c":"#8000A0","d":90}` (purple; green sends `d` null since e0806a6), `{"v":1,"L":2700}`,
    `{"v":1,"state":"ended"}`), 128-byte limit, drop rules, send cadence. Expected: the single
    source both sides implement against
 5. [x] Create `.github/workflows/ci.yml`, job `laptop` on `ubuntu-latest`, path filter
@@ -87,7 +87,7 @@ implement.
    Expected: all pass
    - [x] Follow-up (the owner, 2026-10-24 19:19): trim trailing whitespace before matching, so
      `## 10:00 ` is a mark; ` ## 10:00` (leading) and `## 10:00 Demo` stay rejected. Expected:
-     new tests for both cases pass, CI `laptop` green. Done in 38390e4: spaces and tabs are
+     new tests for both cases pass, CI `laptop` green. Done in e7dca8a: spaces and tabs are
      trimmed; a trailing no-break space (U+00A0) stays invalid and check mode L-09 reports it.
      CI run 40115712254 green
 9. [x] `MarkSet` builder: input is a list of (slide index, hidden flag, notes text); hidden slides
@@ -99,7 +99,7 @@ implement.
     (no `L`)
     - [x] Follow-up (the owner, 2026-10-25 00:33-00:37): minimum tolerance 0:45, `tol = max(L / 45,
       0:45)` rounded down to whole seconds, `L` unknown gives 0:45. Expected tests: 45 min
-      (1:00), 30 min (0:45), 15 min (0:45), 90 min (2:00). Pushed in 57c345d, tests 206/206,
+      (1:00), 30 min (0:45), 15 min (0:45), 90 min (2:00). Pushed in e0806a6, tests 206/206,
       CI run 40139694623 green
 11. [x] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
     slideIndex)`; a mark is reached the first time `slideIndex` is at or past its slide, evaluated
@@ -111,7 +111,7 @@ implement.
     `## 10:00`: arrival at 10:40 green, at 12:00 purple, at 8:30 red and green again at 9:00 on
     the same slide, 11:01 still on slide 13 purple per B-06, 45:01 overtime), plus one test per
     rule.
-    As built (corrected 2026-10-25 after the code review of e57664c): the `Evaluator` covers
+    As built (corrected 2026-10-25 after the code review of ff57d6a): the `Evaluator` covers
     B-01 to B-06 only. Overtime B-07 is decided by the timer alone (`timer_core` `clock.c` and
     `view.c`, see step 13 and step 22), so there is no 45:01 overtime test in the laptop tests
     - [x] Follow-up (the owner, 2026-10-25 00:33-00:37): the deviation `d` follows the colour live
@@ -120,22 +120,22 @@ implement.
       B-06 applies; overtime unchanged. Exact `m:ss`, no rounding (30 s rounding discussed and
       dropped). Reason: the step 39 log showed the frozen `d` contradicting the colour (`t=90`
       green with `d=-38`, `t=211` purple with `d=-38`). Laptop side only. Expected: a test per
-      colour case passes, board check by the owner. Pushed in 57c345d; green sends `d` null, so the
+      colour case passes, board check by the owner. Pushed in e0806a6; green sends `d` null, so the
       firmware needs no change. Purple after a late arrival shows the lateness at arrival, frozen,
       and switches to the live value once the next mark is overdue (B-06); confirmed by the owner
       2026-10-25 00:46, each mark is an independent checkpoint.
       Board check PASS per the owner 2026-10-25 01:05 and 01:08: run 00:59:44-01:05:15 with
-      34f0a86 (`--length 5`), app log `t=106` purple `d=46` live (next mark overdue), `t=138`
+      4a38566 (`--length 5`), app log `t=106` purple `d=46` live (next mark overdue), `t=138`
       purple `d=78`, `t=139` green `d` null, `t=226` purple `d=46` counting, `t=251` purple
       `d=71` frozen, `t=275` green `d` null, show end detected ("sah gut aus"). The red case was
       not reached in this run and is covered by `EvaluatorTests`. Static test pictures (purple
       `+1:10`, red `-0:55`, green without a line): "perfekt", readable and big enough. During
       overtime (`t > L`) the timer shows only orange and ignores the laptop colour, as designed.
       At the show end PowerPoint answered `RPC_E_SERVERCALL_RETRYLATER`; the tick was skipped,
-      no crash (91cfc39 holds in practice)
+      no crash (3d5734b holds in practice)
 12. [x] `Protocol` (S-02): serialize laptop lines, parse timer lines, drop lines that are broken,
     unknown, over 128 bytes or have `v` other than 1. Expected: round-trip and drop tests pass.
-    Follow-up (dev, 2026-10-24, pushed in 49dc0f5): the protocol is flat JSON on both sides, no
+    Follow-up (dev, 2026-10-24, pushed in af0fd62): the protocol is flat JSON on both sides, no
     nested values, no backslash escapes, no duplicate names; the laptop drops the same lines as
     the timer
 13. [x] `ColorScheme`: maps evaluation result to RGB (`neutral` white on black, `onPlan` green,
@@ -189,9 +189,9 @@ implement.
     `speaker_buddy.bin` is 0xa9a80 bytes, 78 % of the 3 MB factory partition free. Open for
     the owner: visual check (green background, white "hello", landscape) and one touch tap.
     Partial, per the owner 2026-10-24 evening: the 150 px font "looks good so far", seen before the
-    fixed-width change 13a3e52 (step 26).
+    fixed-width change 638f266 (step 26).
     Final look PASS per the owner 2026-10-25 00:32 ("passt"), seen with `--demo` on the clean
-    cf4de62 firmware: fixed-width 150 px time, 76 px deviation line, all backgrounds including
+    8ce0500 firmware: fixed-width 150 px time, 76 px deviation line, all backgrounds including
     the overtime orange.
     Done outside the plan, 2026-10-24 after the go of 18:45: BOOT-mode test, `erase_flash` of the
     whole chip (removes xiaozhi and the factory remnants; the archive from step 16 is the only
@@ -223,8 +223,8 @@ implement.
     `clock.c` (start, pause, reset, `t` in seconds, `L`; overtime state for B-07 when `t > L`
     and for D-06 offline from 60:00: orange, blinking, black digits), `line.c` (S-02 parsing and the timer-to-laptop line, 128-byte limit),
     `format.c` (`mm:ss`, `+1:30`). Expected: compiles inside the IDF build.
-    Status 2026-10-24: written together with steps 23-24, pushed in e4382a8; host tests 3/3 in
-    WSL. Compiling `timer_core` inside the IDF build verified with 5582c33 (task 4b), which also
+    Status 2026-10-24: written together with steps 23-24, pushed in 2ed967e; host tests 3/3 in
+    WSL. Compiling `timer_core` inside the IDF build verified with 12c0329 (task 4b), which also
     adds `timer_core/view` (pure C display decision) with `test_view`; host tests 4/4
 23. [x] Create host tests in `firmware/test/host/` (`CMakeLists.txt`, a minimal assert runner, no
     PlatformIO) for `clock`, `line` and `format`. Expected: `cmake -S firmware/test/host -B
@@ -237,7 +237,7 @@ implement.
     screen width for `88:88` (D-01), checked in as `firmware/main/fonts/digits_*.c` with the
     generating command in a comment. Expected: builds, glyphs `0-9 : + -` only. Installing
     `lv_font_conv` via `npx` on the development PC approved by the owner 2026-10-24 19:21.
-    Done 2026-10-24 in 4928975: the dev session's classifier refused `npx lv_font_conv`, so
+    Done 2026-10-24 in c731543: the dev session's classifier refused `npx lv_font_conv`, so
     the owner ran it by hand at 21:38. Result `firmware/main/fonts/digits_150.c`, Montserrat Medium
     150 px, 4 bpp, glyphs `+ - 0-9 :`; `88:88` is about 420 px of the 448 px width. Build,
     `check-image` 0 and flash verified by the dev session on the development PC; how it reads from 1.5 m is
@@ -246,27 +246,27 @@ implement.
     background, "disconnected" symbol. Expected: builds
 27. [x] Implement `main/input.c`: short tap starts; long press pauses or resets (D-03), so a short
     tap never stops a running clock. Expected: builds.
-    Status for 26 and 27 (pushed in 5582c33): built, `check-image` clean, flashed under the
+    Status for 26 and 27 (pushed in 12c0329): built, `check-image` clean, flashed under the
     standing go; serial log `Touch CST816S 0x15 found`, `timer ready, tap to start`, 12 s
     without panic; `speaker_buddy.bin` 0xb6810 bytes, 76 % of the factory partition free.
-    Follow-up 13a3e52 (the owner asked at 21:42): fixed-width elapsed time, every digit cell as wide
+    Follow-up 638f266 (the owner asked at 21:42): fixed-width elapsed time, every digit cell as wide
     as the widest digit, and times of 100 minutes and more are scaled
     down to fit. Build, `check-image` 0 and flash verified by the dev session; the look on screen
     and the scale-down after 100 minutes are not verified yet (step 28; the scale-down check is
     in the backlog as issue #2). The scale-down lives in
     `main/ui.c` (`set_time_text`, LVGL transform), outside `timer_core`, so no host test covers
     it; it is a display check only.
-    Regression from 13a3e52 (the owner, 22:06): long press no longer works. Cause confirmed by
+    Regression from 638f266 (the owner, 22:06): long press no longer works. Cause confirmed by
     the owner at 22:07 (long press on an empty corner works, a touch on the digits does nothing):
     the new time container is clickable by LVGL default and swallows touches on the digit row,
-    so they never reach the screen. Fixed in 618991f: `lv_obj_set_clickable(s_time, false)`
+    so they never reach the screen. Fixed in b976562: `lv_obj_set_clickable(s_time, false)`
     clears `LV_OBJ_FLAG_CLICKABLE` on the container. Build without warnings, `check-image` 0 and
     flash verified by the dev session; step 28 retests long press on the digits
 28. [x] Flash under the standing go, `tools/check-image.ps1` exits 0 first; the owner observes the
     board and tests: tap starts, long press pauses, long
     press again resets, time readable from 1.5 m. Expected: all four observed. Offline 60:00 rule
     is covered by the host test, not waited for.
-    Result 2026-10-24 22:10 (per the owner, after 618991f): PASS, tap and long press on the digits
+    Result 2026-10-24 22:10 (per the owner, after b976562): PASS, tap and long press on the digits
     work. The display check of the scale-down from 100 minutes (step 26) moved to the backlog
     by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v1.0`
 29. [x] Commit and push. Expected: CI `firmware-host` green
@@ -288,11 +288,11 @@ implement.
     Deviation in the code (found by the coordinator 2026-10-24 22:30): `DemoSequence.LengthSeconds`
     is `45 * 60` (`laptop/src/SpeakerBuddy.Core/DemoSequence.cs:13`), so overtime orange does not
     show in the demo. The owner decided 2026-10-25 00:00: change the code, short `L` of about 60 s.
-    Done in 8424179: `DemoSequence.LengthSeconds = 60`, new test, `dotnet test` 204/204. Board
+    Done in d11211a: `DemoSequence.LengthSeconds = 60`, new test, `dotnet test` 204/204. Board
     check per the owner 2026-10-25 00:06: overtime orange blink after 1:00 seen, the first view of
     overtime on the board
-    Status for 30-32 (2026-10-24, pushed in aa7d2c6 firmware link plus `timer_core/session`, and
-    d7cdab2 laptop `SerialLink`, `TimerPort`, `LineFramer`, `DemoSequence`, App with `--demo`): `dotnet test` 150/150, host tests 5/5, `check-image` clean (6997 symbols). Verified by
+    Status for 30-32 (2026-10-24, pushed in 8b33604 firmware link plus `timer_core/session`, and
+    206abf7 laptop `SerialLink`, `TimerPort`, `LineFramer`, `DemoSequence`, App with `--demo`): `dotnet test` 150/150, host tests 5/5, `check-image` clean (6997 symbols). Verified by
     the dev session on the development PC without the owner: opening `COM4` with DTR/RTS low does not reset the
     board, status lines about once per second, `L` applied, a broken line is ignored, "laptop
     lost" about 3 s after the last line, `--demo` finds `COM4` via VID/PID and interface
@@ -323,10 +323,10 @@ implement.
     panel init. The board has no panel reset line (`BSP_LCD_RST` is not connected). The extra
     reset also sets the talk clock back to 0.
     Side finding: on connect the exe first receives stale status lines the board queued while
-    the port was closed (`t=110..118` before the live `t=182`). Fixed in 0f5d21f "laptop: drop
+    the port was closed (`t=110..118` before the live `t=182`). Fixed in 2394fc2 "laptop: drop
     the timer's backlog on connect"; board test PASS 2026-10-25 00:08 (first `t` is live, no
     jump).
-    State at the end of 2026-10-24 (step 33 still FAIL, nothing committed after ff4612d; per
+    State at the end of 2026-10-24 (step 33 still FAIL, nothing committed after ef420e5; per
     the owner plus the dev logs):
     - Extra reset: a replug while the laptop program runs resets the chip again about 0.7 s
       after power-on (`boots=2`, reason 11, `prev_stage=1`, during panel init); a replug with no
@@ -354,18 +354,18 @@ implement.
     Fix direction: pulse the expander pins before panel init at every boot (firmware). The
     redraw-after-boot candidate is refuted and dropped. `SafeLineState` on the laptop stays a
     separate fix for the extra reset after a replug.
-    Panel fix PASS, pushed in a507838 (`main/main.c`): `reset_panel()` runs before
+    Panel fix PASS, pushed in e6a4712 (`main/main.c`): `reset_panel()` runs before
     `bsp_display_start` and pulls TCA9554 pins 0, 1, 2 and 6 low for 20 ms, then high, then
     waits 150 ms. All four pins are kept as in Waveshare's demos; which one is the panel reset
     will not be narrowed down. Proof: 10 RTS resets without laptop traffic (23:32-23:34), 0
     black screens per the owner 23:35; before the fix 1 of 1 black.
-    Laptop fix PASS, pushed in e168210: new `SafeLineState`, called by `SerialLink.TryOpen`
+    Laptop fix PASS, pushed in 6cc5a9a: new `SafeLineState`, called by `SerialLink.TryOpen`
     before `Open`, turns the control lines off in a safe order through Win32 (App csproj
     `AllowUnsafeBlocks`). Replug test 3 of 3 with `boots=1`, reason 1 (23:45-23:48, replugs by
     the owner, reads by the dev session); before the fix 3 of 3 had `boots=2`, reason 11. The board
-    runs the clean a507838 image again.
+    runs the clean e6a4712 image again.
     Retest PASS (per the owner 2026-10-24 23:55, "genau so"): `--demo` 23:54:39-23:55:09 on the
-    a507838 image with the e168210 laptop program; colours cycled with the deviation shown, and
+    e6a4712 image with the 6cc5a9a laptop program; colours cycled with the deviation shown, and
     after the demo stopped: black background, white time, USB symbol with an X. With the serial
     reconnect and the replug fix above, step 33 passes
 34. [x] Commit and push
@@ -394,8 +394,8 @@ implement.
     prints marks per slide, near misses, hidden-slide marks and decreasing marks (OpenXml
     confirmed by the owner, 2026-10-24). Expected: unit
     test with a small fixture .pptx in `laptop/tests/fixtures/` passes in CI.
-    Status for 35-38 (2026-10-24, pushed in 34a9243 Core `DeckReader`, `DeckCheck`,
-    `TalkController`, OpenXml 3.1.0, fixture .pptx, and 8992345 App `PowerPointSource`,
+    Status for 35-38 (2026-10-24, pushed in c56df02 Core `DeckReader`, `DeckCheck`,
+    `TalkController`, OpenXml 3.1.0, fixture .pptx, and b32de38 App `PowerPointSource`,
     `TalkRunner`, `TrayContext`, `FileLog`, modes tray, `--check` and `--demo`, README laptop
     section): tests 203/203. `--check` on the fixture works (exit 1, 3 problems).
     NOT verified: the live COM path (show detection, `FullName` lock, slide index, show end, two
@@ -416,13 +416,13 @@ implement.
     `tol` 0:30 (0:45 once the step 10 follow-up is in).
     Run 1, 2026-10-25 00:16:57-00:22:44, unattended at the owner's request (00:13): a test-only
     diagnostic image with clock autostart (not committed; the clean image was flashed back
-    afterwards), tray app 91cfc39 with `--length 5`, show started over COM and paged by a
+    afterwards), tray app 3d5734b with `--length 5`, show started over COM and paged by a
     coordinator script. App log: show detected, 4 marks, highest 270 s; slide 2 at `t=77` green
     `d=17`; slide 3 at `t=82` red `d=-38`, green at `t=90` once `t` reached `m - tol`; `t=211`
     purple (late for the next mark); slide 4 at `t=261` purple `d=81`; slide 5 at `t=286` green
     `d=16`; show end detected. PASS for show detection, marks, evaluation and show end, the first
     live run of the COM path.
-    Fixed before the run: 91cfc39 "laptop: survive a busy PowerPoint" (PowerPoint rejected a
+    Fixed before the run: 3d5734b "laptop: survive a busy PowerPoint" (PowerPoint rejected a
     call at show start, `RPC_E_CALL_REJECTED` surfaced as `MissingMemberException` and crashed
     the app).
     Per the owner 2026-10-25 00:24, who watched the board after all: "orange came. powerpoint did
@@ -440,8 +440,8 @@ implement.
     no decreasing marks, highest mark close to 30:00
 43. [ ] **(Owner)** Put the signed program on the stage laptop. On the development PC: `pwsh
     tools/publish-laptop.ps1` (one self-contained `laptop/publish/speaker-buddy.exe`, about
-    70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in 768dcd4), then
-    `pwsh tools/sign.ps1` (a570b83). Expected: exe starts into the tray.
+    70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in e4b85ad), then
+    `pwsh tools/sign.ps1` (b82b6eb). Expected: exe starts into the tray.
     The stage laptop is the owner's private device. Signing (the owner, 2026-10-25 01:11, replacing
     "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy (self-signed)`, thumbprint
     `8E1E2DC50FFA1A5E5709FF6EDAF2DE142C3FC8C7`, valid until 2028-12-30, private key not
@@ -494,34 +494,34 @@ implement.
     `codecov.yml` with informational checks and carryforward for the `laptop` flag. README badge
     added. Local coverage (dev-Repository-2): lines 93.3 % (979/1049), branches 82.6 %.
     The owner set the repository secret `CODECOV_TOKEN` on 2026-10-25 at 01:46; CI run 40144113537
-    on c21addb uploaded the coverage report to Codecov. Follow-up for later:
+    on cb6c842 uploaded the coverage report to Codecov. Follow-up for later:
     `fail_ci_if_error` can go to `true` now that the token exists
 51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
     `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04).
-    Pushed in 7072ada "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
+    Pushed in fff75c8 "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
     green: jobs `laptop`, `firmware-host` and `firmware-build`, the image check ran inside the
     container, artifact `firmware` uploaded
 52. [x] Pulled forward from after the first talk (O-03): `speaker-buddy.exe` as one self-contained file,
-    `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in 768dcd4;
+    `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in e4b85ad;
     verified on the development PC (published, signed, `--check` runs)
 53. [x] Firmware version (the owner, 2026-10-25 01:17-01:19): the version from `git describe` in the
     boot log and reported to the laptop; the laptop logs both versions. Expected: boot log and
     laptop log show the same version as `git describe`.
-    Pushed in 647b0c2 "firmware and laptop: report their versions": line `{"v":1,"fw":"..."}`
+    Pushed in 2858deb "firmware and laptop: report their versions": line `{"v":1,"fw":"..."}`
     (documented in `docs/protocol.md`), sent when the laptop comes online and every 10 s.
-    Check PASS on the development PC (dev session, 2026-10-25 01:27): boot log `Speaker Buddy d1cceed-dirty
-    ready, tap to start`, wire `{"v":1,"fw":"d1cceed-dirty"}` every 10 s; tray log `started,
-    speaker-buddy c92d65b-dirty` and `timer firmware d1cceed-dirty` 8 s after connect; both match
+    Check PASS on the development PC (dev session, 2026-10-25 01:27): boot log `Speaker Buddy 13a20bc-dirty
+    ready, tap to start`, wire `{"v":1,"fw":"13a20bc-dirty"}` every 10 s; tray log `started,
+    speaker-buddy da3daea-dirty` and `timer firmware 13a20bc-dirty` 8 s after connect; both match
     `git describe` of their builds. Not checked: the version in the tray tooltip
 54. [x] Release workflow, pulled forward in part from after the first talk (R-07, R-09): `release.yml` on
     a tag `v*` builds the firmware with the `check-image` gate and the single-file exe, writes
     `SHA256SUMS` and creates a GitHub release. The release exe is unsigned, because the signing
     key is not exportable from the development PC; the exe for the first talk is signed locally (step 43). Attestations
-    are not part of it yet. Pushed in bb195f6. Expected: a test tag produces a release with
+    are not part of it yet. Pushed in a5c731e. Expected: a test tag produces a release with
     firmware, exe and `SHA256SUMS`.
     Test 2026-10-25: the first tag `v0.0.1-test1` (run 40146824888) failed, because
     downloading the artifacts into `assets/` collided with the repo's `assets/logo`; fixed in
-    bee390a "Download release assets into a folder of their own". Tag `v0.0.1-test2` on bee390a,
+    e8dfa7d "Download release assets into a folder of their own". Tag `v0.0.1-test2` on e8dfa7d,
     run 40147332708: jobs `firmware-host`, `firmware`, `laptop` and `release` green, marked as
     pre-release; assets `bootloader.bin`, `flash_args` (0x0 bootloader, 0x8000 partition table,
     0x10000 app), `partition-table.bin`, `SHA256SUMS`, `speaker-buddy.exe` (73.5 MB, product
@@ -532,7 +532,7 @@ implement.
     white eyes and a green smile; a grey "waiting" variant for the tray.
     Design canvas: private. Expected: the exe in
     Explorer and the tray icon show the logo, grey while waiting.
-    Pushed in 6a4f0f9 (dev-Repository-2): SVG masters in `assets/logo/` (64, 32 and 16 px plus
+    Pushed in 5c5b87d (dev-Repository-2): SVG masters in `assets/logo/` (64, 32 and 16 px plus
     waiting variants), `speaker-buddy.ico` and `speaker-buddy-waiting.ico` (16, 24, 32, 48 and
     256 px) made by `tools/make-icons.ps1` (same SHA-256 over two runs), exe `ApplicationIcon`,
     tray grey while waiting and in colour when connected. Verified by the dev session: build
@@ -543,7 +543,7 @@ implement.
 56. [x] Firmware startup screen of about 2 s with the logo, "Speaker Buddy" and the firmware
     version (step 53), then the normal clock screen. Expected: `check-image` 0, flash, the owner
     sees the screen after a restart.
-    Pushed in a77c977 "firmware: startup screen with logo and version":
+    Pushed in 74fcbdd "firmware: startup screen with logo and version":
     logo D drawn with LVGL primitives (three arcs, face, eyes, smile arc; 160 px), "Speaker
     Buddy" in Montserrat 48 and the version (`esp_app_get_description`, `git describe`) in
     Montserrat 28 grey, on `lv_layer_top` for 2 s or until the clock runs, then gone for good;
@@ -552,50 +552,50 @@ implement.
     perfekt"). Per the owner 02:27: a tap during the startup screen ends it and starts the clock;
     after power-on the clock shows 00:00, stopped
 
-Follow-ups from the code review of e57664c, decided by the owner 2026-10-25 01:51 ("alles so").
+Follow-ups from the code review of ff57d6a, decided by the owner 2026-10-25 01:51 ("alles so").
 Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
 
 57. [x] Keepalive: while connected, the laptop sends a state line at least once per second, a
     neutral one when no slide show runs and the last state while PowerPoint is busy. The
     disconnected symbol then only means cable or program gone. After `state: ended` the laptop
     keeps sending neutral, so the timer stays online and neutral (`docs/protocol.md` follows).
-    Pushed in e0cd62b "Keep the timer link alive once per second" (tests 217/217). Expected:
+    Pushed in f9603cd "Keep the timer link alive once per second" (tests 217/217). Expected:
     tests pass; on the board no disconnected symbol between shows. Board check PASS per the owner
-    2026-10-25 02:28: tray app (8ffc906 build) running without PowerPoint, board replugged, no
+    2026-10-25 02:28: tray app (5aa7b3f build) running without PowerPoint, board replugged, no
     disconnected symbol after 15 s
 58. [x] New protocol line `{"v":1,"L":null}` = talk length unknown, clear it. The laptop sends
     it after connecting and at show start when `L` is unknown; the firmware clears `L`.
-    Firmware pushed in f095fdb, board-checked by the dev session (`L` 60 logged, `L` null
-    cleared it, `L` 0 dropped). Laptop side pushed in 4683c39: sends `L` null after connecting
+    Firmware pushed in 13a1361, board-checked by the dev session (`L` 60 logged, `L` null
+    cleared it, `L` 0 dropped). Laptop side pushed in 21f4f6b: sends `L` null after connecting
     when unknown and at every show start that leaves `L` unknown; a show end forgets the deck's
     `L`, `--length` stays. Expected: host and laptop tests for the new line pass. Laptop tests
-    223/223, CI on 4683c39 green
+    223/223, CI on 21f4f6b green
 59. [x] The clock survives an unexpected chip reset: RTC snapshot of `t` and the running state,
     resumed after a reset unless it was a power-on or brownout. Expected: host tests pass; on
     the board a reset during a running clock resumes it.
-    Pushed in 5991a44 "firmware: the talk clock survives a chip reset". Host tests 7/7. Board
+    Pushed in 635ffbb "firmware: the talk clock survives a chip reset". Host tests 7/7. Board
     (dev session): `t=11` running before an RTS reset, 13 to 16 running after; the real image
     logged "clock restored after reset (reason 11): t=78 s, running"
 60. [x] The laptop counts a timer reset only when `t == 0` and `run == false`. Expected: tests pass.
-    Pushed in f9fd9f5 "Treat only a stopped clock at zero as a timer reset", tests 226/226, the
+    Pushed in e0d50a5 "Treat only a stopped clock at zero as a timer reset", tests 226/226, the
     3 new tests fail with the old rule, CI green. Board fact: a long-press reset reports `t=0`,
     `run=false`
 61. [x] Hardening without new decisions. Expected: CI green, tests pass.
-    Done: 4ec9f33 actions pinned by commit, tokens kept out of checkouts, `dependencies.lock`
-    gate, the release workflow runs the firmware host tests as its own job; 2c19348 kill switch
-    safe to run twice; bc831b1 never an error dialog (log and recover) and a robust serial loop
+    Done: 3332815 actions pinned by commit, tokens kept out of checkouts, `dependencies.lock`
+    gate, the release workflow runs the firmware host tests as its own job; 63c8836 kill switch
+    safe to run twice; aa2995d never an error dialog (log and recover) and a robust serial loop
     (each iteration caught and retried, guarded event handlers, closing the port always clears
-    it); 841fde6 panel reset pulse retried; f4854bd `check-image` also checks the linker map
+    it); c1d7a79 panel reset pulse retried; 32a0b82 `check-image` also checks the linker map
     and the ELF (radio blobs in the map are fatal, `libesp_phy` allowed; fewer than 1000 symbols
-    or no `app_main` fails; ROM type-A radio symbols are reported); 2e4d872 `--check` on
-    unreadable or non-`.pptx` files, log rate limit and 30-day cleanup (tests 245/245); c0df8ab
+    or no `app_main` fails; ROM type-A radio symbols are reported); e611c0b `--check` on
+    unreadable or non-`.pptx` files, log rate limit and 30-day cleanup (tests 245/245); 610d8e1
     firmware parses lines with up to 32 fields (`MAX_FIELDS` 8 to 32; 9-field and 20-plus-field
     lines parse, the test fails with 8; board: `L` 60, null and 0 as before).
-    CI green on all of them except c0df8ab (running); the map scan and the lock gate pass inside
+    CI green on all of them except 610d8e1 (running); the map scan and the lock gate pass inside
     the IDF container.
-    Line framer pushed in 8ffc906 "firmware: line framer in timer_core with host tests": 6 host
+    Line framer pushed in 5aa7b3f "firmware: line framer in timer_core with host tests": 6 host
     cases, 8/8 suites, build clean, `check-image` 0; board: a 195-byte line ignored, a line split
-    across reads parsed, `\r\n` parsed. CI c0df8ab and 8ffc906 green
+    across reads parsed, `\r\n` parsed. CI 610d8e1 and 5aa7b3f green
 62. [ ] Deck line `## session length m:ss` (for example `## session length 60:00`) sets the talk
     length (the owner, 2026-10-25 02:38-02:41). Precedence: `--length`, then `## session length`,
     then the highest mark if it is at least 5:00. Laptop only (dev-Repository-2). Commit pending.
@@ -660,7 +660,7 @@ individuals in Germany).
    mid-talk, for example "Stop and release port" in the tray menu? For the next session.
 
 Answered by the owner on 2026-10-25 at 00:46: purple after a late arrival keeps the lateness at the
-arrival (as built in 57c345d) and does not count up. Reason in the owner's words: a mark is always the
+arrival (as built in e0806a6) and does not count up. Reason in the owner's words: a mark is always the
 time where the owner wants to be at that slide; earlier marks do not matter once the slide is
 reached. Marks go on slides where the owner can talk more or less, to win time back, not on every slide. The README
 section "How to set marks" describes this.
@@ -674,12 +674,12 @@ from Task 4 and the questions from the board tests:
 3. Long press threshold 1.0 s: keep.
 4. Disconnected symbol, USB icon with an X, top right: keep.
 5. Deviation line in Montserrat 28: no, far too small (22:30). New: about half the height of the
-   time, about 70 px, as a generated font like step 25. Done in cf4de62 (`digits_76`,
+   time, about 70 px, as a generated font like step 25. Done in 8ce0500 (`digits_76`,
    Montserrat Medium 76 px); visual check PASS per the owner 2026-10-25 00:06, readable.
 6. `--demo` sent `L` = 45:00, so overtime never showed in the demo: yes, `--demo` sends a short
-   `L` (about 60 s) as step 32 planned. Done in 8424179 (`DemoSequence.LengthSeconds = 60`).
+   `L` (about 60 s) as step 32 planned. Done in d11211a (`DemoSequence.LengthSeconds = 60`).
 7. Black panel after an extra USB reset (step 33): superseded 2026-10-24 23:29, the panel gets
-   a hardware reset through the TCA9554 expander at every boot (a507838).
+   a hardware reset through the TCA9554 expander at every boot (e6a4712).
 
 Answered by the owner on 2026-10-24 at 19:21: install `lv_font_conv` via `npx` (step 25) and a host
 C compiler (step 23) on the development PC; the dev session installs them.
