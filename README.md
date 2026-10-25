@@ -223,6 +223,35 @@ single-file exe and creates a GitHub release with `SHA256SUMS`. A tag with a hyp
 `git describe`. The exe in a release is not code-signed, because the signing key stays on the
 machine it was created on.
 
+### Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens a pull request each week for the GitHub Actions and
+one for the NuGet packages of the laptop program. It does not cover the firmware: the ESP-IDF
+component manager is not a Dependabot ecosystem, so check `firmware/dependencies.lock` by hand
+once a month and before a release.
+
+Re-resolve the components within the ranges in `firmware/main/idf_component.yml` (for example
+`lvgl/lvgl` `>=9.6.0,<10`), from an ESP-IDF v5.5.5 shell:
+
+```sh
+cd firmware
+idf.py update-dependencies
+git diff -- dependencies.lock
+```
+
+No diff means nothing to do. With a diff, build, run the host tests, check the image, test on the
+board, then commit the new `dependencies.lock` and name the new versions in the commit message.
+Commit the lock together with the update: CI and the release workflow fail when a build changes
+`dependencies.lock` (step "Dependencies unchanged").
+
+`idf.py update-dependencies` does not move the exact pins: ESP-IDF `==5.5.5` and the board
+package `waveshare/esp32_s3_touch_amoled_1_8` `==2.0.3`. Look for newer versions on
+[components.espressif.com](https://components.espressif.com) and in the
+[ESP-IDF releases](https://github.com/espressif/esp-idf/releases). Raising a pin is a change to
+`idf_component.yml` with its own board test. A new ESP-IDF version also moves the
+`espressif/idf` image tag and digest in `.github/workflows/ci.yml` and `release.yml`, and the
+version named in "Build and flash the firmware".
+
 ### Protocol
 
 The timer and the laptop program talk in JSON lines over USB serial; see
