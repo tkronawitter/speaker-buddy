@@ -613,12 +613,20 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     show that ran long). A length given with `--length` stays. Owner: dev-Repository-2, next
     session. Expected: tests pass; on the board the orange blink ends with the show. Then update
     `docs/protocol.md` ("End of slide show") and the README screen table
+    Pushed in 1359af4 "Clear the talk length on the timer when the slide show ends": without
+    `--length`, `TalkController` sends `{"v":1,"L":null}` right after `{"v":1,"state":"ended"}`;
+    with `--length` only the end line. `docs/protocol.md` (Talk length, End of slide show, typical
+    session) and the README screen table updated in the same commit. Tests 281/281 locally
+    (dev-Repository-2, 2026-10-25), 3 new; CI pending. Board check open (user test block
+    2026-10-25), step stays open until it passes
 
 After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
 #10 flashing from the browser (O-04), #11 settings without code changes (O-05), #12 technical
 follow-ups (Codecov `fail_ci_if_error`, firmware coverage with gcov, an App test project, the
 icon check at 125 % and 150 % scaling, COM intermediates, a tap during the startup screen).
+From #12 done on 2026-10-25: Codecov `fail_ci_if_error: true` (f894051, CI pending) and a host
+test for a tap during the startup screen (65a35a3; board PASS by the owner at 02:27).
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
