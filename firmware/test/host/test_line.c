@@ -145,6 +145,94 @@ static void invalid_lines_are_dropped_and_leave_out_untouched(void)
     }
 }
 
+static void any_json_whitespace_is_accepted(void)
+{
+    tc_line_t l;
+    CHECK(parse("{\t\"v\":1,\n\"L\":5\r\n}", &l));
+    CHECK_EQ_INT(5, l.length_s);
+    CHECK(parse("{ \"v\" :\t1 ,\r\"state\"\n:\"ended\" }", &l));
+    CHECK_EQ_INT(TC_LINE_ENDED, l.type);
+}
+
+static void unknown_fields_may_hold_any_flat_json_value(void)
+{
+    tc_line_t l;
+    CHECK(parse("{\"v\":1,\"a\":false,\"b\":true,\"n\":null,\"s\":\"\",\"L\":5}", &l));
+    CHECK(parse("{\"v\":1,\"a\":0,\"b\":-0,\"c2\":0.5,\"e\":1E+2,\"f\":2e-3,\"g\":-1.25e7,\"L\":5}", &l));
+    CHECK(parse("{\"v\":1,\"big\":99999999999999999999,\"L\":5}", &l));
+    CHECK_EQ_INT(5, l.length_s);
+}
+
+static void deviation_covers_the_int32_range(void)
+{
+    tc_line_t l;
+    CHECK(parse("{\"v\":1,\"c\":\"#000000\",\"d\":-2147483648}", &l));
+    CHECK_EQ_INT(INT32_MIN, l.deviation_s);
+    CHECK(parse("{\"v\":1,\"c\":\"#000000\",\"d\":2147483647}", &l));
+    CHECK_EQ_INT(INT32_MAX, l.deviation_s);
+}
+
+static void colour_accepts_both_hex_cases(void)
+{
+    tc_line_t l;
+    CHECK(parse("{\"v\":1,\"c\":\"#abcdef\",\"d\":null}", &l));
+    CHECK_EQ_INT(0xABCDEF, l.color);
+    CHECK(parse("{\"v\":1,\"c\":\"#ABCDEF\",\"d\":null}", &l));
+    CHECK_EQ_INT(0xABCDEF, l.color);
+    CHECK(parse("{\"v\":1,\"c\":\"#9a0B1c\",\"d\":null}", &l));
+    CHECK_EQ_INT(0x9A0B1C, l.color);
+}
+
+static void malformed_values_and_structure_are_dropped(void)
+{
+    static const char *const bad[] = {
+        "{}",
+        "{\"v\":1,\"L\":5,\"x\":\"abc",
+        "{\"v\":1,\"x\":\"a\tb\",\"L\":5}",
+        "{\"v\":1,\"x\":\"a\nb\",\"L\":5}",
+        "{\"v\":1,\"x\":1.,\"L\":5}",
+        "{\"v\":1,\"x\":1.e3,\"L\":5}",
+        "{\"v\":1,\"x\":1e,\"L\":5}",
+        "{\"v\":1,\"x\":1E+,\"L\":5}",
+        "{\"v\":1,\"x\":-,\"L\":5}",
+        "{\"v\":1,\"x\":-01,\"L\":5}",
+        "{\"v\":1,\"x\":.5,\"L\":5}",
+        "{\"v\":1,\"x\":fals,\"L\":5}",
+        "{\"v\":1,\"x\":nul,\"L\":5}",
+        "{\"v\":1,\"x\":True,\"L\":5}",
+        "{\"v\":1,\"L\":5,\"x\":tru",
+        "{\"v\":1,\"L\":",
+        "{\"v\":1,\"L\" 5}",
+        "{\"v\":1,\"L\":5 \"x\":1}",
+        "{\"v\":1,L:5}",
+        "{\"v\":1,\"c\":\"#000000\",\"d\":-2147483649}",
+        "{\"v\":1,\"c\":\"#000000\",\"d\":2147483648}",
+        "{\"v\":1,\"c\":\"#000000\",\"d\":false}",
+        "{\"v\":1,\"c\":123456,\"d\":0}",
+        "{\"v\":1,\"c\":\"x00A000\",\"d\":0}",
+        "{\"v\":1,\"c\":\"#00A00/\",\"d\":0}",
+        "{\"v\":1,\"c\":\"#00a0g0\",\"d\":0}",
+        "{\"v\":1,\"state\":1}",
+        "{\"v\":1,\"state\":\"ender\"}",
+        "{\"v\":1,\"state\":null}",
+        /* Lines cut off inside a number */
+        "{\"v\":1,\"L\":5,\"x\":-",
+        "{\"v\":1,\"L\":5,\"x\":0",
+        "{\"v\":1,\"L\":5,\"x\":1.",
+        "{\"v\":1,\"L\":5,\"x\":1.5",
+        "{\"v\":1,\"L\":5,\"x\":1e5",
+    };
+    for (size_t i = 0; i < sizeof bad / sizeof bad[0]; i++) {
+        tc_line_t l = { .type = TC_LINE_ENDED, .length_s = 4242 };
+        int ok = parse(bad[i], &l);
+        if (ok) {
+            printf("accepted but should drop: %s\n", bad[i]);
+        }
+        CHECK(!ok);
+        CHECK_EQ_INT(4242, l.length_s);
+    }
+}
+
 static void null_arguments_are_rejected(void)
 {
     tc_line_t l;
@@ -163,8 +251,13 @@ static void status_line_is_formatted_with_terminator(void)
 
 static void status_line_reports_a_too_small_buffer(void)
 {
-    char buf[10];
-    CHECK_EQ_INT(-1, tc_line_format_status(buf, sizeof buf, 612, true));
+    char buf[28];
+    CHECK_EQ_INT(-1, tc_line_format_status(buf, 10, 612, true));
+    /* 27 characters need 28 bytes with the terminator */
+    CHECK_EQ_INT(-1, tc_line_format_status(buf, 27, 612, true));
+    CHECK_EQ_INT(27, tc_line_format_status(buf, 28, 612, true));
+    CHECK_EQ_INT(-1, tc_line_format_status(NULL, sizeof buf, 612, true));
+    CHECK_EQ_INT(-1, tc_line_format_status(buf, 0, 612, true));
 }
 
 static void version_line_is_formatted_with_terminator(void)
@@ -181,6 +274,9 @@ static void version_line_replaces_unsafe_characters_and_cuts_long_versions(void)
     char buf[TC_LINE_MAX_BYTES];
     tc_line_format_version(buf, sizeof buf, "a\"b\\c d/e");
     CHECK_EQ_STR("{\"v\":1,\"fw\":\"a_b_c_d_e\"}\n", buf);
+    /* Allowed: letters, digits and . - + _; neighbours of the ranges are replaced */
+    tc_line_format_version(buf, sizeof buf, "Az09.-+_[`{~@:");
+    CHECK_EQ_STR("{\"v\":1,\"fw\":\"Az09.-+_______\"}\n", buf);
     tc_line_format_version(buf, sizeof buf, "0123456789012345678901234567890123456789overflow");
     CHECK_EQ_STR("{\"v\":1,\"fw\":\"0123456789012345678901234567890123456789\"}\n", buf);
     CHECK(strlen(buf) <= TC_LINE_MAX_BYTES);
@@ -195,6 +291,8 @@ static void version_line_without_a_version_says_unknown(void)
     CHECK_EQ_STR("{\"v\":1,\"fw\":\"unknown\"}\n", buf);
     char small[10];
     CHECK_EQ_INT(-1, tc_line_format_version(small, sizeof small, "v0.1.0"));
+    CHECK_EQ_INT(-1, tc_line_format_version(NULL, sizeof buf, "v0.1.0"));
+    CHECK_EQ_INT(-1, tc_line_format_version(buf, 0, "v0.1.0"));
 }
 
 static void version_line_is_not_a_laptop_line(void)
@@ -213,6 +311,11 @@ int main(void)
     RUN(many_unknown_fields_are_ignored);
     RUN(length_limit_counts_the_terminator);
     RUN(invalid_lines_are_dropped_and_leave_out_untouched);
+    RUN(any_json_whitespace_is_accepted);
+    RUN(unknown_fields_may_hold_any_flat_json_value);
+    RUN(deviation_covers_the_int32_range);
+    RUN(colour_accepts_both_hex_cases);
+    RUN(malformed_values_and_structure_are_dropped);
     RUN(null_arguments_are_rejected);
     RUN(status_line_is_formatted_with_terminator);
     RUN(status_line_reports_a_too_small_buffer);
