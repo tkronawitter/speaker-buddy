@@ -758,9 +758,17 @@ format 3.0.0 (component manager 3.1.2); picolibc is the default C library from 6
 `sdkconfig.defaults` setting changed. `check-image` exit 0 on the 6.1 build including the
 linker map: no TinyUSB or `tud_` symbols, no radio archives, so `espressif/usb` adds no
 TinyUSB code. Commands unchanged. Board (dev-Repository): flashed, boot log "ESP-IDF v6.1",
-the laptop program from f7143cf connected and received the firmware line. Open in the owner's
-board check: unplug and replug, tray "Stop and release port"; the alpha release follows only
-after it. README version mentions updated by the documentation session.
+the laptop program from f7143cf connected and received the firmware line. README version
+mentions updated by the documentation session. Pushed as 04001ba (IDF 6.1), 88b9d42 (README);
+CI green on 04001ba (run 40207994426, `firmware-build` in the v6.1 image). Dependabot merged
+(the owner's go 16:26): #16 as 801ab6a, #19 System.IO.Ports 10.0.13 as f7143cf.
+Board check PASS (the owner, 2026-10-25 16:44, "1 ok, 2 ok, 3 ok"; firmware `f7143cf-dirty` on
+IDF 6.1, publish exe f7143cf): after a replug grey icon, startup screen, 00:00, colour icon (log
+16:43:11 disconnected, 16:43:14 connected on COM4, 3.4 s); a tap starts the clock, the digits
+stay steady; tray "Stop and release port" logs "stopped, port released" at 16:43:53, the icon
+goes, the board shows the USB symbol with the cross. This covers IDF 6.1 and System.IO.Ports 10
+on the board. Next: the remaining test package updates (coverlet 10, Test.Sdk 18, xunit runner
+4) in one dev-Repository-2 commit, then the tag `v0.1.0-alpha.1`.
 New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
 the owner's ask 2026-10-25 15:22). Options: a Renovate custom regex manager, a scheduled
 workflow running `idf.py update-dependencies`, Dependabot `docker` for the image digest. State on
