@@ -142,6 +142,58 @@ public class TalkControllerTests
         Assert.Equal(new ProtocolLine[] { new StateLine("#000000", null) }, lines);
     }
 
+    // Highest mark 3:00 is below 5:00, so without an argument L stays unknown
+    private static ShowState ShortShow(int slideIndex) =>
+        new(@"C:\talks\short.pptx", slideIndex,
+        [
+            new SlideNotes(1, false, null),
+            new SlideNotes(2, false, "## 3:00"),
+        ]);
+
+    [Fact]
+    public void Connect_without_a_known_length_clears_the_length_on_the_timer()
+    {
+        var controller = new TalkController(null, Colors);
+
+        Assert.Equal(new ProtocolLine[] { new LengthLine(null) }, controller.OnConnected());
+    }
+
+    [Fact]
+    public void Every_show_start_with_an_unknown_length_clears_it()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.OnConnected();
+
+        Assert.Contains(new LengthLine(null), controller.Tick(ShortShow(1), Timer(5), periodic: true));
+        Assert.DoesNotContain(controller.Tick(ShortShow(1), Timer(6), periodic: true), l => l is LengthLine);
+
+        controller.Tick(null, Timer(7), periodic: true);
+        Assert.Contains(new LengthLine(null), controller.Tick(ShortShow(1), Timer(8), periodic: true));
+    }
+
+    [Fact]
+    public void Show_end_forgets_the_length_so_the_next_unknown_show_clears_it()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.OnConnected();
+        Assert.Contains(new LengthLine(2700), controller.Tick(Show(1), Timer(5), periodic: true));
+        controller.Tick(null, Timer(6), periodic: true);
+
+        Assert.Contains(new LengthLine(null), controller.Tick(ShortShow(1), Timer(7), periodic: true));
+    }
+
+    [Fact]
+    public void Show_end_keeps_the_length_argument()
+    {
+        var controller = new TalkController(1800, Colors);
+        controller.OnConnected();
+        controller.Tick(ShortShow(1), Timer(5), periodic: true);
+        controller.Tick(null, Timer(6), periodic: true);
+
+        Assert.DoesNotContain(controller.Tick(ShortShow(1), Timer(7), periodic: true), l => l is LengthLine);
+        Assert.Equal(new LengthLine(1800), controller.OnConnected()[0]);
+    }
+
     [Fact]
     public void Zero_length_argument_is_rejected()
     {

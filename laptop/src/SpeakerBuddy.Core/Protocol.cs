@@ -15,8 +15,8 @@ public sealed record TimerStatusLine(int Seconds, bool Run) : ProtocolLine;
 /// <summary>Laptop to timer: background colour and deviation (null hides the deviation line).</summary>
 public sealed record StateLine(string Color, int? Deviation) : ProtocolLine;
 
-/// <summary>Laptop to timer: planned talk length in seconds.</summary>
-public sealed record LengthLine(int LengthSeconds) : ProtocolLine;
+/// <summary>Laptop to timer: planned talk length in seconds, or null for "unknown, clear it".</summary>
+public sealed record LengthLine(int? LengthSeconds) : ProtocolLine;
 
 /// <summary>Laptop to timer: the slide show has ended.</summary>
 public sealed record EndedLine : ProtocolLine;
@@ -80,8 +80,16 @@ public static partial class Protocol
 
                     break;
                 case LengthLine length:
-                    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length.LengthSeconds, nameof(line));
-                    writer.WriteNumber("L", length.LengthSeconds);
+                    if (length.LengthSeconds is int seconds)
+                    {
+                        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(seconds, nameof(line));
+                        writer.WriteNumber("L", seconds);
+                    }
+                    else
+                    {
+                        writer.WriteNull("L");
+                    }
+
                     break;
                 case EndedLine:
                     writer.WriteString("state", EndedState);
@@ -204,8 +212,15 @@ public static partial class Protocol
             : null;
     }
 
-    private static LengthLine? ParseLength(JsonElement root) =>
-        TryGetInt(root, "L", out var length) && length > 0 ? new LengthLine(length) : null;
+    private static LengthLine? ParseLength(JsonElement root)
+    {
+        if (root.GetProperty("L").ValueKind == JsonValueKind.Null)
+        {
+            return new LengthLine(null);
+        }
+
+        return TryGetInt(root, "L", out var length) && length > 0 ? new LengthLine(length) : null;
+    }
 
     private static EndedLine? ParseEnded(JsonElement root)
     {

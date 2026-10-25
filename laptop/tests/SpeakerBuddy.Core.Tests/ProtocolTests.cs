@@ -12,6 +12,7 @@ public class ProtocolTests
         { new StateLine("#00A000", -45), """{"v":1,"c":"#00A000","d":-45}""" },
         { new StateLine("#000000", null), """{"v":1,"c":"#000000","d":null}""" },
         { new LengthLine(2700), """{"v":1,"L":2700}""" },
+        { new LengthLine(null), """{"v":1,"L":null}""" },
         { new EndedLine(), """{"v":1,"state":"ended"}""" },
         { new FirmwareLine("v0.1.0-3-gabc1234-dirty"), """{"v":1,"fw":"v0.1.0-3-gabc1234-dirty"}""" },
     };
