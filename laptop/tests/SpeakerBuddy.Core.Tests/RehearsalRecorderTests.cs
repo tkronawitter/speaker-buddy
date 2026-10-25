@@ -147,6 +147,9 @@ public class RehearsalRecorderTests
     [InlineData(@"C:\talks\demo.pptx", "rehearsal-2026-10-25-143005-demo.csv")]
     [InlineData(@"C:\talks\Mein Vortrag 2026.pptx", "rehearsal-2026-10-25-143005-Mein Vortrag 2026.csv")]
     [InlineData("https://example.com/decks/a|b.pptx", "rehearsal-2026-10-25-143005-a_b.csv")]
+    [InlineData(@"C:\talks\v1.2 final.pptx", "rehearsal-2026-10-25-143005-v1.2 final.csv")]
+    [InlineData(@"C:\talks\what? <draft>*.pptx", "rehearsal-2026-10-25-143005-what_ _draft__.csv")]
+    [InlineData("demo", "rehearsal-2026-10-25-143005-demo.csv")]
     [InlineData("", "rehearsal-2026-10-25-143005.csv")]
     public void The_file_is_named_after_the_start_and_the_deck(string presentation, string expected)
     {

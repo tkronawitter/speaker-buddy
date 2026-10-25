@@ -44,6 +44,10 @@ public sealed record RehearsalRow(
 /// </summary>
 public sealed class RehearsalRecorder
 {
+    // Characters Windows forbids in a file name; spelled out because Path.GetInvalidFileNameChars and
+    // Path.GetFileNameWithoutExtension follow the OS the code runs on, and Core is tested on Linux too
+    private const string InvalidFileNameChars = "<>:\"/\\|?*";
+
     private string? _presentation;
     private int? _lastSlide;
 
@@ -52,9 +56,15 @@ public sealed class RehearsalRecorder
     {
         ArgumentNullException.ThrowIfNull(presentation);
 
-        var deck = Path.GetFileNameWithoutExtension(presentation);
-        var invalid = Path.GetInvalidFileNameChars();
-        var safe = new string(deck.Select(c => Array.IndexOf(invalid, c) >= 0 ? '_' : c).ToArray());
+        // PowerPoint's FullName is a Windows path or a URL: the deck is the last segment without its extension
+        var deck = presentation[(presentation.LastIndexOfAny(['\\', '/']) + 1)..];
+        var dot = deck.LastIndexOf('.');
+        if (dot >= 0)
+        {
+            deck = deck[..dot];
+        }
+
+        var safe = new string(deck.Select(c => c < ' ' || InvalidFileNameChars.Contains(c) ? '_' : c).ToArray());
         return $"rehearsal-{localStart.ToString("yyyy-MM-dd-HHmmss", CultureInfo.InvariantCulture)}"
                + (safe.Length > 0 ? $"-{safe}" : string.Empty) + ".csv";
     }
