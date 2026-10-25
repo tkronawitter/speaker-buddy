@@ -652,6 +652,29 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     Setup: the laptop program from 2c93aed (single file, self-signed), a deck copy with
     `## session length 1:00` (log: talk length 60 s from slide 2, show started 12:31:22, ended
     12:31:31); board on the #2 test image `7b83e44-dirty`, clock stopped at 99:50
+64. [x] Raise test coverage, tests and injection only, no behaviour change, no user test block
+    (the owner, 2026-10-25 13:48). Baseline Codecov on main: 70.84 % over 33 files, flag
+    `laptop` 66.7 %, flag `firmware` 87.1 %; the drop from about 96 % came from adding the
+    firmware (bac64f8) and the App project (c92cef4) to the measurement, not from lost tests.
+    Only `SerialDevice`/`SafeLineState` (about 50 lines, real COM port) stay hardware-only.
+    Expected: CI green, Codecov up, no change in behaviour.
+    Pushed 2026-10-25 (local numbers by the dev sessions): c187001 `line.c` (lines 93.9 to
+    99.5 %, branches 82.4 to 98.7 %); 4470766 `PowerPointSource` with fakes (14 to 92 %);
+    e7625a7 `DeckReader` (lines 89.7 to 100 %, branches 63.6 to 100 %); 5d86079 `TrayContext`
+    (18 to 92 %); aed6cd4 `FileLog` (0 to 100 %); ee6c5d3 `WindowsPortDiscovery` registry walk
+    (0 to 100 %); 52ed900 splits `Program` into `CommandLine` and `ConsoleModes` (100 % each;
+    the `Program` shell, 48 lines, stays untested), output byte-identical to 2c93aed for 13
+    argument lists. Result on 52ed900 (Codecov API, verified by the coordinator): total 89.49 %
+    over 35 files, flag `laptop` 87.57 %, flag `firmware` 97.15 %; per file `PowerPointSource`
+    90.44 %, `TrayContext` 87.17 %, `WindowsPortDiscovery` 95.83 %, `TalkRunner` 85.63 %; CI
+    green (run 40195972530).
+    Facts: the kill switch is `TalkRunner` Stop/Dispose behind the tray entry "Stop and release
+    port"; there is no single-instance lock, a second program only fails to get the busy port.
+    Finding: `DeckReader.Read(path)` leaks the file handle when the file is not a zip
+    (`PresentationDocument.Open` throws without disposing its `FileStream`); no impact today,
+    `--check` exits right after and the tray never uses `DeckReader`. Decision (the owner,
+    14:05): fix it. Fixed in 6663599 (dev-Repository-2): Core tests 306/306, App 98/98 locally,
+    the new test fails on the old code; CI green (run 40197377600, 4 jobs)
 
 After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
