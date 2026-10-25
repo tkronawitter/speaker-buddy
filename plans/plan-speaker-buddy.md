@@ -253,9 +253,9 @@ implement.
     as the widest digit, and times of 100 minutes and more are scaled
     down to fit. Build, `check-image` 0 and flash verified by the dev session; the look on screen
     and the scale-down after 100 minutes are not verified yet (step 28; the scale-down check is
-    in the backlog as issue #2). The scale-down lives in
-    `main/ui.c` (`set_time_text`, LVGL transform), outside `timer_core`, so no host test covers
-    it; it is a display check only.
+    in the backlog as issue #2). Superseded by 4424258 (2026-10-25, see step 28): no scaling any
+    more, the time row switches between fonts of fixed sizes, picked in `timer_core`
+    (`tc_time_font_pick`) with host tests.
     Regression from 638f266 (the owner, 22:06): long press no longer works. Cause confirmed by
     the owner at 22:07 (long press on an empty corner works, a touch on the digits does nothing):
     the new time container is clickable by LVGL default and swallows touches on the digit row,
@@ -285,7 +285,12 @@ implement.
     maths. Affects only talks past 100 minutes. Decision (the owner, 12:30): fix A, a second digit
     font of about 125 px for a row that does not fit, no transform; this matches the requirement
     "large digits as a font of the right size, not scaled". Option B (LVGL on the PSRAM heap)
-    rejected for its blast radius. Owner: dev-Repository-2; board re-check in the user test block
+    rejected for its blast radius. Owner: dev-Repository-2; board re-check in the user test block.
+    Fix A pushed in 4424258: own font sizes instead of a scaled row, 150 px below 100:00, a new
+    `digits_120` from 100:00 ("100:00" is 427 px wide), 76 px from 1000:00. The transform code is
+    gone (no `transform_scale` or pivot left in `firmware/`); `tc_time_font_pick` replaces
+    `tc_time_row_scale`; host tests 8615 checks; the image grows by 29,136 bytes. A test image
+    with fix A is on the board; board re-check of 100:00 open
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -657,8 +662,12 @@ at show start, `0x8001010A` busy, and one at PowerPoint exit, `0x800706BE` at 12
 repeats. Open finding (the owner, 12:32): closing PowerPoint after the show had ended made the
 board blink orange once; the board ran the test image at 99:50, so above the offline 60:00
 overtime rule. Suspected, not verified: a blocking COM call into the exiting PowerPoint stalls
-the keepalive for more than 3 s and the timer goes offline. Cause unknown, dev-Repository
-investigates), and an App test project (c92cef4): internal seams `ISerialDevice`/`WindowsSerialDevice`,
+the keepalive for more than 3 s and the timer goes offline; the owner saw the USB symbol with
+the cross during the blink (12:37), which is the offline timeout. 2c935bf moves the PowerPoint
+poll to its own thread, so the talk thread never waits on COM; polls of 1 s or more log
+"PowerPoint poll took N ms"; Stop joins both threads within 2 s. App tests 29/29, Core 281/281
+(dev-Repository, local), CI pending. Cause still suspected, not measured; measurement and live
+proof after the user test block), and an App test project (c92cef4): internal seams `ISerialDevice`/`WindowsSerialDevice`,
 `ITimerLink`, a poll delegate and `TalkRunner.Tick`; 26 App tests run in a new `windows-latest`
 CI job, the Ubuntu job tests Core only. CI green on 2c93aed (run 40181498702, 4 jobs). #12 code
 done; the issue stays open for the tray icon checks at 125 % and 150 % scaling (next user test
