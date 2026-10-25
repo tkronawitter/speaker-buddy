@@ -23,6 +23,8 @@ public sealed class TalkRunner : IDisposable
     private readonly ITimerLink _link;
     private readonly Func<PollResult> _poll;
     private readonly TalkController _controller;
+    private readonly RehearsalLog? _rehearsal;
+    private readonly RehearsalRecorder _recorder = new();
     private readonly object _controllerLock = new();
     private readonly object _pollLock = new();
     private readonly CancellationTokenSource _stop = new();
@@ -37,18 +39,21 @@ public sealed class TalkRunner : IDisposable
     private ShowState? _lastShow;
     private int _disposed;
 
-    public TalkRunner(int? lengthArgument, string? fixedPort, FileLog log)
+    /// <param name="rehearsal">Writes the rehearsal CSV next to the log (option --rehearsal).</param>
+    public TalkRunner(int? lengthArgument, string? fixedPort, FileLog log, bool rehearsal = false)
         : this(lengthArgument, log is null ? throw new ArgumentNullException(nameof(log)) : log.Write,
-               fixedPort, null, null)
+               fixedPort, null, null, rehearsal ? new RehearsalLog(log.Directory, log.Write) : null)
     {
     }
 
     /// <param name="poll">Reads the show; null polls PowerPoint.</param>
     /// <param name="link">The connection to the timer; null opens the serial link.</param>
+    /// <param name="rehearsal">Receives a row per slide change; null writes no rehearsal log.</param>
     internal TalkRunner(int? lengthArgument, Action<string> log, string? fixedPort = null,
-                        Func<PollResult>? poll = null, ITimerLink? link = null)
+                        Func<PollResult>? poll = null, ITimerLink? link = null, RehearsalLog? rehearsal = null)
     {
         _log = log ?? throw new ArgumentNullException(nameof(log));
+        _rehearsal = rehearsal;
         _controller = new TalkController(lengthArgument, ColorScheme.Default);
         _poll = poll ?? new PowerPointSource(_log).Poll;
         _link = link ?? new SerialLink(() => fixedPort ?? WindowsPortDiscovery.FindTimerPort(), _log);
@@ -215,6 +220,11 @@ public sealed class TalkRunner : IDisposable
                 var marksBefore = _controller.Marks;
                 lines = _controller.Tick(_lastShow, _timer, periodic);
                 LogChanges(marksBefore);
+                if (_rehearsal is not null
+                    && _recorder.Next(_lastShow, _timer, _controller.LastEvaluation, _controller.Marks, now.ToLocalTime()) is { } row)
+                {
+                    _rehearsal.Write(row);
+                }
             }
 
             foreach (var line in lines)

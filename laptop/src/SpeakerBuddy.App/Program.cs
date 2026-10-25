@@ -47,7 +47,7 @@ internal static class Program
         LogUnhandledExceptions(log);
         log.DeleteOldFiles();
         ApplicationConfiguration.Initialize();
-        using var runner = new TalkRunner(command.Length, command.Port, log);
+        using var runner = new TalkRunner(command.Length, command.Port, log, command.Rehearsal);
         Application.Run(new TrayContext(runner, log));
         return 0;
     }

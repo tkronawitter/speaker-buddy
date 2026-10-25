@@ -148,12 +148,41 @@ and release port".
 | `.\speaker-buddy.exe` | Starts in the notification area |
 | `.\speaker-buddy.exe --length 45` | Starts in the notification area with a fixed talk length, in minutes or `m:ss` |
 | `.\speaker-buddy.exe --port COM4` | Uses this serial port instead of finding the timer by its USB ID; also works with `--demo` |
+| `.\speaker-buddy.exe --rehearsal` | Starts in the notification area and writes a rehearsal log, see below |
 | `.\speaker-buddy.exe --check deck.pptx` | Checks the marks of a deck, see "How to set marks" |
 | `.\speaker-buddy.exe --demo` | Sends a colour test pattern to the timer |
 | `.\speaker-buddy.exe --help` | Lists the options |
 
 The program is a Windows application, so PowerShell does not wait for it. Append `| Out-Host` to
 `--check`, `--demo` and `--help` to see their output before the prompt returns.
+
+### Rehearsal log
+
+With `--rehearsal` (it combines with `--length` and `--port`) the program writes one CSV file per
+slide show into the log folder, `%LOCALAPPDATA%\speaker-buddy\logs`, named after the start time
+and the deck, for example `rehearsal-2026-10-25-143005-mytalk.csv`. The log names the file when
+the first row is written. Each slide change adds a row, going back a slide too, once the timer has
+reported its time:
+
+```text
+time,slide,mark_s,t_s,deviation_s,colour
+14:30:05,1,,3,,neutral
+14:31:30,2,60,85,25,purple
+```
+
+| Column | Meaning |
+| --- | --- |
+| `time` | Clock time of the slide change |
+| `slide` | Slide number in the deck |
+| `mark_s` | The slide's mark in seconds, empty if it has none |
+| `t_s` | Elapsed time on the timer in seconds |
+| `deviation_s` | The deviation line of the timer: seconds behind plan (positive, purple) or ahead (negative, red), empty when green or neutral |
+| `colour` | `neutral`, `green`, `red` or `purple`, as the timer showed it |
+
+Times are in seconds so a spreadsheet can sort and subtract them. The file is standard CSV with a
+comma as separator; Excel with German settings puts it into one column on a double-click, so import
+it there with Data > From Text/CSV. A new show, or a new start of the program,
+always starts a new file. The 30-day cleanup of the log folder leaves rehearsal files alone.
 
 ## For developers
 

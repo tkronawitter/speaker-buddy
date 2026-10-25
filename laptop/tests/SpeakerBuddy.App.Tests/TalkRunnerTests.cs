@@ -106,6 +106,54 @@ public class TalkRunnerTests
     }
 
     [Fact]
+    public void With_a_rehearsal_log_each_slide_change_is_written()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"speaker-buddy-tests-{Guid.NewGuid():N}");
+        try
+        {
+            _polls.Enqueue(Running);
+            _polls.Enqueue(Running);
+            _polls.Enqueue(() => new PollResult(true, Show with { SlideIndex = 2 }));
+            var rehearsal = new RehearsalLog(folder, _log.Write);
+            using var runner = new TalkRunner(600, _log.Write, poll: Poll, link: _link, rehearsal: rehearsal);
+
+            _link.RaiseStatus(new TimerStatusLine(30, true));
+            Step(runner, T0);
+            Step(runner, T0.AddSeconds(1));
+            _link.RaiseStatus(new TimerStatusLine(95, true));
+            Step(runner, T0.AddSeconds(2));
+
+            var time = T0.ToLocalTime();
+            Assert.Equal(
+            [
+                RehearsalRow.Header,
+                $"{time:HH:mm:ss},1,,30,,neutral",
+                $"{time.AddSeconds(2):HH:mm:ss},2,,95,,neutral",
+            ],
+            File.ReadAllLines(rehearsal.CurrentFile!));
+            Assert.Contains($"rehearsal log: {rehearsal.CurrentFile}", _log.Lines);
+        }
+        finally
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void Without_a_rehearsal_log_nothing_is_written()
+    {
+        using var runner = Runner(600, Running);
+
+        _link.RaiseStatus(new TimerStatusLine(30, true));
+        Step(runner, T0);
+
+        Assert.DoesNotContain(_log.Lines, line => line.StartsWith("rehearsal", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_throwing_poll_is_logged_and_the_ticks_still_send()
     {
         using var runner = Runner(600, () => throw new InvalidOperationException("COM gone"), NoShow);

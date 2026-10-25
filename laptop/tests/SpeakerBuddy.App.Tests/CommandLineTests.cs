@@ -30,6 +30,22 @@ public class CommandLineTests
     }
 
     [Fact]
+    public void Rehearsal_switches_the_rehearsal_log_on_in_the_tray()
+    {
+        Assert.Equal(new Command(Mode.Tray, false, null, null, null, Rehearsal: true), Parse("--rehearsal"));
+        Assert.Equal(new Command(Mode.Tray, false, 2700, "COM7", null, Rehearsal: true),
+            Parse("--length", "45", "--rehearsal", "--port", "COM7"));
+        Assert.False(Parse().Rehearsal);
+    }
+
+    [Fact]
+    public void Console_modes_ignore_rehearsal()
+    {
+        Assert.Equal(new Command(Mode.Check, true, null, null, "deck.pptx"), Parse("--check", "deck.pptx", "--rehearsal"));
+        Assert.Equal(new Command(Mode.Demo, true, null, null, null), Parse("--demo", "--rehearsal"));
+    }
+
+    [Fact]
     public void Arguments_that_are_no_options_are_ignored_by_the_tray()
     {
         Assert.Equal(Mode.Tray, Parse("deck.pptx").Mode);
@@ -88,7 +104,7 @@ public class CommandLineTests
     [Fact]
     public void The_usage_names_every_mode_and_option()
     {
-        foreach (var word in new[] { "--length", "--port", "--check", "--demo", "Out-Host" })
+        foreach (var word in new[] { "--length", "--port", "--rehearsal", "--check", "--demo", "Out-Host" })
         {
             Assert.Contains(word, CommandLine.Usage);
         }
