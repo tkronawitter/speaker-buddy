@@ -596,10 +596,17 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     Line framer pushed in 5aa7b3f "firmware: line framer in timer_core with host tests": 6 host
     cases, 8/8 suites, build clean, `check-image` 0; board: a 195-byte line ignored, a line split
     across reads parsed, `\r\n` parsed. CI 610d8e1 and 5aa7b3f green
-62. [ ] Deck line `## session length m:ss` (for example `## session length 60:00`) sets the talk
+62. [x] Deck line `## session length m:ss` (for example `## session length 60:00`) sets the talk
     length (the owner, 2026-10-25 02:38-02:41). Precedence: `--length`, then `## session length`,
-    then the highest mark if it is at least 5:00. Laptop only (dev-Repository-2). Commit pending.
-    Expected: tests for the precedence pass
+    then the highest mark if it is at least 5:00. Laptop only (dev-Repository-2). Expected: tests
+    for the precedence pass.
+    Pushed in fdf3f92 "Read the talk length from a "## session length" line in the deck": the words
+    in any case, minutes as for `--length`; the first line on a visible slide counts, others and
+    ones on hidden slides are reported by `--check` and ignored; near misses such as
+    `## session lenght 60:00` are reported. Tests 278/278 locally on abb1d38 (dev session,
+    2026-10-25 03:01). CI pending: the force pushes of the history rewrite did not trigger
+    `ci.yml` (no code change between the old and new tips); it runs with the next push that
+    touches `laptop/`, `firmware/` or `tools/`
 
 After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
