@@ -41,7 +41,7 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.13" />
   </ItemGroup>
 
   <!-- The test seams (fake port, fake PowerPoint source) are internal -->
