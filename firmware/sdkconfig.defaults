@@ -13,7 +13,7 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # Console and protocol share the built-in USB Serial/JTAG port (S-01)
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 
-# No radio (A-04). Bluetooth is off here. CONFIG_ESP_WIFI_ENABLED has no prompt in IDF v5.5 and
+# No radio (A-04). Bluetooth is off here. CONFIG_ESP_WIFI_ENABLED has no prompt in IDF v6.1 and
 # cannot be switched off; the application never initialises Wi-Fi, and tools/check-image detects
 # linked Wi-Fi, Bluetooth, OTA or TinyUSB code by symbol names and radio archive members.
 CONFIG_BT_ENABLED=n

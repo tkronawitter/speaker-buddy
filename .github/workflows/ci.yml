@@ -133,8 +133,8 @@ jobs:
   firmware-build:
     runs-on: ubuntu-latest
     container:
-      # ESP-IDF v5.5.5 as pinned in firmware/main/idf_component.yml; the digest fixes the image
-      image: espressif/idf:v5.5.5@sha256:a9231d0697ab8f7517cc072e93b7c83e04907bfbfba80b6440d7dbbf90665cf2
+      # ESP-IDF v6.1 (6.1.0) as pinned in firmware/main/idf_component.yml; the digest fixes the image
+      image: espressif/idf:v6.1@sha256:81893c71bb5e570088901f21def8684c25cd2a9020281bd01b843a7655edb18c
     defaults:
       run:
         shell: bash
