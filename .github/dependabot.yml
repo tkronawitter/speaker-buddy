@@ -1,0 +1,23 @@
+# Weekly updates (requirement R-08). The actions are pinned by commit SHA with the version as a
+# comment; Dependabot moves both. One pull request per ecosystem and week instead of one per package.
+# The ESP-IDF component manager is no Dependabot ecosystem; firmware/dependencies.lock is checked by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # Majors included: CI runs every pinned action, so a breaking change shows on the pull request
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directory: /laptop
+    schedule:
+      interval: weekly
+    groups:
+      # Majors stay single pull requests: they can need code or target framework changes
+      nuget:
+        patterns: ["*"]
+        update-types: [minor, patch]
