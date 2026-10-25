@@ -15,7 +15,8 @@ public readonly record struct PollResult(bool Ok, ShowState? Show);
 /// Attaches to an already running PowerPoint through <c>GetActiveObject</c> and never starts it.
 /// When a show starts, the source locks onto that presentation by its full name, reads its notes
 /// once, and from then on follows only that presentation's show window, so a second deck in
-/// slide show never takes over.
+/// slide show never takes over. When the followed show ends, every show still running at that
+/// moment is ignored until it ends; only a show started after that is followed (issue #1).
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class PowerPointSource
@@ -30,6 +31,7 @@ public sealed class PowerPointSource
 
     private readonly Action<string> _log;
     private readonly Func<object> _application;
+    private readonly HashSet<string> _ignored = new(StringComparer.OrdinalIgnoreCase);
     private string? _locked;
     private IReadOnlyList<SlideNotes>? _slides;
     private int _lastSlideIndex = 1;
@@ -55,8 +57,9 @@ public sealed class PowerPointSource
         }
         catch (COMException e) when (e.HResult is MkEUnavailable or RegdbEClassNotRegistered or CoEClassStringInvalid)
         {
-            // PowerPoint is not running (or not installed): no show.
+            // PowerPoint is not running (or not installed): no show, and none left to ignore.
             Unlock();
+            _ignored.Clear();
             return new PollResult(true, null);
         }
         catch (COMException e)
@@ -90,42 +93,53 @@ public sealed class PowerPointSource
     {
         dynamic windows = com.Track(application.SlideShowWindows);
         int count = windows.Count;
+        var running = new List<(dynamic Window, dynamic Presentation, string Name)>(count);
+        for (var i = 1; i <= count; i++)
+        {
+            dynamic candidate = com.Track(windows.Item(i));
+            dynamic presentation = com.Track(candidate.Presentation);
+            running.Add((candidate, presentation, (string)presentation.FullName));
+        }
 
         dynamic? window = null;
         if (_locked is not null)
         {
-            for (var i = 1; i <= count && window is null; i++)
+            var locked = running.FindIndex(show => string.Equals(show.Name, _locked, StringComparison.OrdinalIgnoreCase));
+            if (locked < 0)
             {
-                dynamic candidate = com.Track(windows.Item(i));
-                dynamic presentation = com.Track(candidate.Presentation);
-                if (string.Equals((string)presentation.FullName, _locked, StringComparison.OrdinalIgnoreCase))
-                {
-                    window = candidate;
-                }
-            }
-
-            if (window is null)
-            {
+                // Shows still running when the followed one ends belong to another deck: following
+                // them would swap marks and length mid-talk, so they wait until started again
                 _log($"slide show of {_locked} ended");
                 Unlock();
+                foreach (var show in running)
+                {
+                    _ignored.Add(show.Name);
+                    _log($"ignoring the running show of {show.Name} until it is started again");
+                }
+
                 return null;
             }
+
+            window = running[locked].Window;
         }
         else
         {
-            if (count == 0)
+            // An ignored show that has ended may be followed once it is started again
+            _ignored.RemoveWhere(name => !running.Exists(show => string.Equals(show.Name, name, StringComparison.OrdinalIgnoreCase)));
+            var candidates = running.FindAll(show => !_ignored.Contains(show.Name));
+            if (candidates.Count == 0)
             {
                 return null;
             }
 
-            window = com.Track(windows.Item(1));
-            dynamic presentation = com.Track(window.Presentation);
-            var name = (string)presentation.FullName;
-            var slides = ReadSlides(presentation, com);
+            window = candidates[0].Window;
+            var name = candidates[0].Name;
+            var slides = ReadSlides(candidates[0].Presentation, com);
             _locked = name;
             _slides = slides;
             _lastSlideIndex = 1;
-            _log($"slide show of {name} started, {slides.Count} slides" + (count > 1 ? $", {count} shows running, took the first" : ""));
+            _log($"slide show of {name} started, {slides.Count} slides"
+                 + (candidates.Count > 1 ? $", {candidates.Count} shows running, took the first" : ""));
         }
 
         dynamic view = com.Track(window.View);

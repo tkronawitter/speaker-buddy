@@ -112,25 +112,95 @@ public class PowerPointSourceTests
     }
 
     [Fact]
-    public void When_the_locked_show_ends_the_next_poll_takes_the_other_show()
+    public void A_show_still_running_when_the_locked_show_ends_is_never_taken()
     {
         _application.Run(Deck(Talk));
-        _application.Run(Deck(Other));
+        var other = _application.Run(Deck(Other), slideIndex: 1);
         _source.Poll();
 
         _application.Windows.All.RemoveAt(0);
         var ended = _source.Poll();
-        var next = _source.Poll();
+        other.View.Slide = Deck(Other).Slides.Item(3);
+        var later = _source.Poll();
 
         Assert.Equal(new PollResult(true, null), ended);
-        Assert.Equal(Other, next.Show!.PresentationName);
+        Assert.Equal(new PollResult(true, null), later);
         Assert.Equal(
             [
                 $"slide show of {Talk} started, 3 slides, 2 shows running, took the first",
                 $"slide show of {Talk} ended",
-                $"slide show of {Other} started, 3 slides",
+                $"ignoring the running show of {Other} until it is started again",
             ],
             _log.Lines);
+    }
+
+    [Fact]
+    public void The_ended_show_started_again_is_taken_while_the_ignored_one_still_runs()
+    {
+        var talk = Deck(Talk);
+        _application.Run(talk);
+        _application.Run(Deck(Other));
+        _source.Poll();
+        _application.Windows.All.RemoveAt(0);
+        _source.Poll();
+
+        _application.Run(talk, slideIndex: 2);
+        var poll = _source.Poll();
+
+        Assert.Equal(Talk, poll.Show!.PresentationName);
+        Assert.Equal(2, poll.Show.SlideIndex);
+        Assert.Equal($"slide show of {Talk} started, 3 slides", _log.Lines[^1]);
+    }
+
+    [Fact]
+    public void A_show_started_after_the_end_is_taken()
+    {
+        _application.Run(Deck(Talk));
+        _application.Run(Deck(Other));
+        _source.Poll();
+        _application.Windows.All.RemoveAt(0);
+        _source.Poll();
+
+        _application.Run(Deck(@"C:\talks\third.pptx"));
+        var poll = _source.Poll();
+
+        Assert.Equal(@"C:\talks\third.pptx", poll.Show!.PresentationName);
+        Assert.Equal(@"slide show of C:\talks\third.pptx started, 3 slides", _log.Lines[^1]);
+    }
+
+    [Fact]
+    public void An_ignored_show_that_ends_is_taken_when_it_is_started_again()
+    {
+        _application.Run(Deck(Talk));
+        _application.Run(Deck(Other));
+        _source.Poll();
+        _application.Windows.All.RemoveAt(0);
+        _source.Poll();
+
+        _application.Windows.All.Clear();
+        Assert.Equal(new PollResult(true, null), _source.Poll());
+        _application.Run(Deck(Other));
+        var poll = _source.Poll();
+
+        Assert.Equal(Other, poll.Show!.PresentationName);
+        Assert.Equal($"slide show of {Other} started, 3 slides", _log.Lines[^1]);
+    }
+
+    [Fact]
+    public void Closing_powerpoint_forgets_the_ignored_shows()
+    {
+        _application.Run(Deck(Talk));
+        _application.Run(Deck(Other));
+        _source.Poll();
+        _application.Windows.All.RemoveAt(0);
+        _source.Poll();
+
+        NotRunning();
+        _source.Poll();
+        _connect = () => _application;
+        var poll = _source.Poll();
+
+        Assert.Equal(Other, poll.Show!.PresentationName);
     }
 
     [Fact]
