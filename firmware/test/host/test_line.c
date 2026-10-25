@@ -56,6 +56,29 @@ static void null_length_means_unknown(void)
     CHECK_EQ_INT(0, l.length_s);
 }
 
+static void many_unknown_fields_are_ignored(void)
+{
+    tc_line_t l;
+    /* 9 fields, one more than the old limit of 8 */
+    CHECK(parse("{\"v\":1,\"a\":1,\"b\":2,\"c2\":3,\"e\":4,\"f\":5,\"g\":6,\"h\":7,\"L\":2700}", &l));
+    CHECK_EQ_INT(TC_LINE_LENGTH, l.type);
+    CHECK_EQ_INT(2700, l.length_s);
+
+    /* As many fields as a 127-byte line can hold: "v", "L" and one-letter names that cannot repeat them */
+    char line[TC_LINE_MAX_BYTES];
+    size_t n = (size_t)snprintf(line, sizeof line, "{\"v\":1,\"L\":5");
+    int fields = 2;
+    while (n + 6 <= TC_LINE_MAX_BYTES - 2) {
+        n += (size_t)snprintf(line + n, sizeof line - n, ",\"%c\":0", "0123456789ABCDEFGHIJKMNOPQ"[fields - 2]);
+        fields++;
+    }
+    snprintf(line + n, sizeof line - n, "}");
+    CHECK(strlen(line) <= TC_LINE_MAX_BYTES - 1);
+    CHECK(fields > 20);
+    CHECK(parse(line, &l));
+    CHECK_EQ_INT(5, l.length_s);
+}
+
 static void length_limit_counts_the_terminator(void)
 {
     tc_line_t l;
@@ -187,6 +210,7 @@ int main(void)
     RUN(length_and_ended_lines);
     RUN(whitespace_field_order_extra_fields_and_cr_are_accepted);
     RUN(null_length_means_unknown);
+    RUN(many_unknown_fields_are_ignored);
     RUN(length_limit_counts_the_terminator);
     RUN(invalid_lines_are_dropped_and_leave_out_untouched);
     RUN(null_arguments_are_rejected);

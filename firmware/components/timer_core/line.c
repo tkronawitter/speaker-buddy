@@ -3,8 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-/* A valid line has at most a handful of fields; more than this cannot fit a useful line anyway */
-#define MAX_FIELDS 8
+/*
+ * Unknown extra fields are ignored (docs/protocol.md), so the limit must never be what drops a line:
+ * the shortest field, "":0 plus a comma, takes 5 bytes, so a 127-byte line holds at most 25 fields
+ */
+#define MAX_FIELDS 32
 
 typedef enum {
     VAL_STRING,
