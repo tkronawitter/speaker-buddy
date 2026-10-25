@@ -63,10 +63,11 @@ it starts again at 00:00, stopped.
    port at a time. The test also sets a talk length of one minute, so a running clock turns orange
    after 1:00. Stop the test with Ctrl+C.
 
-To put a release firmware on the board, flash `speaker_buddy-merged.bin` with esptool:
+To put a release firmware on the board, flash `speaker_buddy-merged.bin` with esptool 5 or
+later (older versions spell the command `write_flash`):
 
 ```sh
-esptool --chip esp32s3 write_flash 0x0 speaker_buddy-merged.bin
+esptool --chip esp32s3 write-flash 0x0 speaker_buddy-merged.bin
 ```
 
 ## How to set marks

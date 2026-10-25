@@ -767,8 +767,18 @@ IDF 6.1, publish exe f7143cf): after a replug grey icon, startup screen, 00:00, 
 16:43:11 disconnected, 16:43:14 connected on COM4, 3.4 s); a tap starts the clock, the digits
 stay steady; tray "Stop and release port" logs "stopped, port released" at 16:43:53, the icon
 goes, the board shows the USB symbol with the cross. This covers IDF 6.1 and System.IO.Ports 10
-on the board. Next: the remaining test package updates (coverlet 10, Test.Sdk 18, xunit runner
-4) in one dev-Repository-2 commit, then the tag `v0.1.0-alpha.1`.
+on the board. The remaining test package updates (coverlet 10, Test.Sdk 18, xunit runner 4)
+came as dc5cc95, CI green; Dependabot #17, #18 and #20 were closed as superseded by it.
+Alpha release (the owner's go 2026-10-25 17:45):
+[v0.1.0-alpha.1](https://github.com/tkronawitter/speaker-buddy/releases/tag/v0.1.0-alpha.1),
+pre-release, tag on 0adb3bc, release run 40213387093 green (4 jobs). The release text starts
+with "What is in it / Known limitations", written by the coordinator in the release only, then
+the generated notes. Checked by dev-Repository: all 6 assets match `SHA256SUMS`;
+`speaker_buddy-merged.bin` flashed at 0x0 with esptool 5.6.0, boot log "App version:
+v0.1.0-alpha.1" and "ESP-IDF: v6.1"; the release exe (unsigned, product version
+v0.1.0-alpha.1) connected on COM4 at 17:53:13. The owner's smoke test is open. esptool 5
+renames `write_flash` to `write-flash` (the old name still works with a warning); README,
+`.github/release-notes.md` and the rollback below use the new name.
 New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
 the owner's ask 2026-10-25 15:22). Options: a Renovate custom regex manager, a scheduled
 workflow running `idf.py update-dependencies`, Dependabot `docker` for the image digest. State on
@@ -804,8 +814,8 @@ individuals in Germany).
 - The `erase_flash` done before step 20 cannot be undone; the archived factory dump (step 16)
   stays archive only.
 - Steps 20, 28, 33 (flash): the factory image is never restored. Rollback is flashing the last
-  own build that worked: `idf.py -p COM4 flash` from the previous commit, or `esptool.py -p COM4
-  write_flash 0x0 <merged .bin>` from the archived build. If the board stops enumerating, hold
+  own build that worked: `idf.py -p COM4 flash` from the previous commit, or `esptool -p COM4
+  write-flash 0x0 <merged .bin>` from the archived build. If the board stops enumerating, hold
   BOOT while plugging in to enter the ROM bootloader, then flash again. Step 16 confirms the
   archive before the first flash
 - Steps 1 to 14, 22 to 27, 30 to 38 (code): `git revert <commit>`; nothing is deployed anywhere

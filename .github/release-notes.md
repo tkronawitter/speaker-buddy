@@ -9,10 +9,10 @@ Speaker Buddy @TAG@, built by the release workflow from this tag.
 | `speaker-buddy.exe` | Laptop program for Windows x64, one self-contained file, no .NET install needed |
 | `SHA256SUMS` | SHA-256 of every file above |
 
-Flash the merged image with esptool:
+Flash the merged image with esptool 5 or later:
 
 ```sh
-esptool --chip esp32s3 write_flash 0x0 speaker_buddy-merged.bin
+esptool --chip esp32s3 write-flash 0x0 speaker_buddy-merged.bin
 ```
 
 ## Not signed
