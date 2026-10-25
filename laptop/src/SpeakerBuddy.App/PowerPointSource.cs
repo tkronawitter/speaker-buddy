@@ -57,9 +57,10 @@ public sealed class PowerPointSource
             return new PollResult(false, null);
         }
 
+        var com = new ComScope();
         try
         {
-            return new PollResult(true, ReadShow(application));
+            return new PollResult(true, ReadShow(com.Track(application), com));
         }
         // A busy PowerPoint (RPC_E_CALL_REJECTED, for example while a show starts or during a
         // transition) makes the late-bound call fail with MissingMemberException, not COMException
@@ -71,13 +72,15 @@ public sealed class PowerPointSource
         }
         finally
         {
-            Marshal.ReleaseComObject(application);
+            com.Dispose();
         }
     }
 
-    private ShowState? ReadShow(dynamic application)
+    // Every object a late-bound call returns is tracked and released at the end of the poll, so
+    // four polls a second leave no proxies for the finalizer and PowerPoint can close cleanly
+    private ShowState? ReadShow(dynamic application, ComScope com)
     {
-        dynamic windows = application.SlideShowWindows;
+        dynamic windows = com.Track(application.SlideShowWindows);
         int count = windows.Count;
 
         dynamic? window = null;
@@ -85,8 +88,9 @@ public sealed class PowerPointSource
         {
             for (var i = 1; i <= count && window is null; i++)
             {
-                dynamic candidate = windows.Item(i);
-                if (string.Equals((string)candidate.Presentation.FullName, _locked, StringComparison.OrdinalIgnoreCase))
+                dynamic candidate = com.Track(windows.Item(i));
+                dynamic presentation = com.Track(candidate.Presentation);
+                if (string.Equals((string)presentation.FullName, _locked, StringComparison.OrdinalIgnoreCase))
                 {
                     window = candidate;
                 }
@@ -106,51 +110,58 @@ public sealed class PowerPointSource
                 return null;
             }
 
-            window = windows.Item(1);
-            dynamic presentation = window.Presentation;
+            window = com.Track(windows.Item(1));
+            dynamic presentation = com.Track(window.Presentation);
             var name = (string)presentation.FullName;
-            var slides = ReadSlides(presentation);
+            var slides = ReadSlides(presentation, com);
             _locked = name;
             _slides = slides;
             _lastSlideIndex = 1;
             _log($"slide show of {name} started, {slides.Count} slides" + (count > 1 ? $", {count} shows running, took the first" : ""));
         }
 
-        dynamic view = window.View;
+        dynamic view = com.Track(window.View);
         // At the black end-of-show screen there is no current slide; keep the last one.
         if ((int)view.State != PpSlideShowDone)
         {
-            _lastSlideIndex = (int)view.Slide.SlideIndex;
+            dynamic slide = com.Track(view.Slide);
+            _lastSlideIndex = (int)slide.SlideIndex;
         }
 
         return new ShowState(_locked!, _lastSlideIndex, _slides!);
     }
 
-    private static List<SlideNotes> ReadSlides(dynamic presentation)
+    private static List<SlideNotes> ReadSlides(dynamic presentation, ComScope com)
     {
         var result = new List<SlideNotes>();
-        dynamic slides = presentation.Slides;
+        dynamic slides = com.Track(presentation.Slides);
         int count = slides.Count;
         for (var i = 1; i <= count; i++)
         {
-            dynamic slide = slides.Item(i);
-            var hidden = (int)slide.SlideShowTransition.Hidden == MsoTrue;
-            result.Add(new SlideNotes((int)slide.SlideIndex, hidden, NotesText(slide)));
+            dynamic slide = com.Track(slides.Item(i));
+            dynamic transition = com.Track(slide.SlideShowTransition);
+            var hidden = (int)transition.Hidden == MsoTrue;
+            result.Add(new SlideNotes((int)slide.SlideIndex, hidden, NotesText(slide, com)));
         }
 
         return result;
     }
 
-    private static string? NotesText(dynamic slide)
+    private static string? NotesText(dynamic slide, ComScope com)
     {
-        dynamic placeholders = slide.NotesPage.Shapes.Placeholders;
+        dynamic notesPage = com.Track(slide.NotesPage);
+        dynamic shapes = com.Track(notesPage.Shapes);
+        dynamic placeholders = com.Track(shapes.Placeholders);
         int count = placeholders.Count;
         for (var i = 1; i <= count; i++)
         {
-            dynamic shape = placeholders.Item(i);
-            if ((int)shape.PlaceholderFormat.Type == PpPlaceholderBody && (int)shape.HasTextFrame == MsoTrue)
+            dynamic shape = com.Track(placeholders.Item(i));
+            dynamic format = com.Track(shape.PlaceholderFormat);
+            if ((int)format.Type == PpPlaceholderBody && (int)shape.HasTextFrame == MsoTrue)
             {
-                return (string)shape.TextFrame.TextRange.Text;
+                dynamic textFrame = com.Track(shape.TextFrame);
+                dynamic textRange = com.Track(textFrame.TextRange);
+                return (string)textRange.Text;
             }
         }
 
@@ -175,4 +186,43 @@ public sealed class PowerPointSource
 
     [DllImport("oleaut32.dll", PreserveSig = false)]
     private static extern void GetActiveObject(ref Guid clsid, IntPtr reserved, [MarshalAs(UnmanagedType.IUnknown)] out object instance);
+}
+
+/// <summary>
+/// The COM objects of one poll, released newest first when the poll ends. Values that are not COM
+/// objects (strings, numbers, null) pass through untracked.
+/// </summary>
+[SupportedOSPlatform("windows")]
+internal sealed class ComScope : IDisposable
+{
+    private readonly List<object> _objects = [];
+
+    public int Count => _objects.Count;
+
+    public T Track<T>(T value)
+    {
+        if (value is not null && Marshal.IsComObject(value))
+        {
+            _objects.Add(value);
+        }
+
+        return value;
+    }
+
+    public void Dispose()
+    {
+        for (var i = _objects.Count - 1; i >= 0; i--)
+        {
+            try
+            {
+                Marshal.ReleaseComObject(_objects[i]);
+            }
+            catch (Exception e) when (e is InvalidComObjectException or ArgumentException)
+            {
+                // Already released or no longer attached; nothing left to free.
+            }
+        }
+
+        _objects.Clear();
+    }
 }
