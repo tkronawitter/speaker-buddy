@@ -2,14 +2,14 @@
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
 **Last updated:** 2026-10-25
-**Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner' Windows 11 laptop
+**Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner's Windows 11 laptop
 
 ## Goal
 
 A small AMOLED timer on the lectern shows the elapsed talk time and colours its background by
 how the speaker is doing against `## m:ss` marks in the PowerPoint speaker notes. The colours are
 instructions: green = keep going, red = ahead, talk slower, purple = behind, talk faster, orange
-blinking = overtime. It has to be ready for the the first talk on the talk date.
+blinking = overtime. It has to be ready for the owner's first talk with it.
 
 Approach: the timer owns the time `t` and runs alone without a laptop. A .NET 8 tray program on
 the laptop reads PowerPoint read-only over COM, evaluates the marks and sends one JSON line per
@@ -17,8 +17,8 @@ second over USB serial. All evaluation logic lives in a platform-neutral library
 on Ubuntu; the firmware stays a display plus clock, built with ESP-IDF, the Waveshare BSP and
 LVGL 9.
 
-The confirmed requirements (IDs L-, D-, S-, B-, R-, O-, A-) are in the private notes page
-`IT-Infrastructure/IoT Devices/Speaker-Buddy-Requirements` (German). This plan refers to them by
+The confirmed requirements (IDs L-, D-, S-, B-, R-, O-, A-) are in the owner's
+private requirements notes (German). This plan refers to them by
 ID and does not restate them.
 
 The project was renamed from "Speaker Timer" to "Speaker Buddy" on 2026-10-25 at 00:40 (the owner;
@@ -27,17 +27,17 @@ code in 7aa9b73). Commit hashes before the rename are kept as they were.
 ## Constraints
 
 - Hard dates (A-01): go/no-go with a full dress rehearsal on the stage laptop with a second
-  screen by **Thu the rehearsal date**; freeze from **Sun the freeze date**, nothing is flashed after; talk on
-  **Tue the talk date**
-- Scope tiers are fixed by the user (2026-10-24): core before the talk date, stretch only if time
-  allows, everything else after the talk date Stretch work never delays a core milestone
+  screen by the **go/no-go date**; **freeze** a few days before the talk, nothing is flashed
+  after; then the **first talk**
+- Scope tiers are fixed by the user (2026-10-24): core before the first talk, stretch only if time
+  allows, everything else after the first talk. Stretch work never delays a core milestone
 - Firmware: ESP-IDF v5.5.5 (`%USERPROFILE%\esp\esp-idf-v5.5.5`), BSP
   `waveshare/esp32_s3_touch_amoled_1_8` 2.0.3, LVGL 9, all pinned in `dependencies.lock`;
   `CONFIG_BT_ENABLED=n`, no Wi-Fi init, no OTA, no TinyUSB, own partition table without OTA;
   secure boot and flash encryption stay off (A-04)
 - Standing go from the owner for flashing over USB: `bsp-test` images since 2026-10-24 19:03,
   `firmware/` project images since 19:06. Conditions: `tools/check-image` exits 0 before every
-  flash; `erase_flash` and eFuse writes always need a separate go; the A-01 freeze from the freeze date
+  flash; `erase_flash` and eFuse writes always need a separate go; the A-01 freeze before the talk
   overrides the standing go. The factory image is archive only and is never flashed back.
   After every flash the board is restarted (`idf.py flash` resets it via RTS) and the report says
   so, with one status line read back as proof (the owner, 2026-10-24 22:15)
@@ -45,12 +45,12 @@ code in 7aa9b73). Commit hashes before the rename are kept as they were.
   `dynamic` COM, no `COMReference`, no trimming. Stage rules A-03 apply
 - Public repo, MIT, English for code, README and commit messages (O-01, O-02)
 - Work on `main`. GitHub repo, so the ADO develop/main rule does not apply
-- the development PC is the development machine; the stage laptop is a separate Windows 11 machine with
+- The development PC holds the board and the tools; the stage laptop is a separate Windows 11 machine with
   install rights
 
 ## Steps
 
-Dates are "done by" targets. Steps marked **(the owner)** are manual tasks for the user; everything
+Dates are "done by" targets. Steps marked **(Owner)** are manual tasks for the user; everything
 else is development session work.
 
 ### Task 1: Repository skeleton and laptop CI (by Mon 26.10.)
@@ -99,7 +99,7 @@ implement.
     (no `L`)
     - [x] Follow-up (the owner, 2026-10-25 00:33-00:37): minimum tolerance 0:45, `tol = max(L / 45,
       0:45)` rounded down to whole seconds, `L` unknown gives 0:45. Expected tests: 45 min
-      (1:00), 30 min (0:45, the first talk), 15 min (0:45), 90 min (2:00). Pushed in 57c345d, tests 206/206,
+      (1:00), 30 min (0:45), 15 min (0:45), 90 min (2:00). Pushed in 57c345d, tests 206/206,
       CI run 40139694623 green
 11. [x] `Evaluator` (B-01 to B-07 and the slide jump rules): state machine fed with `(t,
     slideIndex)`; a mark is reached the first time `slideIndex` is at or past its slide, evaluated
@@ -152,7 +152,7 @@ implement.
     on 2026-10-24. Shell: set `IDF_TOOLS_PATH`, dot-source `export.ps1`. Expected: `idf.py
     --version` prints `ESP-IDF v5.5.5`
 16. [x] Check that the factory backup is intact before the first flash:
-    `Get-FileHash -Algorithm SHA256 "<private backup> Dateien\Elektronik\ESP32\waveshare-esp32-s3-touch-amoled-1.8\factory\factory-dump.bin"`
+    `Get-FileHash -Algorithm SHA256 "<private backup>\factory\factory-dump.bin"`
     and compare with the `.sha256` file next to it. Expected: identical hash. This is the safety
     net for step 20
 17. [x] Create the ESP-IDF project under `firmware/`: `CMakeLists.txt`, `main/main.c`,
@@ -238,7 +238,7 @@ implement.
     generating command in a comment. Expected: builds, glyphs `0-9 : + -` only. Installing
     `lv_font_conv` via `npx` on the development PC approved by the owner 2026-10-24 19:21.
     Done 2026-10-24 in 4928975: the dev session's classifier refused `npx lv_font_conv`, so
-    the owner ran it himself at 21:38. Result `firmware/main/fonts/digits_150.c`, Montserrat Medium
+    the owner ran it by hand at 21:38. Result `firmware/main/fonts/digits_150.c`, Montserrat Medium
     150 px, 4 bpp, glyphs `+ - 0-9 :`; `88:88` is about 420 px of the 448 px width. Build,
     `check-image` 0 and flash verified by the dev session on the development PC; how it reads from 1.5 m is
     checked in steps 20 and 28
@@ -287,7 +287,7 @@ implement.
     these values directly, so its green steps carry a deviation, unlike the live evaluation.
     Deviation in the code (found by the coordinator 2026-10-24 22:30): `DemoSequence.LengthSeconds`
     is `45 * 60` (`laptop/src/SpeakerBuddy.Core/DemoSequence.cs:13`), so overtime orange does not
-    show in the demo. the owner decided 2026-10-25 00:00: change the code, short `L` of about 60 s.
+    show in the demo. The owner decided 2026-10-25 00:00: change the code, short `L` of about 60 s.
     Done in 8424179: `DemoSequence.LengthSeconds = 60`, new test, `dotnet test` 204/204. Board
     check per the owner 2026-10-25 00:06: overtime orange blink after 1:00 seen, the first view of
     overtime on the board
@@ -411,10 +411,10 @@ implement.
     PowerPoint never shows a dialog from the program. This is also the first test of the live COM
     path from steps 35-36, including a second deck in slide show at the same time (`FullName`
     lock) and the end of the show (`state: ended`).
-    Test deck (2026-10-25): `<private backup> Dateien\Elektronik\ESP32\speaker-timer-desk-test.pptx`,
+    Test deck (2026-10-25): `<private backup>\speaker-timer-desk-test.pptx`,
     5 slides, marks 1:00, 2:00, 3:00 and 4:30; `--check` with `--length 5` reports 0 problems,
     `tol` 0:30 (0:45 once the step 10 follow-up is in).
-    Run 1, 2026-10-25 00:16:57-00:22:44, unattended at the owner' request (00:13): a test-only
+    Run 1, 2026-10-25 00:16:57-00:22:44, unattended at the owner's request (00:13): a test-only
     diagnostic image with clock autostart (not committed; the clean image was flashed back
     afterwards), tray app 91cfc39 with `--length 5`, show started over COM and paged by a
     coordinator script. App log: show detected, 4 marks, highest 270 s; slide 2 at `t=77` green
@@ -428,32 +428,32 @@ implement.
     Per the owner 2026-10-25 00:24, who watched the board after all: "orange came. powerpoint did
     not show messages. worked like i would have wanted it." So the board view during the show,
     including overtime orange, and no PowerPoint dialog are confirmed.
-    Not tested by decision: two decks in slide show at once (`FullName` lock). the owner
+    Not tested by decision: two decks in slide show at once (`FullName` lock). The owner
     2026-10-25 00:27: "won't be happening"; moved to the backlog as GitHub issue #1, milestone
-    `v1.0` (after the talk date)
+    `v1.0` (after the first talk)
 40. [x] Commit and push
 
-### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
+### Task 7: Stage laptop and rehearsal (by the go/no-go date)
 
-41. [ ] **(the owner)** Add `## m:ss` marks to the the first talk deck. Due before step 43
-42. [ ] **(the owner)** Run `speaker-buddy.exe --check <the first talk deck>`. Expected: no near misses,
+41. [ ] **(Owner)** Add `## m:ss` marks to the talk deck. Due before step 43
+42. [ ] **(Owner)** Run `speaker-buddy.exe --check <talk deck>`. Expected: no near misses,
     no decreasing marks, highest mark close to 30:00
-43. [ ] **(the owner)** Put the signed program on the stage laptop. On the development PC: `pwsh
+43. [ ] **(Owner)** Put the signed program on the stage laptop. On the development PC: `pwsh
     tools/publish-laptop.ps1` (one self-contained `laptop/publish/speaker-buddy.exe`, about
     70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in 768dcd4), then
     `pwsh tools/sign.ps1` (a570b83). Expected: exe starts into the tray.
-    The stage laptop is the owner' private device. Signing (the owner, 2026-10-25 01:11, replacing
+    The stage laptop is the owner's private device. Signing (the owner, 2026-10-25 01:11, replacing
     "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy (self-signed)`, thumbprint
     `8E1E2DC50FFA1A5E5709FF6EDAF2DE142C3FC8C7`, valid until 2028-12-30, private key not
     exportable in `Cert:\CurrentUser\My` on the development PC. The public file is
-    `<private backup>\Elektronik\ESP32\speaker-buddy-codesign.cer` in private storage; importing it on the
-    laptop is a Machine-Sync-Queue row. Verified on the development PC: published, signed with an RFC 3161
+    `speaker-buddy-codesign.cer` in the owner's private backup storage; importing it on the
+    laptop is a private setup note. Verified on the development PC: published, signed with an RFC 3161
     timestamp, the signed exe runs `--check` on the desk-test deck (0 problems, `tol` 0:45);
     `Get-AuthenticodeSignature` there reports `UnknownError`, as expected without the root.
     So that Windows does not block it:
-    - Import the `.cer` (Machine-Sync-Queue row), then `Get-AuthenticodeSignature
+    - Import the `.cer` (private setup note), then `Get-AuthenticodeSignature
       <exe>` shows `Valid` with the thumbprint above
-    - Copy the exe without a browser download (private storage sync or USB stick), or run
+    - Copy the exe without a browser download (private file sync or USB stick), or run
       `Unblock-File <exe>` after copying
     - Start the exe once by hand before the rehearsal
     - Check Smart App Control: Windows Security > App & browser control > Smart App Control, or
@@ -461,39 +461,39 @@ implement.
       (0 = off, 1 = on, 2 = evaluation)
     - If Smart App Control is on: per the dev session (not tested), a self-signed certificate
       does not satisfy it even when imported; the options are turning Smart App Control off or
-      a CA certificate (issue #3). the owner decides then
-44. [ ] **(the owner)** Desk rehearsal with the the first talk deck on the development PC (milestone 5 on the private notes
-    page). Expected: colours behave as intended; fixes go back into Tasks 2 to 6
+      a CA certificate (issue #3). The owner decides then
+44. [ ] **(Owner)** Desk rehearsal with the talk deck on the development PC (milestone 5 in the private
+    requirements notes). Expected: colours behave as intended; fixes go back into Tasks 2 to 6
 45. [ ] Tag the build that passed step 44 as `v0.1.0-rc1` and keep its `.bin` and exe next to the
-    factory backup under `<private backup> Dateien\Elektronik\ESP32\waveshare-esp32-s3-touch-amoled-1.8\builds\v0.1.0-rc1\`.
+    factory backup under `<private backup>\builds\v0.1.0-rc1\`.
     Expected: a known-good build exists before the rehearsal. This is the safety net for step 46
-46. [ ] **(the owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
+46. [ ] **(Owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
     power until v2, so pulling it switches the timer off; the owner 2026-10-25 02:38-02:41.)
-    Go means the rc build becomes the the first talk release; the owner then chooses `v0.1.0` or `v1.0.0`,
-    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the owner runs the talk with the backup timer only
-47. [ ] Commit and push any fixes, tag the the first talk release (`v0.1.0` or `v1.0.0`, see step 46)
+    Go means the rc build becomes the release for the first talk; the owner then chooses `v0.1.0` or `v1.0.0`,
+    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the owner runs the talk with a backup timer only
+47. [ ] Commit and push any fixes, tag the release for the first talk (`v0.1.0` or `v1.0.0`, see step 46)
 
-### Task 8: Freeze (Sun the freeze date) and talk (Tue the talk date)
+### Task 8: Freeze and the first talk
 
 48. [ ] Freeze: no flash, no code change to the stage build. The stage laptop keeps the tagged
     exe. Expected: board and laptop carry the tag from step 47
-49. [ ] **(the owner)** On site: the backup timer runs in parallel as the backup; there is no other
+49. [ ] **(Owner)** On site: a backup timer runs in parallel; there is no other
     stage fallback (the owner, 2026-10-25 02:38-02:41, replacing the A-02 order "offline timer,
     presenter view clock, backup timer, switch by pulling the cable"). The cable is the timer's only
     power until v2: pulled, the timer is off, and after replugging it starts at 00:00, stopped.
     If only the laptop program stops, the timer keeps counting with the disconnected symbol and
     no colours
 
-### Stretch, before the talk date only if every core step above is on time
+### Stretch, before the first talk only if every core step above is on time
 
 50. [x] Codecov upload for the `laptop` job with `CODECOV_TOKEN` and a README badge (R-03).
     Pushed 2026-10-25 ("Upload laptop coverage to Codecov"): `ci.yml` job `laptop` with
     `codecov-action@v7`, flag `laptop`, `fail_ci_if_error: false` until the secret exists;
     `codecov.yml` with informational checks and carryforward for the `laptop` flag. README badge
     added. Local coverage (dev-Repository-2): lines 93.3 % (979/1049), branches 82.6 %.
-    the owner set the repository secret `CODECOV_TOKEN` on 2026-10-25 at 01:46; CI run 40144113537
+    The owner set the repository secret `CODECOV_TOKEN` on 2026-10-25 at 01:46; CI run 40144113537
     on c21addb uploaded the coverage report to Codecov. Follow-up for later:
     `fail_ci_if_error` can go to `true` now that the token exists
 51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
@@ -501,7 +501,7 @@ implement.
     Pushed in 7072ada "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
     green: jobs `laptop`, `firmware-host` and `firmware-build`, the image check ran inside the
     container, artifact `firmware` uploaded
-52. [x] Pulled forward from after the talk date (O-03): `speaker-buddy.exe` as one self-contained file,
+52. [x] Pulled forward from after the first talk (O-03): `speaker-buddy.exe` as one self-contained file,
     `pwsh tools/publish-laptop.ps1`, no .NET runtime on the stage laptop. Pushed in 768dcd4;
     verified on the development PC (published, signed, `--check` runs)
 53. [x] Firmware version (the owner, 2026-10-25 01:17-01:19): the version from `git describe` in the
@@ -513,10 +513,10 @@ implement.
     ready, tap to start`, wire `{"v":1,"fw":"d1cceed-dirty"}` every 10 s; tray log `started,
     speaker-buddy c92d65b-dirty` and `timer firmware d1cceed-dirty` 8 s after connect; both match
     `git describe` of their builds. Not checked: the version in the tray tooltip
-54. [x] Release workflow, pulled forward in part from after the talk date (R-07, R-09): `release.yml` on
+54. [x] Release workflow, pulled forward in part from after the first talk (R-07, R-09): `release.yml` on
     a tag `v*` builds the firmware with the `check-image` gate and the single-file exe, writes
     `SHA256SUMS` and creates a GitHub release. The release exe is unsigned, because the signing
-    key is not exportable from the development PC; the the first talk exe is signed locally (step 43). Attestations
+    key is not exportable from the development PC; the exe for the first talk is signed locally (step 43). Attestations
     are not part of it yet. Pushed in bb195f6. Expected: a test tag produces a release with
     firmware, exe and `SHA256SUMS`.
     Test 2026-10-25: the first tag `v0.0.1-test1` (run 40146824888) failed, because
@@ -530,7 +530,7 @@ implement.
 55. [x] Tray icon and exe icon from the logo (the owner, 2026-10-25 01:27-01:32): logo D "face in
     the colour ring", a three-colour ring (purple, green, red) around the dark Buddy face with
     white eyes and a green smile; a grey "waiting" variant for the tray.
-    Design canvas: <private link>. Expected: the exe in
+    Design canvas: private. Expected: the exe in
     Explorer and the tray icon show the logo, grey while waiting.
     Pushed in 6a4f0f9 (dev-Repository-2): SVG masters in `assets/logo/` (64, 32 and 16 px plus
     waiting variants), `speaker-buddy.ico` and `speaker-buddy-waiting.ico` (16, 24, 32, 48 and
@@ -580,7 +580,7 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     Pushed in f9fd9f5 "Treat only a stopped clock at zero as a timer reset", tests 226/226, the
     3 new tests fail with the old rule, CI green. Board fact: a long-press reset reports `t=0`,
     `run=false`
-61. [ ] Hardening without new decisions. Expected: CI green, tests pass.
+61. [x] Hardening without new decisions. Expected: CI green, tests pass.
     Done: 4ec9f33 actions pinned by commit, tokens kept out of checkouts, `dependencies.lock`
     gate, the release workflow runs the firmware host tests as its own job; 2c19348 kill switch
     safe to run twice; bc831b1 never an error dialog (log and recover) and a robust serial loop
@@ -595,14 +595,13 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     the IDF container.
     Line framer pushed in 8ffc906 "firmware: line framer in timer_core with host tests": 6 host
     cases, 8/8 suites, build clean, `check-image` 0; board: a 195-byte line ignored, a line split
-    across reads parsed, `\r\n` parsed. CI c0df8ab green. Open: CI result of 8ffc906; then this
-    step is done
+    across reads parsed, `\r\n` parsed. CI c0df8ab and 8ffc906 green
 62. [ ] Deck line `## session length m:ss` (for example `## session length 60:00`) sets the talk
     length (the owner, 2026-10-25 02:38-02:41). Precedence: `--length`, then `## session length`,
     then the highest mark if it is at least 5:00. Laptop only (dev-Repository-2). Commit pending.
     Expected: tests for the precedence pass
 
-After the talk date (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
+After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
 #10 flashing from the browser (O-04), #11 settings without code changes (O-05), #12 technical
 follow-ups (Codecov `fail_ci_if_error`, firmware coverage with gcov, an App test project, the
@@ -633,12 +632,12 @@ individuals in Germany).
 - Steps 1 to 14, 22 to 27, 30 to 38 (code): `git revert <commit>`; nothing is deployed anywhere
   until a flash or a copy to the stage laptop
 - Step 43 (stage laptop): delete `speaker-buddy.exe` (one self-contained file, no runtime was
-  installed); remove the certificate as in the Machine-Sync-Queue row
-- Step 46 (rehearsal fails): the talk runs with the backup timer only; `v0.1.0-rc1` from step 45
+  installed); remove the certificate as in the private setup note
+- Step 46 (rehearsal fails): the talk runs with a backup timer only; `v0.1.0-rc1` from step 45
   stays the last known-good build
 - During the talk: if the laptop program misbehaves, "Stop and release port" in its tray menu;
   the timer keeps counting offline and PowerPoint is unaffected because the program only reads.
-  Pulling the cable switches the timer off (no battery until v2); the backup timer is the backup
+  Pulling the cable switches the timer off (no battery until v2); the backup timer is the fallback
 
 ## Verification
 
@@ -657,12 +656,13 @@ individuals in Germany).
 
 ## Unresolved Questions
 
-None open.
+1. Rehearsal (step 46): with the cable pull dropped, should the rehearsal test something else
+   mid-talk, for example "Stop and release port" in the tray menu? For the next session.
 
 Answered by the owner on 2026-10-25 at 00:46: purple after a late arrival keeps the lateness at the
-arrival (as built in 57c345d) and does not count up. Reason in his words: a mark is always the
-time where he wants to be at that slide; earlier marks do not matter once he reaches it. He sets
-marks on slides where he can talk more or less, to win time back, not on every slide. The README
+arrival (as built in 57c345d) and does not count up. Reason in the owner's words: a mark is always the
+time where the owner wants to be at that slide; earlier marks do not matter once the slide is
+reached. Marks go on slides where the owner can talk more or less, to win time back, not on every slide. The README
 section "How to set marks" describes this.
 
 Answered by the owner on 2026-10-24 at 22:30 and 2026-10-25 at 00:00, the dev interpretations
@@ -698,6 +698,6 @@ Answered by the owner on 2026-10-24 at 19:19, the five dev interpretations from 
 
 Answered by the owner on 2026-10-24 at 18:43, the first five questions, folded into the steps:
 `nm` check locally before every flash until step 51 (steps 19, 20), check mode via OpenXml
-(step 38), kill switch as tray entry only (step 37), framework-dependent exe for the talk date (step 43;
+(step 38), kill switch as tray entry only (step 37), framework-dependent exe for the first talk (step 43;
 replaced 2026-10-25 by the self-contained single file, step 52), `L` line `{"v":1,"L":2700}`
 confirmed (step 4).
