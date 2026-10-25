@@ -290,7 +290,13 @@ implement.
     `digits_120` from 100:00 ("100:00" is 427 px wide), 76 px from 1000:00. The transform code is
     gone (no `transform_scale` or pivot left in `firmware/`); `tc_time_font_pick` replaces
     `tc_time_row_scale`; host tests 8615 checks; the image grows by 29,136 bytes. A test image
-    with fix A is on the board; board re-check of 100:00 open
+    with fix A is on the board.
+    Board re-check 2026-10-25 12:43 (per the owner, test image `4424258-dirty`): PASS, at 100:00
+    the smaller digits show, nothing is cut off, no black screen. New finding, GitHub issue #15 "Even spacing around the digit 1 in the
+    time display" (enhancement, milestone `v1.0`, not a blocker): the fixed cells are sized for
+    the widest digit, so the gap after a narrow 1 looks larger (100:00, also at 101:xx). After the
+test block the clean firmware 1814f3c (built from HEAD) was flashed back; #2 and #12 closed on
+GitHub 2026-10-25 13:31
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -560,8 +566,10 @@ implement.
     tray grey while waiting and in colour when connected. Verified by the dev session: build
     without warnings, tests 215/215, format clean, render sheet at 16-256 px on light and dark.
     Live check PASS per the owner 2026-10-25 01:41: tray app started with the board unplugged
-    showed the grey logo, after plugging in the colour logo. Not checked yet: 125 % and 150 %
-    display scaling, the icon in the single-file publish
+    showed the grey logo, after plugging in the colour logo. Remaining checks PASS per the owner
+    2026-10-25: single-file publish 2c93aed grey without the board and in colour with it (12:44);
+    sharp at 125 % (12:51) and 150 % (12:52) display scaling, publish 2c935bf restarted at each
+    scale
 56. [x] Firmware startup screen of about 2 s with the logo, "Speaker Buddy" and the firmware
     version (step 53), then the normal clock screen. Expected: `check-image` 0, flash, the owner
     sees the screen after a restart.
@@ -666,12 +674,21 @@ the keepalive for more than 3 s and the timer goes offline; the owner saw the US
 the cross during the blink (12:37), which is the offline timeout. 2c935bf moves the PowerPoint
 poll to its own thread, so the talk thread never waits on COM; polls of 1 s or more log
 "PowerPoint poll took N ms"; Stop joins both threads within 2 s. App tests 29/29, Core 281/281
-(dev-Repository, local), CI pending. Cause still suspected, not measured; measurement and live
-proof after the user test block), and an App test project (c92cef4): internal seams `ISerialDevice`/`WindowsSerialDevice`,
+(dev-Repository, local), CI green (run 40189941608, 4 jobs). Cause measured (dev-Repository
+harness without the board, 3 closes per build, `WM_CLOSE`): `GetActiveObject` into the exiting
+PowerPoint blocks for about 2.25-2.29 s and ends in RPC `0x800706BE`; it hit 3 of 3 with 82316f3
+(before b07f2ee) and 1 of 3 with the current `PowerPointSource`, so it is a race and b07f2ee is
+not the cause; releasing the COM objects takes 0-18 ms. Live proof PASS 2026-10-25 13:27-13:28
+(publish 2c935bf, board on the fix A test image at 99:50, past the offline 60:00 rule): 3
+closes, 2 hung polls logged ("PowerPoint poll took 2239 ms", "2347 ms"), no "timer
+disconnected"; the owner saw no USB symbol with the cross and no orange (13:28). The finding is
+fixed by 2c935bf), and an App test project (c92cef4): internal seams `ISerialDevice`/`WindowsSerialDevice`,
 `ITimerLink`, a poll delegate and `TalkRunner.Tick`; 26 App tests run in a new `windows-latest`
 CI job, the Ubuntu job tests Core only. CI green on 2c93aed (run 40181498702, 4 jobs). #12 code
-done; the issue stays open for the tray icon checks at 125 % and 150 % scaling (next user test
-block).
+done; the tray icon checks at 125 % and 150 % scaling passed (step 55) and the poll thread passed
+its live proof; #12 complete, closed on GitHub 2026-10-25 13:31.
+Also in milestone `v1.0` since 2026-10-25: #15 even spacing around the digit 1 in the time
+display (from the #2 board check).
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
