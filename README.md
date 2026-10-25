@@ -213,7 +213,7 @@ dotnet test laptop/SpeakerBuddy.sln
 
 ### Build and flash the firmware
 
-Requires ESP-IDF v5.5.5. The component versions are pinned in `firmware/dependencies.lock`. Test
+Requires ESP-IDF v6.1. The component versions are pinned in `firmware/dependencies.lock`. Test
 the plain C logic on the host first; this needs CMake and a C compiler (Linux or WSL):
 
 ```sh
@@ -266,7 +266,7 @@ component manager is not a Dependabot ecosystem, so check `firmware/dependencies
 once a month and before a release.
 
 Re-resolve the components within the ranges in `firmware/main/idf_component.yml` (for example
-`lvgl/lvgl` `>=9.6.0,<10`), from an ESP-IDF v5.5.5 shell:
+`lvgl/lvgl` `>=9.6.0,<10`), from an ESP-IDF v6.1 shell:
 
 ```sh
 cd firmware
@@ -279,7 +279,7 @@ board, then commit the new `dependencies.lock` and name the new versions in the 
 Commit the lock together with the update: CI and the release workflow fail when a build changes
 `dependencies.lock` (step "Dependencies unchanged").
 
-`idf.py update-dependencies` does not move the exact pins: ESP-IDF `==5.5.5` and the board
+`idf.py update-dependencies` does not move the exact pins: ESP-IDF `==6.1.0` and the board
 package `waveshare/esp32_s3_touch_amoled_1_8` `==2.0.3`. Look for newer versions on
 [components.espressif.com](https://components.espressif.com) and in the
 [ESP-IDF releases](https://github.com/espressif/esp-idf/releases). Raising a pin is a change to
