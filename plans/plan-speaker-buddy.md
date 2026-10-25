@@ -268,7 +268,9 @@ implement.
     is covered by the host test, not waited for.
     Result 2026-10-24 22:10 (per the owner, after b976562): PASS, tap and long press on the digits
     work. The display check of the scale-down from 100 minutes (step 26) moved to the backlog
-    by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v1.0`
+    by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v1.0`. Pulled back by the owner
+    2026-10-25 09:35: issue #2 goes into the user test block of 2026-10-25; dev-Repository-2
+    builds the way to reach 100 minutes on the board
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -604,9 +606,9 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     in any case, minutes as for `--length`; the first line on a visible slide counts, others and
     ones on hidden slides are reported by `--check` and ignored; near misses such as
     `## session lenght 60:00` are reported. Tests 278/278 locally on abb1d38 (dev session,
-    2026-10-25 03:01). CI pending: the force pushes of the history rewrite did not trigger
-    `ci.yml` (no code change between the old and new tips); it runs with the next push that
-    touches `laptop/`, `firmware/` or `tools/`
+    2026-10-25 03:01). The force pushes of the history rewrite did not trigger `ci.yml` (no code
+    change between the old and new tips); CI green with the next code push, run 40175800237 on
+    65a35a3 (2026-10-25)
 63. [ ] At slide show end the laptop also sends `{"v":1,"L":null}`, so the timer stops the
     overtime blink after the show and keeps counting neutral (the owner, 2026-10-25 03:07; found
     by the fact check of the README: today the timer keeps the old `L` and stays orange after a
@@ -617,7 +619,7 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     `--length`, `TalkController` sends `{"v":1,"L":null}` right after `{"v":1,"state":"ended"}`;
     with `--length` only the end line. `docs/protocol.md` (Talk length, End of slide show, typical
     session) and the README screen table updated in the same commit. Tests 281/281 locally
-    (dev-Repository-2, 2026-10-25), 3 new; CI pending. Board check open (user test block
+    (dev-Repository-2, 2026-10-25), 3 new; CI green (run 40175800237 on 65a35a3). Board check open (user test block
     2026-10-25), step stays open until it passes
 
 After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
@@ -625,8 +627,12 @@ the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 bright
 #10 flashing from the browser (O-04), #11 settings without code changes (O-05), #12 technical
 follow-ups (Codecov `fail_ci_if_error`, firmware coverage with gcov, an App test project, the
 icon check at 125 % and 150 % scaling, COM intermediates, a tap during the startup screen).
-From #12 done on 2026-10-25: Codecov `fail_ci_if_error: true` (f894051, CI pending) and a host
-test for a tap during the startup screen (65a35a3; board PASS by the owner at 02:27).
+From #12 done on 2026-10-25: Codecov `fail_ci_if_error: true` (f894051, CI green in run
+40175768809; the laptop upload passed with it in run 40175800237) and a host test for a tap
+during the startup screen (65a35a3, CI green; board PASS by the owner at 02:27). Also from #12,
+pushed 2026-10-25: firmware host-test coverage with gcov/gcovr under the Codecov flag `firmware`
+(bac64f8; locally lines 96.6 %, functions 100 %; CI green in run 40177225061) and `PowerPointSource` releasing
+every COM object on each poll (b07f2ee; build clean, live check in the user test block).
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
@@ -636,7 +642,7 @@ allowed, Wi-Fi blocked". v3: Wi-Fi and OTA updates, issue #5, milestone `v3`; A-
 Wi-Fi and OTA.
 Also in milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
-26 and 28); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
+26 and 28; pulled into the user test block of 2026-10-25 by the owner at 09:35); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
 free for open source with a release history; Certum Open Source, about 25-69 EUR a year; a CA
 OV certificate, about 100 USD a year and up; Azure Artifact Signing is not available to
 individuals in Germany).
