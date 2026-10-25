@@ -8,6 +8,8 @@ namespace SpeakerBuddy.App;
 /// <see cref="TalkController"/>, and sends the resulting lines over <see cref="SerialLink"/>.
 /// Polls four times a second so a slide change reaches the timer quickly; a line goes out at least
 /// once per second (L-05), also without a show and while PowerPoint is busy (keepalive).
+/// PowerPoint is polled on a thread of its own: a COM call into a PowerPoint that is closing can
+/// block for seconds, and the talk thread must keep sending meanwhile or the timer drops offline.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class TalkRunner : IDisposable
@@ -15,14 +17,18 @@ public sealed class TalkRunner : IDisposable
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan PeriodicInterval = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan SlowPoll = TimeSpan.FromSeconds(1);
 
     private readonly Action<string> _log;
     private readonly ITimerLink _link;
     private readonly Func<PollResult> _poll;
     private readonly TalkController _controller;
     private readonly object _controllerLock = new();
+    private readonly object _pollLock = new();
     private readonly CancellationTokenSource _stop = new();
     private Thread? _thread;
+    private Thread? _pollThread;
+    private PollResult? _latestPoll;
     private TimerStatusLine? _timer;
     private string? _port;
     private string? _firmware;
@@ -62,6 +68,8 @@ public sealed class TalkRunner : IDisposable
     {
         _log($"started, speaker-buddy {AppVersion.Current}");
         _link.Start();
+        _pollThread = new Thread(RunPoll) { IsBackground = true, Name = "powerpoint" };
+        _pollThread.Start();
         _thread = new Thread(Run) { IsBackground = true, Name = "talk" };
         _thread.Start();
     }
@@ -78,17 +86,22 @@ public sealed class TalkRunner : IDisposable
         }
 
         _stop.Cancel();
-        var ended = _thread?.Join(StopTimeout) ?? true;
+        var deadline = DateTime.UtcNow + StopTimeout;
+        var talkEnded = _thread?.Join(StopTimeout) ?? true;
         _link.Dispose();
+        var remaining = deadline - DateTime.UtcNow;
+        var pollEnded = _pollThread?.Join(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero) ?? true;
 
-        // A thread stuck in a PowerPoint call still waits on the token; it is a background thread
+        // A poll stuck in a PowerPoint call still waits on the token; it is a background thread
         // and dies with the process, so its token source is left to the finalizer instead
-        if (ended)
+        if (talkEnded && pollEnded)
         {
             _stop.Dispose();
         }
 
-        _log(ended ? "stopped, port released" : "stopped, port released, talk thread did not end in time");
+        _log("stopped, port released"
+             + (talkEnded ? string.Empty : ", talk thread did not end in time")
+             + (pollEnded ? string.Empty : ", PowerPoint poll did not end in time"));
     }
 
     private void OnConnected(string port)
@@ -138,17 +151,56 @@ public sealed class TalkRunner : IDisposable
         }
     }
 
-    /// <summary>One poll of the talk thread at <paramref name="now"/> (UTC); the tests call it directly.</summary>
+    private void RunPoll()
+    {
+        while (!_stop.IsCancellationRequested)
+        {
+            PollOnce();
+            _stop.Token.WaitHandle.WaitOne(PollInterval);
+        }
+    }
+
+    /// <summary>One PowerPoint poll of the poll thread; the tests call it directly.</summary>
+    internal void PollOnce()
+    {
+        var started = DateTime.UtcNow;
+        try
+        {
+            var poll = _poll();
+            lock (_pollLock)
+            {
+                _latestPoll = poll;
+            }
+        }
+        catch (Exception e)
+        {
+            _log($"poll failed and was skipped: {e.GetType().Name} {e.Message}");
+        }
+
+        var took = DateTime.UtcNow - started;
+        if (took >= SlowPoll)
+        {
+            _log($"PowerPoint poll took {(int)took.TotalMilliseconds} ms");
+        }
+    }
+
+    /// <summary>One tick of the talk thread at <paramref name="now"/> (UTC); the tests call it directly.</summary>
     internal void Tick(DateTime now)
     {
         try
         {
-            // A busy PowerPoint skips the poll, not the tick: the last good show keeps the
-            // state line going once per second, so the timer never sees the link as lost
-            var poll = _poll();
-            if (poll.Ok)
+            // The tick takes the latest poll and never waits for one. A busy or hanging PowerPoint
+            // keeps the last good show, so the state line still goes out once per second and the
+            // timer never sees the link as lost
+            PollResult? poll;
+            lock (_pollLock)
             {
-                _lastShow = poll.Show;
+                poll = _latestPoll;
+            }
+
+            if (poll is { Ok: true } result)
+            {
+                _lastShow = result.Show;
             }
 
             var periodic = now - _lastPeriodic >= PeriodicInterval;
