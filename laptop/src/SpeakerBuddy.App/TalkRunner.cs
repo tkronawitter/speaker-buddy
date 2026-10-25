@@ -6,8 +6,8 @@ namespace SpeakerBuddy.App;
 /// <summary>
 /// Runs the talk (plan step 36): polls PowerPoint, feeds the timer's <c>t</c> and the slide into
 /// <see cref="TalkController"/>, and sends the resulting lines over <see cref="SerialLink"/>.
-/// Polls four times a second so a slide change reaches the timer quickly; the state line also
-/// goes out once per second (L-05).
+/// Polls four times a second so a slide change reaches the timer quickly; a line goes out at least
+/// once per second (L-05), also without a show and while PowerPoint is busy (keepalive).
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class TalkRunner : IDisposable
@@ -116,32 +116,37 @@ public sealed class TalkRunner : IDisposable
     private void Run()
     {
         var lastPeriodic = DateTime.MinValue;
+        ShowState? lastShow = null;
         while (!_stop.IsCancellationRequested)
         {
             try
             {
+                // A busy PowerPoint skips the poll, not the tick: the last good show keeps the
+                // state line going once per second, so the timer never sees the link as lost
                 var poll = _source.Poll();
                 if (poll.Ok)
                 {
-                    var now = DateTime.UtcNow;
-                    var periodic = now - lastPeriodic >= PeriodicInterval;
-                    if (periodic)
-                    {
-                        lastPeriodic = now;
-                    }
+                    lastShow = poll.Show;
+                }
 
-                    IReadOnlyList<ProtocolLine> lines;
-                    lock (_controllerLock)
-                    {
-                        var marksBefore = _controller.Marks;
-                        lines = _controller.Tick(poll.Show, _timer, periodic);
-                        LogChanges(marksBefore);
-                    }
+                var now = DateTime.UtcNow;
+                var periodic = now - lastPeriodic >= PeriodicInterval;
+                if (periodic)
+                {
+                    lastPeriodic = now;
+                }
 
-                    foreach (var line in lines)
-                    {
-                        _link.Send(line);
-                    }
+                IReadOnlyList<ProtocolLine> lines;
+                lock (_controllerLock)
+                {
+                    var marksBefore = _controller.Marks;
+                    lines = _controller.Tick(lastShow, _timer, periodic);
+                    LogChanges(marksBefore);
+                }
+
+                foreach (var line in lines)
+                {
+                    _link.Send(line);
                 }
             }
             catch (Exception e)

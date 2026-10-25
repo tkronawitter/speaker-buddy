@@ -18,11 +18,38 @@ public class TalkControllerTests
     private static TimerStatusLine Timer(int t) => new(t, true);
 
     [Fact]
-    public void Nothing_is_sent_while_no_show_runs()
+    public void Without_a_show_the_neutral_state_goes_out_once_per_second()
     {
         var controller = new TalkController(null, Colors);
 
-        Assert.Empty(controller.Tick(null, Timer(5), periodic: true));
+        Assert.Equal(new ProtocolLine[] { new StateLine("#000000", null) }, controller.Tick(null, Timer(5), periodic: true));
+        Assert.Empty(controller.Tick(null, Timer(5), periodic: false));
+        Assert.Equal(new ProtocolLine[] { new StateLine("#000000", null) }, controller.Tick(null, null, periodic: true));
+    }
+
+    [Fact]
+    public void Every_periodic_tick_sends_a_line_whatever_the_state()
+    {
+        var controller = new TalkController(null, Colors);
+        var ticks = new (ShowState? Show, TimerStatusLine? Timer)[]
+        {
+            (null, null), (Show(1), null), (Show(1), Timer(5)), (Show(15), Timer(640)), (Show(15), null), (null, Timer(700)), (null, null),
+        };
+
+        foreach (var (show, timer) in ticks)
+        {
+            Assert.NotEmpty(controller.Tick(show, timer, periodic: true));
+        }
+    }
+
+    [Fact]
+    public void Without_timer_status_the_last_state_keeps_the_link_alive()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.Tick(Show(15), Timer(640), periodic: true);
+
+        Assert.Equal(new ProtocolLine[] { new StateLine("#00A000", null) }, controller.Tick(Show(15), null, periodic: true));
+        Assert.Empty(controller.Tick(Show(15), null, periodic: false));
     }
 
     [Fact]
@@ -36,11 +63,11 @@ public class TalkControllerTests
     }
 
     [Fact]
-    public void Without_timer_status_only_the_length_goes_out()
+    public void Without_timer_status_the_length_and_the_neutral_state_go_out()
     {
         var controller = new TalkController(null, Colors);
 
-        Assert.Equal(new ProtocolLine[] { new LengthLine(2700) }, controller.Tick(Show(1), null, periodic: true));
+        Assert.Equal(new ProtocolLine[] { new LengthLine(2700), new StateLine("#000000", null) }, controller.Tick(Show(1), null, periodic: true));
     }
 
     [Fact]
@@ -80,7 +107,7 @@ public class TalkControllerTests
         controller.Tick(Show(1), Timer(5), periodic: true);
 
         Assert.Equal(new ProtocolLine[] { new EndedLine() }, controller.Tick(null, Timer(6), periodic: true));
-        Assert.Empty(controller.Tick(null, Timer(7), periodic: true));
+        Assert.Equal(new ProtocolLine[] { new StateLine("#000000", null) }, controller.Tick(null, Timer(7), periodic: true));
         Assert.Null(controller.Marks);
     }
 

@@ -40,6 +40,8 @@ public sealed class TalkController
         _scheme = scheme ?? throw new ArgumentNullException(nameof(scheme));
     }
 
+    private StateLine NeutralState => new(_scheme.Neutral, null);
+
     /// <summary>Marks of the current show, for the log; null while no show runs.</summary>
     public MarkSet? Marks => _marks;
 
@@ -71,7 +73,9 @@ public sealed class TalkController
     /// <summary>
     /// One tick. Returns the lines to send now: <c>L</c> when it becomes known or changes, the end
     /// line when the show ends, and the state line when it changed or <paramref name="periodic"/>
-    /// is true (once per second).
+    /// is true (once per second). Every periodic tick sends at least one line, so the timer only
+    /// shows its disconnected symbol when the cable or the program is gone (keepalive): without a
+    /// show, or before the timer's first status, that line is the neutral state.
     /// </summary>
     /// <param name="show">The running show, or null when no show of the locked presentation runs.</param>
     /// <param name="timer">Last status line from the timer, or null if none arrived yet.</param>
@@ -85,6 +89,10 @@ public sealed class TalkController
             {
                 EndShow();
                 lines.Add(new EndedLine());
+            }
+            else if (periodic)
+            {
+                lines.Add(NeutralState);
             }
 
             return lines;
@@ -103,6 +111,11 @@ public sealed class TalkController
 
         if (timer is null)
         {
+            if (periodic)
+            {
+                lines.Add(_lastState ?? NeutralState);
+            }
+
             return lines;
         }
 
