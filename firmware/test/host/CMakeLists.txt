@@ -1,11 +1,21 @@
 # Host tests for components/timer_core, built with the system C compiler (no ESP-IDF).
 # cmake -S firmware/test/host -B build-host && cmake --build build-host && ctest --test-dir build-host
+# With -DTIMER_CORE_COVERAGE=ON (GCC) the run leaves gcov data for gcovr; CI uploads it to Codecov.
 cmake_minimum_required(VERSION 3.16)
 project(timer_core_host_tests C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+
+option(TIMER_CORE_COVERAGE "Instrument timer_core and the tests for gcov" OFF)
+if(TIMER_CORE_COVERAGE)
+    if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        message(FATAL_ERROR "TIMER_CORE_COVERAGE needs GCC (gcov), not ${CMAKE_C_COMPILER_ID}")
+    endif()
+    add_compile_options(--coverage -O0)
+    add_link_options(--coverage)
+endif()
 
 set(TIMER_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../components/timer_core)
 

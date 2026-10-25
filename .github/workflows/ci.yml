@@ -74,13 +74,29 @@ jobs:
           persist-credentials: false
 
       - name: Configure
-        run: cmake -S firmware/test/host -B build-host
+        run: cmake -S firmware/test/host -B build-host -DTIMER_CORE_COVERAGE=ON
 
       - name: Build
         run: cmake --build build-host
 
       - name: Test
         run: ctest --test-dir build-host --output-on-failure
+
+      # gcovr turns the gcov data of timer_core (not of the tests) into Cobertura with repo-relative paths
+      - name: Coverage report
+        run: |
+          pipx install gcovr==8.3
+          gcovr --root . --filter firmware/components/timer_core/ --object-directory build-host \
+            --cobertura build-host/coverage.cobertura.xml --print-summary
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build-host/coverage.cobertura.xml
+          disable_search: true
+          flags: firmware
+          fail_ci_if_error: true
 
   firmware-build:
     runs-on: ubuntu-latest

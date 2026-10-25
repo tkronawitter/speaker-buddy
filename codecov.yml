@@ -8,9 +8,14 @@ coverage:
       default:
         informational: true
 
-# The laptop flag carries the coverlet (Cobertura) report of the laptop CI job
+# The laptop flag carries the coverlet (Cobertura) report of the laptop CI job, the firmware flag
+# the gcovr (Cobertura) report of the firmware host tests, which cover components/timer_core only
 flags:
   laptop:
     paths:
       - laptop/
+    carryforward: true
+  firmware:
+    paths:
+      - firmware/components/timer_core/
     carryforward: true
