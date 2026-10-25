@@ -268,7 +268,7 @@ implement.
     is covered by the host test, not waited for.
     Result 2026-10-24 22:10 (per the owner, after 618991f): PASS, tap and long press on the digits
     work. The display check of the scale-down from 100 minutes (step 26) moved to the backlog
-    by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v2`
+    by the owner 2026-10-25 01:09: GitHub issue #2, milestone `v1.0`
 29. [x] Commit and push. Expected: CI `firmware-host` green
 
 ### Task 5: Serial link, both sides (by Wed 04.11.)
@@ -430,7 +430,7 @@ implement.
     including overtime orange, and no PowerPoint dialog are confirmed.
     Not tested by decision: two decks in slide show at once (`FullName` lock). the owner
     2026-10-25 00:27: "won't be happening"; moved to the backlog as GitHub issue #1, milestone
-    `v2` (after the talk date)
+    `v1.0` (after the talk date)
 40. [x] Commit and push
 
 ### Task 7: Stage laptop and rehearsal (by Thu the rehearsal date)
@@ -470,13 +470,14 @@ implement.
 46. [ ] **(the owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes; pull the cable once mid-talk (A-02).
     Expected: timer keeps counting after the pull, the talk never shows a window from the program.
-    Go means the rc build becomes `v0.1.0`; no-go means the stage runs on the offline timer only
-47. [ ] Commit and push any fixes, tag `v0.1.0`
+    Go means the rc build becomes the the first talk release; the owner then chooses `v0.1.0` or `v1.0.0`,
+    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the stage runs on the offline timer only
+47. [ ] Commit and push any fixes, tag the the first talk release (`v0.1.0` or `v1.0.0`, see step 46)
 
 ### Task 8: Freeze (Sun the freeze date) and talk (Tue the talk date)
 
 48. [ ] Freeze: no flash, no code change to the stage build. The stage laptop keeps the tagged
-    exe. Expected: board and laptop carry `v0.1.0`
+    exe. Expected: board and laptop carry the tag from step 47
 49. [ ] **(the owner)** On site: fallback order offline timer, presenter view clock, backup timer; switch
     only by pulling the cable (A-02)
 
@@ -552,22 +553,27 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     cleared it, `L` 0 dropped). Laptop side pushed in 4683c39: sends `L` null after connecting
     when unknown and at every show start that leaves `L` unknown; a show end forgets the deck's
     `L`, `--length` stays. Expected: host and laptop tests for the new line pass
-59. [ ] The clock survives an unexpected chip reset: RTC snapshot of `t` and the running state,
-    resumed after a reset unless it was a power-on or brownout. Commit pending. Expected: host
-    tests pass; on the board a reset during a running clock resumes it
-60. [ ] The laptop counts a timer reset only when `t == 0` and `run == false`. Commit pending.
-    Expected: tests pass
-61. [ ] Hardening without new decisions. Laptop: kill-switch crash fix, no dialogs, serial loop
-    robustness, log rate limit and cleanup, `--check` on files that are not `.pptx`, framer
-    tests. Firmware: panel reset retry, `MAX_FIELDS`. CI and tools: `check-image` robustness plus
-    a scan of the map file, actions pinned by SHA, `dependencies.lock` drift check, host tests in
-    the release workflow. Expected: CI green, tests pass.
-    Pushed so far: 4ec9f33 actions pinned by commit, tokens kept out of checkouts, lock file gate;
-    2c19348 kill switch safe to run twice, bc831b1 never an error dialog (log
-    and recover), 841fde6 panel reset pulse retried, f4854bd `check-image` also checks the
-    linker map and the ELF (radio blobs in the map are fatal, `libesp_phy` allowed; fewer than
-    1000 symbols or no `app_main` fails; ROM type-A radio symbols are reported). The rest is
-    pending
+59. [x] The clock survives an unexpected chip reset: RTC snapshot of `t` and the running state,
+    resumed after a reset unless it was a power-on or brownout. Expected: host tests pass; on
+    the board a reset during a running clock resumes it.
+    Pushed in 5991a44 "firmware: the talk clock survives a chip reset". Host tests 7/7. Board
+    (dev session): `t=11` running before an RTS reset, 13 to 16 running after; the real image
+    logged "clock restored after reset (reason 11): t=78 s, running"
+60. [x] The laptop counts a timer reset only when `t == 0` and `run == false`. Expected: tests pass.
+    Pushed in f9fd9f5 "Treat only a stopped clock at zero as a timer reset", tests 226/226, the
+    3 new tests fail with the old rule, CI green. Board fact: a long-press reset reports `t=0`,
+    `run=false`
+61. [ ] Hardening without new decisions. Expected: CI green, tests pass.
+    Done: 4ec9f33 actions pinned by commit, tokens kept out of checkouts, `dependencies.lock`
+    gate; 2c19348 kill switch safe to run twice; bc831b1 never an error dialog (log and
+    recover); 841fde6 panel reset pulse retried; f4854bd `check-image` also checks the linker map
+    and the ELF (radio blobs in the map are fatal, `libesp_phy` allowed; fewer than 1000 symbols
+    or no `app_main` fails; ROM type-A radio symbols are reported); 2e4d872 `--check` on
+    unreadable or non-`.pptx` files, log rate limit and 30-day cleanup (tests 245/245); c0df8ab
+    firmware parses lines with up to 32 fields (`MAX_FIELDS` 8 to 32; 9-field and 20-plus-field
+    lines parse, the test fails with 8; board: `L` 60, null and 0 as before).
+    Open: serial loop robustness, the line framer with its tests (dev session, in progress),
+    host tests in the release workflow
 
 After the talk date (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
@@ -575,12 +581,13 @@ the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 bright
 follow-ups (Codecov `fail_ci_if_error`, firmware coverage with gcov, an App test project, the
 icon check at 125 % and 150 % scaling, COM intermediates, a tap during the startup screen).
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
-Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): the first talk is v0.x, USB
-only, no radio (A-04 unchanged), tags `v0.1.0-rc1` and `v0.1.0` as in steps 45 and 47. v1.0 is
-the first stable USB release after the first talk, with its own milestone for the backlog issues. v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
+Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
+for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
+the owner chooses `v0.1.0` or `v1.0.0` for the first talk, depending on whether the `v1.0` milestone is
+done (02:19). v1.0 is the first stable USB release, with its own milestone for the backlog issues. v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
 allowed, Wi-Fi blocked". v3: Wi-Fi and OTA updates, issue #5, milestone `v3`; A-04 is lifted for
 Wi-Fi and OTA.
-Backlog on GitHub, milestone `v2`: issue #1, test the presentation lock with two slide shows at
+Also in milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
 26 and 28); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
 free for open source with a release history; Certum Open Source, about 25-69 EUR a year; a CA
