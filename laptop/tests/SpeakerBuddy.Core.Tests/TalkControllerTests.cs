@@ -106,9 +106,40 @@ public class TalkControllerTests
         var controller = new TalkController(null, Colors);
         controller.Tick(Show(1), Timer(5), periodic: true);
 
-        Assert.Equal(new ProtocolLine[] { new EndedLine() }, controller.Tick(null, Timer(6), periodic: true));
+        Assert.Equal(new ProtocolLine[] { new EndedLine(), new LengthLine(null) }, controller.Tick(null, Timer(6), periodic: true));
         Assert.Equal(new ProtocolLine[] { new StateLine("#000000", null) }, controller.Tick(null, Timer(7), periodic: true));
         Assert.Null(controller.Marks);
+    }
+
+    [Fact]
+    public void Show_end_clears_the_length_of_the_deck_on_the_timer()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.OnConnected();
+        Assert.Contains(new LengthLine(2700), controller.Tick(Show(1), Timer(2800), periodic: true));
+
+        Assert.Equal(new ProtocolLine[] { new EndedLine(), new LengthLine(null) }, controller.Tick(null, Timer(2801), periodic: true));
+        Assert.Equal(new LengthLine(null), controller.OnConnected()[0]);
+    }
+
+    [Fact]
+    public void Show_end_with_the_length_argument_sends_only_the_end_line()
+    {
+        var controller = new TalkController(1800, Colors);
+        controller.OnConnected();
+        controller.Tick(Show(1), Timer(1900), periodic: true);
+
+        Assert.Equal(new ProtocolLine[] { new EndedLine() }, controller.Tick(null, Timer(1901), periodic: true));
+    }
+
+    [Fact]
+    public void Show_end_clears_the_length_even_when_the_deck_had_none()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.OnConnected();
+        controller.Tick(ShortShow(1), Timer(5), periodic: true);
+
+        Assert.Equal(new ProtocolLine[] { new EndedLine(), new LengthLine(null) }, controller.Tick(null, Timer(6), periodic: true));
     }
 
     [Fact]

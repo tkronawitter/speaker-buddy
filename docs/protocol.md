@@ -115,8 +115,8 @@ second.
 
 Sent once after the connection is established and again whenever `L` changes. When the length is
 unknown, the laptop sends `{"v":1,"L":null}` after connecting and at every slide show start that
-leaves `L` unknown. When a show ends, the laptop forgets the length taken from that deck; a
-length given with `--length` stays.
+leaves `L` unknown. When a show ends, the laptop forgets the length taken from that deck and
+sends `{"v":1,"L":null}`; a length given with `--length` stays and is not sent again.
 
 ### End of slide show
 
@@ -125,10 +125,11 @@ length given with `--length` stays.
 ```
 
 Sent once when the PowerPoint slide show ends. The timer keeps its clock running and returns to
-the neutral display. The line does not clear `L`: the timer keeps the last length, so past it the
-display stays orange. The laptop forgets the deck's length but sends `{"v":1,"L":null}` only at the
-next show start that leaves the length unknown, or after a reconnect. After that the laptop keeps sending the neutral state once per second, so the
-timer stays connected.
+the neutral display. The line itself does not clear `L`, so without a start length the laptop
+follows it with `{"v":1,"L":null}`: the timer drops the deck's length and an orange overtime
+display ends with the show, while `t` keeps counting. With `--length` the laptop sends no `L`
+line, the timer keeps that length and stays orange past it. After that the laptop keeps sending
+the neutral state once per second, so the timer stays connected.
 
 ## Connection loss
 
@@ -147,7 +148,8 @@ valid laptop line restores the connected display.
    `{"v":1,"L":2700}`, then a state line every second: neutral until the first mark, then green,
    red or purple with `d`.
 5. Past `L` the timer blinks orange, whatever colour the laptop sends.
-6. The show ends: the laptop sends `{"v":1,"state":"ended"}`, then the neutral state every second.
+6. The show ends: the laptop sends `{"v":1,"state":"ended"}` and `{"v":1,"L":null}`, then the
+   neutral state every second. The timer leaves overtime and keeps counting.
 
 ## Versioning
 

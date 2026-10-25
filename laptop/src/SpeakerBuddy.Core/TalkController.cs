@@ -83,7 +83,8 @@ public sealed class TalkController
     /// <summary>
     /// One tick. Returns the lines to send now: <c>L</c> when it changes, or as null at a show start
     /// that leaves it unknown, the end
-    /// line when the show ends, and the state line when it changed or <paramref name="periodic"/>
+    /// line when the show ends (followed by <c>L</c> as null unless the length came from the start
+    /// argument), and the state line when it changed or <paramref name="periodic"/>
     /// is true (once per second). Every periodic tick sends at least one line, so the timer only
     /// shows its disconnected symbol when the cable or the program is gone (keepalive): without a
     /// show, or before the timer's first status, that line is the neutral state.
@@ -100,6 +101,13 @@ public sealed class TalkController
             {
                 EndShow();
                 lines.Add(new EndedLine());
+
+                // Without --length the deck's L goes with the show, so the timer leaves overtime and counts on neutral
+                if (_lengthArgument is null)
+                {
+                    lines.Add(new LengthLine(null));
+                    _sentLength = null;
+                }
             }
             else if (periodic)
             {

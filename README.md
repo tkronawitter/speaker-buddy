@@ -116,7 +116,7 @@ slide show. Nothing starts the clock by itself:
 | Screen | Meaning |
 | --- | --- |
 | Logo, "Speaker Buddy" and the version | Startup screen, about 2 seconds or until you tap |
-| Black | No slide show, or no mark reached yet. After a show that ran past its length the timer stays orange until the next show or a new start of the laptop program |
+| Black | No slide show, or no mark reached yet. When a show that ran past its length ends, the orange stops and the clock keeps counting; with `--length` the timer stays orange past that length |
 | Green, no deviation | On plan |
 | Red, with a deviation such as `-0:45` | Ahead: talk slower |
 | Purple, with a deviation such as `+1:30` | Behind: talk faster |
