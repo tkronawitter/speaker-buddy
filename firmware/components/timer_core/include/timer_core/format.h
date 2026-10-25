@@ -20,6 +20,19 @@ int tc_format_elapsed(char *buf, size_t size, uint32_t seconds);
  */
 int tc_format_deviation(char *buf, size_t size, int32_t deviation_s);
 
+/*
+ * Width of the time row when text is drawn one character per cell: colon_w for ':', digit_w for
+ * every other character. Counts at most max_cells characters.
+ */
+int32_t tc_time_row_width(const char *text, int max_cells, int32_t digit_w, int32_t colon_w);
+
+/*
+ * Transform scale that fits a row of the given width into room, where full means unscaled (256
+ * in LVGL). Full when the row fits, otherwise full * room / width rounded down, so the scaled row
+ * never exceeds room.
+ */
+int32_t tc_time_row_scale(int32_t width, int32_t room, int32_t full);
+
 #ifdef __cplusplus
 }
 #endif

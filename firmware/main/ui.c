@@ -83,24 +83,20 @@ static void create_time(void)
 
 static void set_time_text(const char *text)
 {
-    int32_t width = 0;
     int i = 0;
     for (; i < UI_TIME_CELLS && text[i] != '\0'; i++) {
         char one[2] = {text[i], '\0'};
-        int32_t w = text[i] == ':' ? s_colon_w : s_digit_w;
         lv_label_set_text(s_time_cells[i], one);
-        lv_obj_set_width(s_time_cells[i], w);
+        lv_obj_set_width(s_time_cells[i], text[i] == ':' ? s_colon_w : s_digit_w);
         lv_obj_set_hidden(s_time_cells[i], false);
-        width += w;
     }
     for (; i < UI_TIME_CELLS; i++) {
         lv_obj_set_hidden(s_time_cells[i], true);
     }
 
     /* "100:00" and longer do not fit the screen at full size: shrink the whole row to fit */
-    int32_t room = lv_obj_get_width(s_screen);
-    int32_t scale = (width > room && width > 0) ? (int32_t)(LV_SCALE_NONE * room / width) : LV_SCALE_NONE;
-    lv_obj_set_style_transform_scale(s_time, scale, 0);
+    int32_t width = tc_time_row_width(text, UI_TIME_CELLS, s_digit_w, s_colon_w);
+    lv_obj_set_style_transform_scale(s_time, tc_time_row_scale(width, lv_obj_get_width(s_screen), LV_SCALE_NONE), 0);
 }
 
 void ui_create(void)

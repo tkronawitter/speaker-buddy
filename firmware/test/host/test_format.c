@@ -58,6 +58,79 @@ static void deviation_reports_a_too_small_buffer(void)
     CHECK_EQ_INT(-1, tc_format_deviation(buf, sizeof buf, 90));
 }
 
+/*
+ * Cell widths of the 150 px time font as LVGL reports them (fonts/digits_150.c, adv_w in 1/16 px
+ * rounded): widest digit "4" 1606 -> 100 px, ':' 545 -> 34 px. The screen is 448 px wide.
+ */
+#define DIGIT_W 100
+#define COLON_W 34
+#define SCREEN_W 448
+#define FULL 256
+
+static void row_width_counts_digit_and_colon_cells(void)
+{
+    CHECK_EQ_INT(434, tc_time_row_width("88:88", 12, DIGIT_W, COLON_W));
+    CHECK_EQ_INT(434, tc_time_row_width("11:11", 12, DIGIT_W, COLON_W));
+    CHECK_EQ_INT(534, tc_time_row_width("100:00", 12, DIGIT_W, COLON_W));
+    CHECK_EQ_INT(0, tc_time_row_width("", 12, DIGIT_W, COLON_W));
+    CHECK_EQ_INT(0, tc_time_row_width(NULL, 12, DIGIT_W, COLON_W));
+}
+
+static void row_width_stops_at_the_cell_count(void)
+{
+    CHECK_EQ_INT(200, tc_time_row_width("100:00", 2, DIGIT_W, COLON_W));
+}
+
+static void time_below_100_minutes_is_not_scaled(void)
+{
+    char buf[16];
+    tc_format_elapsed(buf, sizeof buf, 5999);
+    int32_t width = tc_time_row_width(buf, 12, DIGIT_W, COLON_W);
+    CHECK_EQ_INT(FULL, tc_time_row_scale(width, SCREEN_W, FULL));
+}
+
+static void time_from_100_minutes_shrinks_to_the_screen(void)
+{
+    char buf[16];
+    tc_format_elapsed(buf, sizeof buf, 6000);
+    int32_t width = tc_time_row_width(buf, 12, DIGIT_W, COLON_W);
+    int32_t scale = tc_time_row_scale(width, SCREEN_W, FULL);
+
+    CHECK_EQ_INT(214, scale);
+    CHECK(width * scale / FULL <= SCREEN_W);
+    /* Not more than one scale step smaller than needed */
+    CHECK(width * (scale + 1) > SCREEN_W * FULL);
+}
+
+static void every_minute_count_up_to_999_fits_the_screen(void)
+{
+    char buf[16];
+    for (uint32_t seconds = 0; seconds < 1000u * 60u; seconds += 59u) {
+        tc_format_elapsed(buf, sizeof buf, seconds);
+        int32_t width = tc_time_row_width(buf, 12, DIGIT_W, COLON_W);
+        int32_t scale = tc_time_row_scale(width, SCREEN_W, FULL);
+        CHECK(scale > 0 && scale <= FULL);
+        CHECK(width * scale / FULL <= SCREEN_W);
+    }
+}
+
+static void longest_time_fits_the_screen(void)
+{
+    char buf[16];
+    CHECK_EQ_INT(11, tc_format_elapsed(buf, sizeof buf, UINT32_MAX));
+    int32_t width = tc_time_row_width(buf, 12, DIGIT_W, COLON_W);
+    int32_t scale = tc_time_row_scale(width, SCREEN_W, FULL);
+    CHECK(scale > 0);
+    CHECK(width * scale / FULL <= SCREEN_W);
+}
+
+static void scale_guards_degenerate_input(void)
+{
+    CHECK_EQ_INT(FULL, tc_time_row_scale(0, SCREEN_W, FULL));
+    CHECK_EQ_INT(FULL, tc_time_row_scale(534, 0, FULL));
+    CHECK_EQ_INT(FULL, tc_time_row_scale(SCREEN_W, SCREEN_W, FULL));
+}
+
 int main(void)
 {
     RUN(elapsed_is_mm_ss);
@@ -66,5 +139,12 @@ int main(void)
     RUN(deviation_has_sign_and_m_ss);
     RUN(deviation_handles_int32_min);
     RUN(deviation_reports_a_too_small_buffer);
+    RUN(row_width_counts_digit_and_colon_cells);
+    RUN(row_width_stops_at_the_cell_count);
+    RUN(time_below_100_minutes_is_not_scaled);
+    RUN(time_from_100_minutes_shrinks_to_the_screen);
+    RUN(every_minute_count_up_to_999_fits_the_screen);
+    RUN(longest_time_fits_the_screen);
+    RUN(scale_guards_degenerate_input);
     return TEST_RESULT();
 }

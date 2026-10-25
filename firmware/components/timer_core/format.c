@@ -29,3 +29,24 @@ int tc_format_deviation(char *buf, size_t size, int32_t deviation_s)
     return checked(snprintf(buf, size, "%s%lu:%02lu", sign, (unsigned long)(magnitude / 60u),
                             (unsigned long)(magnitude % 60u)), size);
 }
+
+int32_t tc_time_row_width(const char *text, int max_cells, int32_t digit_w, int32_t colon_w)
+{
+    int32_t width = 0;
+    if (text == NULL) {
+        return 0;
+    }
+    for (int i = 0; i < max_cells && text[i] != '\0'; i++) {
+        width += text[i] == ':' ? colon_w : digit_w;
+    }
+    return width;
+}
+
+int32_t tc_time_row_scale(int32_t width, int32_t room, int32_t full)
+{
+    if (width <= room || width <= 0 || room <= 0) {
+        return full;
+    }
+    /* Widen so full * room cannot overflow */
+    return (int32_t)((int64_t)full * room / width);
+}
