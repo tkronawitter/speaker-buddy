@@ -110,6 +110,11 @@ public sealed class TalkRunner : IDisposable
         _port = null;
         _timer = null;
         _firmware = null;
+        lock (_controllerLock)
+        {
+            _controller.OnDisconnected();
+        }
+
         _log.Write("timer disconnected");
     }
 

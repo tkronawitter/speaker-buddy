@@ -117,7 +117,41 @@ public class TalkControllerTests
         var controller = new TalkController(null, Colors);
         controller.Tick(Show(15), Timer(720), periodic: true);
 
-        var lines = controller.Tick(Show(15), Timer(0), periodic: false);
+        var lines = controller.Tick(Show(15), new TimerStatusLine(0, false), periodic: false);
+
+        Assert.Equal(new ProtocolLine[] { new StateLine("#C00000", -600) }, lines);
+    }
+
+    [Fact]
+    public void A_smaller_t_while_running_is_no_reset()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.Tick(Show(13), Timer(600), periodic: true);
+        var arrival = controller.Tick(Show(15), Timer(720), periodic: true);
+
+        // A fresh evaluation would read the arrival at 700 as 1:40 late; the talk keeps its 2:00
+        Assert.Equal(arrival, controller.Tick(Show(15), Timer(700), periodic: true));
+        Assert.Equal(arrival, controller.Tick(Show(15), new TimerStatusLine(0, true), periodic: true));
+    }
+
+    [Fact]
+    public void A_stopped_clock_above_zero_is_no_reset()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.Tick(Show(13), Timer(600), periodic: true);
+        var arrival = controller.Tick(Show(15), Timer(720), periodic: true);
+
+        Assert.Equal(arrival, controller.Tick(Show(15), new TimerStatusLine(700, false), periodic: true));
+    }
+
+    [Fact]
+    public void A_reset_after_a_reconnect_still_starts_over()
+    {
+        var controller = new TalkController(null, Colors);
+        controller.Tick(Show(15), Timer(720), periodic: true);
+        controller.OnDisconnected();
+
+        var lines = controller.Tick(Show(15), new TimerStatusLine(0, false), periodic: false);
 
         Assert.Equal(new ProtocolLine[] { new StateLine("#C00000", -600) }, lines);
     }

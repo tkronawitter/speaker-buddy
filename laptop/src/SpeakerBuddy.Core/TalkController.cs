@@ -69,6 +69,15 @@ public sealed class TalkController
     }
 
     /// <summary>
+    /// The timer is gone: forget its last <c>t</c>, so nothing measured before the cable was pulled
+    /// counts against the first status after the reconnect.
+    /// </summary>
+    public void OnDisconnected()
+    {
+        _lastT = -1;
+    }
+
+    /// <summary>
     /// One tick. Returns the lines to send now: <c>L</c> when it changes, or as null at a show start
     /// that leaves it unknown, the end
     /// line when the show ends, and the state line when it changed or <paramref name="periodic"/>
@@ -119,8 +128,9 @@ public sealed class TalkController
             return lines;
         }
 
-        // A reset on the timer (t went back) starts the evaluation over.
-        if (timer.Seconds < _lastT)
+        // A reset on the timer (long press: t == 0 and stopped) starts the evaluation over, once on
+        // arrival at 0. A smaller t alone is no reset: a stale or backlog status must not wipe the talk.
+        if (timer is { Seconds: 0, Run: false } && _lastT != 0)
         {
             _evaluator = new Evaluator(_marks!, _tolerance);
         }
