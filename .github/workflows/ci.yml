@@ -64,7 +64,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: laptop/TestResults
           flags: laptop
-          fail_ci_if_error: true
+          # Dependabot runs get no repo secrets, so without the token their upload may fail softly
+          fail_ci_if_error: ${{ github.actor != 'dependabot[bot]' }}
 
   # TalkRunner, SerialLink, TrayContext and the COM release with a fake port and a fake PowerPoint
   # source; WinForms, the registry and COM need Windows. Coverage joins the laptop flag
@@ -92,7 +93,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: laptop/TestResults
           flags: laptop
-          fail_ci_if_error: true
+          # Dependabot runs get no repo secrets, so without the token their upload may fail softly
+          fail_ci_if_error: ${{ github.actor != 'dependabot[bot]' }}
 
   firmware-host:
     runs-on: ubuntu-latest
@@ -125,7 +127,8 @@ jobs:
           files: build-host/coverage.cobertura.xml
           disable_search: true
           flags: firmware
-          fail_ci_if_error: true
+          # Dependabot runs get no repo secrets, so without the token their upload may fail softly
+          fail_ci_if_error: ${{ github.actor != 'dependabot[bot]' }}
 
   firmware-build:
     runs-on: ubuntu-latest
