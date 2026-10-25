@@ -23,9 +23,12 @@ jobs:
   laptop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in CI pushes, so the token is not left in the checkout
+          persist-credentials: false
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: "8.0.x"
 
@@ -46,7 +49,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-laptop
           path: laptop/TestResults/**/coverage.cobertura.xml
@@ -55,7 +58,7 @@ jobs:
       # Composite action (its only JavaScript step runs on node24). fail_ci_if_error stays false until
       # the CODECOV_TOKEN secret is set, so a missing token or a Codecov outage does not fail CI
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: laptop/TestResults
@@ -65,7 +68,10 @@ jobs:
   firmware-host:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in CI pushes, so the token is not left in the checkout
+          persist-credentials: false
 
       - name: Configure
         run: cmake -S firmware/test/host -B build-host
@@ -85,7 +91,10 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in CI pushes, so the token is not left in the checkout
+          persist-credentials: false
 
       - name: Build
         working-directory: firmware
@@ -96,13 +105,18 @@ jobs:
           idf.py build
           idf.py merge-bin -o speaker_buddy-merged.bin
 
+      - name: Dependencies unchanged
+        # The build must not have re-resolved the managed components
+        working-directory: firmware
+        run: git diff --exit-code -- dependencies.lock
+
       - name: Check image (A-04)
         run: |
           . "$IDF_PATH/export.sh"
           sh tools/check-image.sh firmware/build/speaker_buddy.elf
 
       - name: Upload firmware
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: firmware
           # The merged image flashes at 0x0; the parts and flash_args flash as idf.py prints it

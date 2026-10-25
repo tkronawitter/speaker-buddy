@@ -10,6 +10,19 @@ permissions:
   contents: read
 
 jobs:
+  firmware-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Host tests
+        run: |
+          cmake -S firmware/test/host -B build-host
+          cmake --build build-host
+          ctest --test-dir build-host --output-on-failure
+
   firmware:
     runs-on: ubuntu-latest
     container:
@@ -19,8 +32,9 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           # The firmware version is git describe, which needs the tags
           fetch-depth: 0
 
@@ -31,6 +45,11 @@ jobs:
           . "$IDF_PATH/export.sh"
           idf.py build
           idf.py merge-bin -o speaker_buddy-merged.bin
+
+      - name: Dependencies unchanged
+        # The build must not have re-resolved the managed components
+        working-directory: firmware
+        run: git diff --exit-code -- dependencies.lock
 
       - name: Check image (A-04)
         run: |
@@ -45,7 +64,7 @@ jobs:
           # Release assets have no folders, so flash_args names the parts without their build paths
           sed -e 's#bootloader/##' -e 's#partition_table/##' firmware/build/flash_args > dist/flash_args
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: firmware
           path: dist/
@@ -54,12 +73,13 @@ jobs:
   laptop:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           # The program version is git describe, which needs the tags
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: "8.0.x"
 
@@ -70,21 +90,24 @@ jobs:
         shell: pwsh
         run: ./tools/publish-laptop.ps1 -Output dist
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: laptop
           path: dist/speaker-buddy.exe
           if-no-files-found: error
 
   release:
-    needs: [firmware, laptop]
+    needs: [firmware-host, firmware, laptop]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The release is created through gh with the job token; git never pushes
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: assets
           merge-multiple: true
