@@ -1,9 +1,13 @@
-# Fails if the firmware ELF links Wi-Fi, Bluetooth, OTA or TinyUSB code (requirement A-04).
-# Usage: pwsh tools/check-image.ps1 [firmware/build/speaker_buddy.elf] [-Nm <path to nm>]
+# Fails if the firmware links Wi-Fi, Bluetooth, OTA or TinyUSB code (requirement A-04). This detects
+# linked code by symbol names (nm) and by the archive members in the linker map; it cannot see code
+# that hides under other names, so it detects, it does not prove.
+# Usage: pwsh tools/check-image.ps1 [firmware/build/speaker_buddy.elf] [-Nm <path to nm>] [-Map <map>]
 # Without -Nm, xtensa-esp32s3-elf-nm is taken from PATH or from the ESP-IDF tools directory.
+# Without -Map, the .map next to the ELF is used.
 param(
     [string] $Elf = (Join-Path $PSScriptRoot '..\firmware\build\speaker_buddy.elf'),
-    [string] $Nm
+    [string] $Nm,
+    [string] $Map
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,9 +21,20 @@ $forbiddenPrefixes = @(
 )
 # Substrings that must not appear anywhere in a symbol name
 $forbiddenSubstrings = @('tinyusb')
+# Radio and OTA blobs that must not be linked, as archive members in the map. libesp_phy.a is not
+# one of them: the IDF core links its phy_override.c for the temperature sensor, without radio code.
+$forbiddenArchives = '(^|[/\\])(libnet80211|libpp|libphy|libcoexist|libbt[a-z0-9_]*|libespnow)\.a\(([^)]*)\)'
+# An image with fewer symbols than this is not a real build (empty ELF, wrong file, nm failure)
+$minimumSymbols = 1000
 
 if (-not (Test-Path -LiteralPath $Elf)) {
     Write-Error "ELF not found: $Elf"
+}
+if (-not $Map) {
+    $Map = [IO.Path]::ChangeExtension($Elf, '.map')
+}
+if (-not (Test-Path -LiteralPath $Map)) {
+    Write-Error "linker map not found: $Map"
 }
 
 if (-not $Nm) {
@@ -39,37 +54,77 @@ if (-not $Nm) {
 }
 
 $global:LASTEXITCODE = 0
-$symbols = & $Nm $Elf
+$symbols = @(& $Nm $Elf)
 if ($LASTEXITCODE -ne 0) {
     Write-Error "nm failed with exit code $LASTEXITCODE"
 }
 
+$failed = $false
+if ($symbols.Count -lt $minimumSymbols) {
+    Write-Output "only $($symbols.Count) symbols in $Elf (expected at least $minimumSymbols): not a firmware build"
+    $failed = $true
+}
+
 $prefixPattern = '^_?(' + (($forbiddenPrefixes | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')'
-$hits = foreach ($line in $symbols) {
+$hits = @()
+$romHits = @()
+$hasAppMain = $false
+foreach ($line in $symbols) {
     # nm lines: "<address> <type> <name>" or "         U <name>" for undefined symbols
     $fields = $line.Trim() -split '\s+'
     $name = $fields[-1]
-    # Type A are absolute ROM addresses from the linker scripts, not code in the image
-    if ($fields.Count -ge 2 -and $fields[-2] -ceq 'A') {
-        continue
+    $type = if ($fields.Count -ge 2) { $fields[-2] } else { '' }
+    if ($name -ceq 'app_main' -and $type -cmatch '^[Tt]$') {
+        $hasAppMain = $true
     }
-    if ($name -match $prefixPattern) {
-        $line
-        continue
-    }
-    foreach ($s in $forbiddenSubstrings) {
-        if ($name.ToLowerInvariant().Contains($s)) {
-            $line
-            break
+    $forbidden = $name -match $prefixPattern
+    if (-not $forbidden) {
+        foreach ($s in $forbiddenSubstrings) {
+            if ($name.ToLowerInvariant().Contains($s)) {
+                $forbidden = $true
+                break
+            }
         }
+    }
+    if (-not $forbidden) {
+        continue
+    }
+    # Type A are absolute ROM addresses from the linker scripts, not code in the image: reported, not fatal
+    if ($type -ceq 'A') {
+        $romHits += $line
+    }
+    else {
+        $hits += $line
     }
 }
 
+if (-not $hasAppMain) {
+    Write-Output "app_main is not defined in $($Elf): not a firmware build"
+    $failed = $true
+}
 if ($hits) {
     Write-Output "forbidden symbols in $($Elf):"
     $hits | ForEach-Object { Write-Output "  $_" }
+    $failed = $true
+}
+
+$members = @(Select-String -LiteralPath $Map -Pattern $forbiddenArchives -AllMatches |
+    ForEach-Object { $_.Matches } | ForEach-Object { "$($_.Groups[2].Value).a($($_.Groups[3].Value))" } |
+    Sort-Object -Unique)
+if ($members) {
+    Write-Output "forbidden archive members linked (from $($Map)):"
+    $members | ForEach-Object { Write-Output "  $_" }
+    $failed = $true
+}
+
+if ($romHits) {
+    Write-Output "note: $($romHits.Count) ROM symbols (type A) with forbidden prefixes are ignored, e.g.:"
+    $romHits | Select-Object -First 3 | ForEach-Object { Write-Output "  $_" }
+}
+
+if ($failed) {
     exit 1
 }
 
-Write-Output "no forbidden symbols ($($symbols.Count) symbols checked in $Elf)"
+Write-Output "no forbidden symbols or archives ($($symbols.Count) symbols in $Elf, map $Map)"
 exit 0
