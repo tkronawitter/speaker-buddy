@@ -12,20 +12,29 @@ public sealed class FileLog
 {
     private readonly object _lock = new();
     private readonly LogRepeatFilter _repeats = new();
+    private readonly Func<DateTime> _now;
 
     public FileLog()
+        : this(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "speaker-buddy", "logs"),
+            () => DateTime.Now)
     {
-        Directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "speaker-buddy", "logs");
+    }
+
+    /// <summary>A log in <paramref name="directory"/> that reads the time from <paramref name="now"/>, for tests.</summary>
+    internal FileLog(string directory, Func<DateTime> now)
+    {
+        Directory = directory;
+        _now = now;
     }
 
     public string Directory { get; }
 
-    public string CurrentFile => Path.Combine(Directory, LogRetention.FileName(DateTime.Now));
+    public string CurrentFile => Path.Combine(Directory, LogRetention.FileName(_now()));
 
     public void Write(string message)
     {
-        var now = DateTime.Now;
+        var now = _now();
         var time = now.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
         lock (_lock)
         {
@@ -55,7 +64,7 @@ public sealed class FileLog
         {
             foreach (var file in System.IO.Directory.EnumerateFiles(Directory, $"{LogRetention.Prefix}*{LogRetention.Extension}"))
             {
-                if (LogRetention.IsExpired(Path.GetFileName(file), DateTime.Now))
+                if (LogRetention.IsExpired(Path.GetFileName(file), _now()))
                 {
                     File.Delete(file);
                     deleted++;
