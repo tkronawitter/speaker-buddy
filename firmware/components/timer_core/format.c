@@ -42,11 +42,15 @@ int32_t tc_time_row_width(const char *text, int max_cells, int32_t digit_w, int3
     return width;
 }
 
-int32_t tc_time_row_scale(int32_t width, int32_t room, int32_t full)
+int tc_time_font_pick(const char *text, int max_cells, const tc_cell_widths_t *fonts, int count, int32_t room)
 {
-    if (width <= room || width <= 0 || room <= 0) {
-        return full;
+    if (fonts == NULL || count <= 0) {
+        return 0;
     }
-    /* Widen so full * room cannot overflow */
-    return (int32_t)((int64_t)full * room / width);
+    for (int i = 0; i < count - 1; i++) {
+        if (tc_time_row_width(text, max_cells, fonts[i].digit_w, fonts[i].colon_w) <= room) {
+            return i;
+        }
+    }
+    return count - 1;
 }

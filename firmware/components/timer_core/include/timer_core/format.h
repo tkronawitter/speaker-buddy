@@ -26,12 +26,18 @@ int tc_format_deviation(char *buf, size_t size, int32_t deviation_s);
  */
 int32_t tc_time_row_width(const char *text, int max_cells, int32_t digit_w, int32_t colon_w);
 
+/* Cell widths of one time font: the widest digit and the colon */
+typedef struct {
+    int32_t digit_w;
+    int32_t colon_w;
+} tc_cell_widths_t;
+
 /*
- * Transform scale that fits a row of the given width into room, where full means unscaled (256
- * in LVGL). Full when the row fits, otherwise full * room / width rounded down, so the scaled row
- * never exceeds room.
+ * Font for the time row: the index of the first of fonts[0..count), largest first, whose row for
+ * text fits room, or the last one if none fits. The time is never scaled: a scaled row needs an
+ * LVGL layer buffer larger than LVGL's memory pool and is then not drawn at all.
  */
-int32_t tc_time_row_scale(int32_t width, int32_t room, int32_t full);
+int tc_time_font_pick(const char *text, int max_cells, const tc_cell_widths_t *fonts, int count, int32_t room);
 
 #ifdef __cplusplus
 }
