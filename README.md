@@ -287,6 +287,15 @@ package `waveshare/esp32_s3_touch_amoled_1_8` `==2.0.3`. Look for newer versions
 `espressif/idf` image tag and digest in `.github/workflows/ci.yml` and `release.yml`, and the
 version named in "Build and flash the firmware".
 
+### Branch rules
+
+A ruleset protects `main`: no force push, no deletion, and the CI checks `laptop`, `laptop-app`,
+`firmware-host` and `firmware-build` must pass before a pull request can be merged. Repository
+admins can bypass it. CI runs only for changes under `laptop/`, `firmware/`, `tools/` or to
+`ci.yml` itself, so a pull request that touches nothing else, for example a Dependabot update of
+the actions in `release.yml` or a change to the docs, never gets these checks and needs an admin
+to merge it.
+
 ### Protocol
 
 The timer and the laptop program talk in JSON lines over USB serial; see

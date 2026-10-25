@@ -736,6 +736,14 @@ two fixes to the rehearsal section (example row matched the tolerance, file name
 row) by the documentation session. CI on 55a84a8 pending; #1, #7 and #8 close after CI green.
 Dependabot opened pull requests #16-#20 (NuGet group and 4 majors); merges wait for the owner's
 go.
+GitHub ruleset "main" (id 25823862, the owner's go 2026-10-25 15:21; read back with the GitHub
+API): no force push, no deletion, required checks `laptop`, `laptop-app`, `firmware-host`,
+`firmware-build`; bypass "always" for the repository admin role, so direct pushes by the owner
+still work and show "Bypassed rule violations". `ci.yml` runs only on `laptop/**`,
+`firmware/**`, `tools/**` and itself, so a pull request outside these paths gets no checks and
+merges only through the bypass (README "Branch rules"). Before a future history rewrite,
+disable the ruleset (or confirm that the admin bypass lets the force push through), because it
+blocks force pushes.
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
