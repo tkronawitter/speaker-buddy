@@ -17,7 +17,8 @@ internal static class Program
           speaker-buddy --demo [--port COMn]
               Sends a colour and deviation test pattern to the timer
 
-        --length   Talk length L; without it the highest mark counts if it is at least 5:00
+        --length   Talk length L; without it a "## session length m:ss" line in the notes counts,
+                   else the highest mark if it is at least 5:00
         --port     Use this port instead of finding the timer by its USB ID
         From PowerShell, append "| Out-Host" to --check and --demo so the prompt waits for the output.
         """;

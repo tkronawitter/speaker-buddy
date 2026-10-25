@@ -174,6 +174,17 @@ public sealed class TalkRunner : IDisposable
             {
                 _log.Write($"slide {warning.SlideIndex}: mark {warning.Seconds} s below {warning.PreviousSeconds} s, ignored");
             }
+
+            if (_controller.Length is { } length)
+            {
+                _log.Write($"talk length {length.Seconds?.ToString() ?? "unknown"} s from {length.Source}"
+                           + (length.SlideIndex is int slide ? $" on slide {slide}" : string.Empty));
+            }
+
+            foreach (var extra in marks.ExtraSessionLengths)
+            {
+                _log.Write($"slide {extra.SlideIndex}: second session length {extra.Seconds} s, ignored");
+            }
         }
 
         var evaluation = _controller.LastEvaluation;

@@ -229,6 +229,21 @@ public class TalkControllerTests
     }
 
     [Fact]
+    public void The_session_length_in_the_deck_is_sent_as_the_length()
+    {
+        var controller = new TalkController(null, Colors);
+        var show = new ShowState(@"C:\talks\session.pptx", 1,
+        [
+            new SlideNotes(1, false, null),
+            new SlideNotes(15, false, "## 10:00"),
+            new SlideNotes(30, false, "## 45:00\r## session length 60:00"),
+        ]);
+
+        Assert.Contains(new LengthLine(3600), controller.Tick(show, Timer(5), periodic: true));
+        Assert.Equal(new ResolvedLength(3600, LengthSource.SessionLength, 30), controller.Length);
+    }
+
+    [Fact]
     public void Zero_length_argument_is_rejected()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new TalkController(0, Colors));

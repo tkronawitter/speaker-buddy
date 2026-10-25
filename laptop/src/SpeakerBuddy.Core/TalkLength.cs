@@ -2,6 +2,28 @@ using System.Globalization;
 
 namespace SpeakerBuddy.Core;
 
+/// <summary>Where the talk length <c>L</c> came from.</summary>
+public enum LengthSource
+{
+    /// <summary>No source gave a length.</summary>
+    Unknown,
+
+    /// <summary>The <c>--length</c> start argument.</summary>
+    Argument,
+
+    /// <summary>A <c>## session length</c> line in the deck.</summary>
+    SessionLength,
+
+    /// <summary>The highest mark, at least 5:00 (fallback).</summary>
+    HighestMark,
+}
+
+/// <summary>The talk length that counts and where it came from.</summary>
+/// <param name="Seconds">The length, or null if unknown.</param>
+/// <param name="Source">Which rule gave it.</param>
+/// <param name="SlideIndex">The slide of the session length or the highest mark; null otherwise.</param>
+public sealed record ResolvedLength(int? Seconds, LengthSource Source, int? SlideIndex);
+
 /// <summary>Talk length <c>L</c> and tolerance <c>tol</c> (requirement L-07).</summary>
 public static class TalkLength
 {
@@ -12,20 +34,30 @@ public static class TalkLength
     public const int MinimumToleranceSeconds = 45;
 
     /// <summary>
-    /// <c>L</c> from the start argument if given, else the highest mark if it is at least 5:00,
-    /// else null.
+    /// <c>L</c> from the start argument if given, else from the deck's <c>## session length</c>,
+    /// else the highest mark if it is at least 5:00, else null.
     /// </summary>
-    public static int? Resolve(int? argumentSeconds, MarkSet marks)
+    public static int? Resolve(int? argumentSeconds, MarkSet marks) => ResolveWithSource(argumentSeconds, marks).Seconds;
+
+    /// <summary><see cref="Resolve"/> with the rule and slide that gave the length.</summary>
+    public static ResolvedLength ResolveWithSource(int? argumentSeconds, MarkSet marks)
     {
         ArgumentNullException.ThrowIfNull(marks);
 
         if (argumentSeconds is int argument)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(argument, nameof(argumentSeconds));
-            return argument;
+            return new ResolvedLength(argument, LengthSource.Argument, null);
         }
 
-        return marks.HighestSeconds is int highest && highest >= MinimumHighestMarkSeconds ? highest : null;
+        if (marks.SessionLength is { } session)
+        {
+            return new ResolvedLength(session.Seconds, LengthSource.SessionLength, session.SlideIndex);
+        }
+
+        return marks.HighestSeconds is int highest && highest >= MinimumHighestMarkSeconds
+            ? new ResolvedLength(highest, LengthSource.HighestMark, marks.Marks[^1].SlideIndex)
+            : new ResolvedLength(null, LengthSource.Unknown, null);
     }
 
     /// <summary>

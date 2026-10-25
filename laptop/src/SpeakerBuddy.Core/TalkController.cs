@@ -46,6 +46,9 @@ public sealed class TalkController
     /// <summary>Marks of the current show, for the log; null while no show runs.</summary>
     public MarkSet? Marks => _marks;
 
+    /// <summary>Talk length of the current show and its source, for the log; null while no show runs.</summary>
+    public ResolvedLength? Length { get; private set; }
+
     /// <summary>The evaluation of the last tick, for the log; null if nothing was evaluated.</summary>
     public Evaluation? LastEvaluation { get; private set; }
 
@@ -151,7 +154,8 @@ public sealed class TalkController
     {
         _presentation = show.PresentationName;
         _marks = MarkSet.Build(show.Slides);
-        _length = TalkLength.Resolve(_lengthArgument, _marks);
+        Length = TalkLength.ResolveWithSource(_lengthArgument, _marks);
+        _length = Length.Seconds;
 
         // An unknown L is sent as null at every show start, so no L of an earlier talk stays on the timer
         _lengthDue = _length is null;
@@ -167,6 +171,7 @@ public sealed class TalkController
         _presentation = null;
         _marks = null;
         _length = _lengthArgument;
+        Length = null;
         _evaluator = null;
         _lastT = -1;
         _lastState = null;

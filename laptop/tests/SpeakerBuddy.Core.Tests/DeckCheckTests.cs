@@ -36,8 +36,8 @@ public class DeckCheckTests
               slide   2  ## 5:00
               slide   5  ## 12:00
               slide   7  ## 29:30
-            Talk length 29:30, tolerance 0:45
-            Near misses (not used as marks):
+            Talk length 29:30 from the highest mark (slide 7), tolerance 0:45
+            Near misses (probably typos, not used):
               slide   4  "## 10:75"
             Marks on hidden slides (ignored):
               slide   3  ## 7:00
@@ -76,6 +76,84 @@ public class DeckCheckTests
 
         Assert.StartsWith("No marks found.\nTalk length unknown", report);
         Assert.EndsWith("0 problems", report);
+    }
+
+    private static DeckCheckResult Check(int? lengthArgument, params SlideNotes[] slides) =>
+        DeckCheck.Run(slides, lengthArgument);
+
+    private static string Report(int? lengthArgument, params SlideNotes[] slides) =>
+        DeckCheck.Format(Check(lengthArgument, slides)).ReplaceLineEndings("\n");
+
+    [Fact]
+    public void The_session_length_counts_and_the_report_says_where_it_comes_from()
+    {
+        var report = Report(null,
+            new SlideNotes(1, false, "## 10:00"),
+            new SlideNotes(30, false, "## 52:00\r## session length 60:00"));
+
+        Assert.Contains("Talk length 60:00 from ## session length on slide 30, tolerance 1:20\n", report);
+        Assert.EndsWith("0 problems", report);
+    }
+
+    [Fact]
+    public void The_length_argument_is_named_and_shows_the_session_length_it_overrides()
+    {
+        var report = Report(2700, new SlideNotes(30, false, "## session length 60:00"));
+
+        Assert.Contains("Talk length 45:00 from --length, tolerance 1:00\n", report);
+        Assert.Contains("  (--length overrides ## session length 60:00 on slide 30)\n", report);
+        Assert.EndsWith("0 problems", report);
+    }
+
+    [Fact]
+    public void An_unknown_length_names_all_three_sources()
+    {
+        Assert.Contains(
+            "Talk length unknown (no --length, no ## session length, highest mark below 5:00)",
+            Report(null, new SlideNotes(1, false, "## 3:00")));
+    }
+
+    [Fact]
+    public void Session_length_typos_are_near_misses_and_do_not_count()
+    {
+        var result = Check(null,
+            new SlideNotes(1, false, "## session lenght 60:00"),
+            new SlideNotes(2, false, "## length 60:00"),
+            new SlideNotes(3, false, "## 20:00"));
+
+        Assert.Equal(new[] { new NearMiss(1, "## session lenght 60:00"), new NearMiss(2, "## length 60:00") }, result.NearMisses);
+        Assert.Equal(LengthSource.HighestMark, result.Length.Source);
+        Assert.Equal(2, result.ProblemCount);
+    }
+
+    [Fact]
+    public void A_session_length_on_a_hidden_slide_is_ignored_and_reported()
+    {
+        var result = Check(null,
+            new SlideNotes(1, false, "## 20:00"),
+            new SlideNotes(2, true, "## session length 60:00"));
+
+        Assert.Equal(1200, result.LengthSeconds);
+        Assert.Equal(new[] { new SessionLength(2, 3600) }, result.HiddenSessionLengths);
+        Assert.Equal(1, result.ProblemCount);
+        Assert.Contains(
+            "Session lengths on hidden slides (ignored):\n  slide   2  ## session length 60:00\n",
+            DeckCheck.Format(result).ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
+    public void A_second_session_length_is_a_problem_and_the_first_counts()
+    {
+        var result = Check(null,
+            new SlideNotes(2, false, "## session length 45:00"),
+            new SlideNotes(30, false, "## session length 60:00"));
+
+        Assert.Equal(2700, result.LengthSeconds);
+        Assert.Equal(new[] { new SessionLength(30, 3600) }, result.ExtraSessionLengths);
+        Assert.Equal(1, result.ProblemCount);
+        Assert.Contains(
+            "More than one session length (only the first counts, these are ignored):\n  slide  30  ## session length 60:00\n",
+            DeckCheck.Format(result).ReplaceLineEndings("\n"));
     }
 
     [Fact]

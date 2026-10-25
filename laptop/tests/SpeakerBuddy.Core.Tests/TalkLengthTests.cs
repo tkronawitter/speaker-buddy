@@ -45,6 +45,35 @@ public class TalkLengthTests
     }
 
     [Fact]
+    public void Precedence_is_argument_then_session_length_then_highest_mark()
+    {
+        var marks = MarkSet.Build(
+        [
+            new SlideNotes(10, false, "## 50:00"),
+            new SlideNotes(30, false, "## session length 60:00"),
+        ]);
+
+        Assert.Equal(new ResolvedLength(2700, LengthSource.Argument, null), TalkLength.ResolveWithSource(2700, marks));
+        Assert.Equal(new ResolvedLength(3600, LengthSource.SessionLength, 30), TalkLength.ResolveWithSource(null, marks));
+    }
+
+    [Fact]
+    public void A_session_length_below_five_minutes_still_counts()
+    {
+        var marks = MarkSet.Build([new SlideNotes(1, false, "## session length 3:00")]);
+
+        Assert.Equal(180, TalkLength.Resolve(null, marks));
+    }
+
+    [Fact]
+    public void The_highest_mark_names_its_slide()
+    {
+        var marks = MarkSet.Build([new SlideNotes(1, false, "## 2:00"), new SlideNotes(7, false, "## 29:30")]);
+
+        Assert.Equal(new ResolvedLength(1770, LengthSource.HighestMark, 7), TalkLength.ResolveWithSource(null, marks));
+    }
+
+    [Fact]
     public void No_marks_and_no_argument_gives_no_length()
     {
         Assert.Null(TalkLength.Resolve(null, MarkSet.Build([])));

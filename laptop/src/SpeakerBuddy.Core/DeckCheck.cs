@@ -3,25 +3,35 @@ using System.Text;
 
 namespace SpeakerBuddy.Core;
 
-/// <summary>A line that looks like a mark but is not one.</summary>
+/// <summary>A line that looks like a mark or a session length but is not one.</summary>
 public sealed record NearMiss(int SlideIndex, string Line);
 
 /// <summary>Result of checking a deck's marks without PowerPoint (requirement L-09).</summary>
 /// <param name="Marks">Marks the timer will use.</param>
-/// <param name="NearMisses">Lines that look like marks but are not, probably typos.</param>
+/// <param name="NearMisses">Lines that look like marks or session lengths but are not, probably typos.</param>
 /// <param name="HiddenMarks">Marks on hidden slides; ignored during the talk.</param>
 /// <param name="Decreasing">Marks lower than the one before; ignored during the talk.</param>
-/// <param name="LengthSeconds">Talk length L as the program would use it, or null if unknown.</param>
+/// <param name="Length">Talk length L as the program would use it, and where it comes from.</param>
 /// <param name="ToleranceSeconds">Tolerance derived from L.</param>
+/// <param name="SessionLength">The deck's session length, also when <c>--length</c> overrides it.</param>
+/// <param name="HiddenSessionLengths">Session lengths on hidden slides; ignored.</param>
+/// <param name="ExtraSessionLengths">Session lengths after the first one; ignored.</param>
 public sealed record DeckCheckResult(
     IReadOnlyList<Mark> Marks,
     IReadOnlyList<NearMiss> NearMisses,
     IReadOnlyList<Mark> HiddenMarks,
     IReadOnlyList<MarkWarning> Decreasing,
-    int? LengthSeconds,
-    int ToleranceSeconds)
+    ResolvedLength Length,
+    int ToleranceSeconds,
+    SessionLength? SessionLength,
+    IReadOnlyList<SessionLength> HiddenSessionLengths,
+    IReadOnlyList<SessionLength> ExtraSessionLengths)
 {
-    public int ProblemCount => NearMisses.Count + HiddenMarks.Count + Decreasing.Count;
+    /// <summary>Talk length L in seconds, or null if unknown.</summary>
+    public int? LengthSeconds => Length.Seconds;
+
+    public int ProblemCount =>
+        NearMisses.Count + HiddenMarks.Count + Decreasing.Count + HiddenSessionLengths.Count + ExtraSessionLengths.Count;
 }
 
 /// <summary>Checks the marks of a deck and formats the report for <c>--check</c>.</summary>
@@ -36,16 +46,20 @@ public static class DeckCheck
             .OrderBy(s => s.SlideIndex)
             .SelectMany(s => MarkParser.NearMisses(s.Notes).Select(line => new NearMiss(s.SlideIndex, line)))
             .ToList();
-        var hidden = slides
-            .Where(s => s.Hidden)
-            .OrderBy(s => s.SlideIndex)
+        var hiddenSlides = slides.Where(s => s.Hidden).OrderBy(s => s.SlideIndex).ToList();
+        var hidden = hiddenSlides
             .Select(s => (s.SlideIndex, Seconds: MarkParser.ParseNotes(s.Notes)))
             .Where(s => s.Seconds is not null)
             .Select(s => new Mark(s.SlideIndex, s.Seconds!.Value))
             .ToList();
-        var length = TalkLength.Resolve(lengthArgument, marks);
+        var hiddenSessionLengths = hiddenSlides
+            .SelectMany(s => MarkParser.SessionLengths(s.Notes).Select(seconds => new SessionLength(s.SlideIndex, seconds)))
+            .ToList();
+        var length = TalkLength.ResolveWithSource(lengthArgument, marks);
 
-        return new DeckCheckResult(marks.Marks, nearMisses, hidden, marks.Warnings, length, TalkLength.Tolerance(length));
+        return new DeckCheckResult(
+            marks.Marks, nearMisses, hidden, marks.Warnings, length, TalkLength.Tolerance(length.Seconds),
+            marks.SessionLength, hiddenSessionLengths, marks.ExtraSessionLengths);
     }
 
     public static string Format(DeckCheckResult result)
@@ -59,13 +73,16 @@ public static class DeckCheck
             text.AppendLine(Invariant($"  slide {mark.SlideIndex,3}  ## {Time(mark.Seconds)}"));
         }
 
-        text.AppendLine(result.LengthSeconds is int length
-            ? Invariant($"Talk length {Time(length)}, tolerance {Time(result.ToleranceSeconds)}")
-            : Invariant($"Talk length unknown (no argument, highest mark below 5:00), tolerance {Time(result.ToleranceSeconds)}"));
+        text.AppendLine(LengthLine(result));
+        if (result.Length.Source == LengthSource.Argument && result.SessionLength is { } overridden)
+        {
+            text.AppendLine(Invariant(
+                $"  (--length overrides ## session length {Time(overridden.Seconds)} on slide {overridden.SlideIndex})"));
+        }
 
         if (result.NearMisses.Count > 0)
         {
-            text.AppendLine("Near misses (not used as marks):");
+            text.AppendLine("Near misses (probably typos, not used):");
             foreach (var miss in result.NearMisses)
             {
                 text.AppendLine(Invariant($"  slide {miss.SlideIndex,3}  \"{miss.Line}\""));
@@ -91,8 +108,40 @@ public static class DeckCheck
             }
         }
 
+        AppendSessionLengths(text, "Session lengths on hidden slides (ignored):", result.HiddenSessionLengths);
+        AppendSessionLengths(text, "More than one session length (only the first counts, these are ignored):", result.ExtraSessionLengths);
+
         text.Append(result.ProblemCount == 1 ? "1 problem" : Invariant($"{result.ProblemCount} problems"));
         return text.ToString();
+    }
+
+    private static string LengthLine(DeckCheckResult result)
+    {
+        var tolerance = Time(result.ToleranceSeconds);
+        var length = result.Length;
+        return length.Seconds is not int seconds
+            ? Invariant($"Talk length unknown (no --length, no ## session length, highest mark below 5:00), tolerance {tolerance}")
+            : length.Source switch
+            {
+                LengthSource.Argument => Invariant($"Talk length {Time(seconds)} from --length, tolerance {tolerance}"),
+                LengthSource.SessionLength => Invariant(
+                    $"Talk length {Time(seconds)} from ## session length on slide {length.SlideIndex}, tolerance {tolerance}"),
+                _ => Invariant($"Talk length {Time(seconds)} from the highest mark (slide {length.SlideIndex}), tolerance {tolerance}"),
+            };
+    }
+
+    private static void AppendSessionLengths(StringBuilder text, string heading, IReadOnlyList<SessionLength> lengths)
+    {
+        if (lengths.Count == 0)
+        {
+            return;
+        }
+
+        text.AppendLine(heading);
+        foreach (var length in lengths)
+        {
+            text.AppendLine(Invariant($"  slide {length.SlideIndex,3}  ## session length {Time(length.Seconds)}"));
+        }
     }
 
     private static string Time(int seconds) => Invariant($"{seconds / 60}:{seconds % 60:00}");

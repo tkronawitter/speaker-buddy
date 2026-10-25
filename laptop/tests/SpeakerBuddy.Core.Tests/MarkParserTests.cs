@@ -108,4 +108,59 @@ public class MarkParserTests
         Assert.Equal(new[] { "## 10:75", "##12:00" }, MarkParser.NearMisses("## 10:75\r## 11:00\v##12:00"));
         Assert.Empty(MarkParser.NearMisses(null));
     }
+
+    [Theory]
+    [InlineData("## session length 60:00", 3600)]
+    [InlineData("## Session Length 60:00", 3600)]
+    [InlineData("## SESSION LENGTH 45:30", 2730)]
+    [InlineData("## session length 0:45", 45)]
+    [InlineData("## session length 120:00", 7200)]
+    [InlineData("## session length 60:00 \t", 3600)]
+    public void Valid_session_length_lines_are_parsed(string line, int expectedSeconds)
+    {
+        Assert.True(MarkParser.TryParseSessionLengthLine(line, out var seconds));
+        Assert.Equal(expectedSeconds, seconds);
+    }
+
+    [Theory]
+    [InlineData("## session length 0:00")]
+    [InlineData("## session length 60:60")]
+    [InlineData("## session length 60")]
+    [InlineData("## session length 60:00 min")]
+    [InlineData("## session length 1000:00")]
+    [InlineData("##session length 60:00")]
+    [InlineData("## session  length 60:00")]
+    [InlineData("## sessionlength 60:00")]
+    [InlineData(" ## session length 60:00")]
+    [InlineData("## session lenght 60:00")]
+    [InlineData("## length 60:00")]
+    public void Lines_that_are_not_exactly_a_session_length_are_rejected_and_are_near_misses(string line)
+    {
+        Assert.False(MarkParser.TryParseSessionLengthLine(line, out _));
+        Assert.True(MarkParser.IsNearMiss(line));
+    }
+
+    [Theory]
+    [InlineData("## session length 60:00")]
+    [InlineData("# Challenges 2")]
+    [InlineData("## Lessons learned")]
+    [InlineData("Session length is 60 minutes")]
+    public void Valid_session_lengths_and_ordinary_text_are_not_near_misses(string line)
+    {
+        Assert.False(MarkParser.IsNearMiss(line));
+    }
+
+    [Fact]
+    public void A_session_length_is_no_mark()
+    {
+        Assert.Null(MarkParser.ParseNotes("## session length 60:00"));
+        Assert.False(MarkParser.TryParseLine("## session length 60:00", out _));
+    }
+
+    [Fact]
+    public void All_session_lengths_of_the_notes_are_returned_in_order()
+    {
+        Assert.Equal(new[] { 3600, 2700 }, MarkParser.SessionLengths("## 52:00\r## session length 60:00\v## session length 45:00"));
+        Assert.Empty(MarkParser.SessionLengths(null));
+    }
 }
