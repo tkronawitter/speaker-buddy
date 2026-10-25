@@ -16,18 +16,28 @@ public static class WindowsPortDiscovery
 {
     private const string UsbEnumKey = @"SYSTEM\CurrentControlSet\Enum\USB";
 
-    public static string? FindTimerPort() =>
-        TimerPort.Select(Candidates(), SerialPort.GetPortNames());
+    /// <summary>Name of the timer's serial interface below the USB enumeration key.</summary>
+    internal static readonly string DeviceKey =
+        $"VID_{TimerPort.VendorId:X4}&PID_{TimerPort.ProductId:X4}&MI_{TimerPort.SerialInterface:X2}";
 
-    private static IEnumerable<SerialPortCandidate> Candidates()
+    public static string? FindTimerPort()
     {
         using var usb = Registry.LocalMachine.OpenSubKey(UsbEnumKey);
+        return TimerPort.Select(Candidates(usb), SerialPort.GetPortNames());
+    }
+
+    /// <summary>
+    /// The port of every instance of the timer's serial interface below <paramref name="usb"/>, the
+    /// USB enumeration key; the tests pass a key of their own.
+    /// </summary>
+    internal static IEnumerable<SerialPortCandidate> Candidates(RegistryKey? usb)
+    {
         if (usb is null)
         {
             yield break;
         }
 
-        var deviceKey = $"VID_{TimerPort.VendorId:X4}&PID_{TimerPort.ProductId:X4}&MI_{TimerPort.SerialInterface:X2}";
+        var deviceKey = DeviceKey;
         using var device = usb.OpenSubKey(deviceKey);
         if (device is null)
         {
