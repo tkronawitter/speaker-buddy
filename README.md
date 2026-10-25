@@ -143,6 +143,12 @@ notification area, follows the slide show and drives the timer. Its icon is grey
 for the timer and in colour when the timer is connected. The tray menu has "Open log" and "Stop
 and release port".
 
+With more than one slide show running, the program follows one and stays with it: at its start
+the first show it finds, later the first show that starts. When the followed show ends, every
+show still running is ignored until it ends; a show started after that is followed, the same deck
+again or another one. A second deck shown during the talk, for a demo for example, never changes
+the marks or the length on the timer. The log names each ignored show.
+
 | Command (PowerShell) | Purpose |
 | --- | --- |
 | `.\speaker-buddy.exe` | Starts in the notification area |
@@ -159,15 +165,15 @@ The program is a Windows application, so PowerShell does not wait for it. Append
 ### Rehearsal log
 
 With `--rehearsal` (it combines with `--length` and `--port`) the program writes one CSV file per
-slide show into the log folder, `%LOCALAPPDATA%\speaker-buddy\logs`, named after the start time
-and the deck, for example `rehearsal-2026-10-25-143005-mytalk.csv`. The log names the file when
+slide show into the log folder, `%LOCALAPPDATA%\speaker-buddy\logs`, named after the time of its
+first row and the deck, for example `rehearsal-2026-10-25-143005-mytalk.csv`. The log names the file when
 the first row is written. Each slide change adds a row, going back a slide too, once the timer has
 reported its time:
 
 ```text
 time,slide,mark_s,t_s,deviation_s,colour
 14:30:05,1,,3,,neutral
-14:31:30,2,60,85,25,purple
+14:32:05,2,60,123,63,purple
 ```
 
 | Column | Meaning |

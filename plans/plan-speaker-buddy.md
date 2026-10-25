@@ -726,6 +726,16 @@ ignored. Owner: dev-Repository. Live result before the change (2026-10-25 15:08-
 PowerPoint, harness, no board): the lock holds while show B runs (issue steps 3-4 PASS); after
 show A ended, B was taken about 315 ms later (step 5 FAIL against the issue text), which the
 change removes.
+Pushed 2026-10-25: 3e6d351 #8 rehearsal log (`--rehearsal`, one CSV per show in the log folder,
+comma, README section "Rehearsal log"; Core 320/320, App 112/112 locally). 55a84a8 #1 in
+`PowerPointSource`: when the followed show ends, every show still running is ignored until it
+ends, a show started later is followed; at program start the first running show is taken as
+before; log line "ignoring the running show of <path> until it is started again"; real
+PowerPoint harness 15:15-15:16 without the board: issue step 5 PASS. README wording for #1 and
+two fixes to the rehearsal section (example row matched the tolerance, file name from the first
+row) by the documentation session. CI on 55a84a8 pending; #1, #7 and #8 close after CI green.
+Dependabot opened pull requests #16-#20 (NuGet group and 4 majors); merges wait for the owner's
+go.
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
