@@ -29,13 +29,21 @@ public sealed class PowerPointSource
     private const int MsoTrue = -1;
 
     private readonly Action<string> _log;
+    private readonly Func<object> _application;
     private string? _locked;
     private IReadOnlyList<SlideNotes>? _slides;
     private int _lastSlideIndex = 1;
 
     public PowerPointSource(Action<string> log)
+        : this(log, () => GetActiveObject(ProgId))
+    {
+    }
+
+    /// <param name="application">Returns the running PowerPoint; the tests pass plain objects.</param>
+    internal PowerPointSource(Action<string> log, Func<object> application)
     {
         _log = log ?? throw new ArgumentNullException(nameof(log));
+        _application = application ?? throw new ArgumentNullException(nameof(application));
     }
 
     public PollResult Poll()
@@ -43,7 +51,7 @@ public sealed class PowerPointSource
         object? application;
         try
         {
-            application = GetActiveObject(ProgId);
+            application = _application();
         }
         catch (COMException e) when (e.HResult is MkEUnavailable or RegdbEClassNotRegistered or CoEClassStringInvalid)
         {
