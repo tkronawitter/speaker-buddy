@@ -733,9 +733,21 @@ ends, a show started later is followed; at program start the first running show 
 before; log line "ignoring the running show of <path> until it is started again"; real
 PowerPoint harness 15:15-15:16 without the board: issue step 5 PASS. README wording for #1 and
 two fixes to the rehearsal section (example row matched the tolerance, file name from the first
-row) by the documentation session. CI on 55a84a8 pending; #1, #7 and #8 close after CI green.
+row) by the documentation session. CI on 55a84a8 red (run 40201728872): 4 `RehearsalRecorder`
+file name tests failed on Ubuntu, because the .NET path functions follow the OS; fixed in
+bab1386 (plain string operations, the characters Windows forbids in file names replaced), CI run
+40204184587 pending. #1, #7 and #8 close after CI green.
 Dependabot opened pull requests #16-#20 (NuGet group and 4 majors); merges wait for the owner's
-go.
+go. All five are red only in the Codecov upload step, because Dependabot runs get no repository
+secrets; build and tests are green. How to handle that: decision pending with the owner.
+New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
+the owner's ask 2026-10-25 15:22). Options: a Renovate custom regex manager, a scheduled
+workflow running `idf.py update-dependencies`, Dependabot `docker` for the image digest. State on
+2026-10-25 (component registry and GitHub, read by the coordinator): ESP-IDF 5.5.5 in use, 5.5.6
+released 2026-10-16 (the image digest moves with it); BSP 2.0.3, lvgl 9.6.0~1, esp_lvgl_port
+2.9.0 and the panel, touch and io components current; transitive esp_codec_dev 1.5.11 (newest
+stable 1.6.2) and cmake_utilities 0.5.3 (1.1.1), probably held back by the BSP's ranges, not
+checked.
 GitHub ruleset "main" (id 25823862, the owner's go 2026-10-25 15:21; read back with the GitHub
 API): no force push, no deletion, required checks `laptop`, `laptop-app`, `firmware-host`,
 `firmware-build`; bypass "always" for the repository admin role, so direct pushes by the owner
