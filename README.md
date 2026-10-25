@@ -16,8 +16,10 @@ ten minutes into the talk. During the slide show, a small program on the laptop 
 (read-only), compares the time at which each marked slide is reached with its mark, and sends
 the resulting colour to the timer over USB once per second.
 
-The timer owns the clock. Unplug the cable and it keeps counting on its own, so the talk never
-depends on the laptop program.
+The timer owns the clock. If the laptop program stops, the timer keeps counting on its own, with
+a "disconnected" symbol and without colours, so the talk never depends on the laptop program. The
+USB cable is also the timer's only power: unplugged, it switches off, and after plugging it back
+in it starts again at 00:00.
 
 ## How to set marks
 

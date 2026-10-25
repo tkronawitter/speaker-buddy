@@ -385,8 +385,8 @@ implement.
     the laptop sends state every second and on change, `L` once after connect and on change,
     `state: ended` when the slide show ends (L-03, L-05). Expected: builds
 37. [x] Tray shell (A-03): WinForms `ApplicationContext` with `NotifyIcon`, `OutputType WinExe` (no
-    console window), menu entries "Stop and release port" (the kill switch, no global hotkey; on
-    stage the cable pull per A-02 is the second way out) and "Open log"; no
+    console window), menu entries "Stop and release port" (the kill switch, no global hotkey; the
+    cable pull as second way out is dropped, see step 49) and "Open log"; no
     windows, balloons or toasts; log file under `%LOCALAPPDATA%\speaker-buddy\logs`. Expected:
     starting the exe shows only a tray icon
 38. [x] Check mode `speaker-buddy.exe --check deck.pptx` (L-09): reads the .pptx with
@@ -468,18 +468,23 @@ implement.
     factory backup under `<private backup> Dateien\Elektronik\ESP32\waveshare-esp32-s3-touch-amoled-1.8\builds\v0.1.0-rc1\`.
     Expected: a known-good build exists before the rehearsal. This is the safety net for step 46
 46. [ ] **(the owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
-    presenter view, the timer on USB, the whole 30 minutes; pull the cable once mid-talk (A-02).
-    Expected: timer keeps counting after the pull, the talk never shows a window from the program.
+    presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
+    window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
+    power until v2, so pulling it switches the timer off; the owner 2026-10-25 02:38-02:41.)
     Go means the rc build becomes the the first talk release; the owner then chooses `v0.1.0` or `v1.0.0`,
-    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the stage runs on the offline timer only
+    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the owner runs the talk with the backup timer only
 47. [ ] Commit and push any fixes, tag the the first talk release (`v0.1.0` or `v1.0.0`, see step 46)
 
 ### Task 8: Freeze (Sun the freeze date) and talk (Tue the talk date)
 
 48. [ ] Freeze: no flash, no code change to the stage build. The stage laptop keeps the tagged
     exe. Expected: board and laptop carry the tag from step 47
-49. [ ] **(the owner)** On site: fallback order offline timer, presenter view clock, backup timer; switch
-    only by pulling the cable (A-02)
+49. [ ] **(the owner)** On site: the backup timer runs in parallel as the backup; there is no other
+    stage fallback (the owner, 2026-10-25 02:38-02:41, replacing the A-02 order "offline timer,
+    presenter view clock, backup timer, switch by pulling the cable"). The cable is the timer's only
+    power until v2: pulled, the timer is off, and after replugging it starts at 00:00, stopped.
+    If only the laptop program stops, the timer keeps counting with the disconnected symbol and
+    no colours
 
 ### Stretch, before the talk date only if every core step above is on time
 
@@ -508,12 +513,20 @@ implement.
     ready, tap to start`, wire `{"v":1,"fw":"d1cceed-dirty"}` every 10 s; tray log `started,
     speaker-buddy c92d65b-dirty` and `timer firmware d1cceed-dirty` 8 s after connect; both match
     `git describe` of their builds. Not checked: the version in the tray tooltip
-54. [ ] Release workflow, pulled forward in part from after the talk date (R-07, R-09): `release.yml` on
+54. [x] Release workflow, pulled forward in part from after the talk date (R-07, R-09): `release.yml` on
     a tag `v*` builds the firmware with the `check-image` gate and the single-file exe, writes
     `SHA256SUMS` and creates a GitHub release. The release exe is unsigned, because the signing
     key is not exportable from the development PC; the the first talk exe is signed locally (step 43). Attestations
-    are not part of it yet. Pushed in bb195f6, not run yet (no tag). Expected: a test tag produces a release
-    with firmware, exe and `SHA256SUMS`
+    are not part of it yet. Pushed in bb195f6. Expected: a test tag produces a release with
+    firmware, exe and `SHA256SUMS`.
+    Test 2026-10-25: the first tag `v0.0.1-test1` (run 40146824888) failed, because
+    downloading the artifacts into `assets/` collided with the repo's `assets/logo`; fixed in
+    bee390a "Download release assets into a folder of their own". Tag `v0.0.1-test2` on bee390a,
+    run 40147332708: jobs `firmware-host`, `firmware`, `laptop` and `release` green, marked as
+    pre-release; assets `bootloader.bin`, `flash_args` (0x0 bootloader, 0x8000 partition table,
+    0x10000 app), `partition-table.bin`, `SHA256SUMS`, `speaker-buddy.exe` (73.5 MB, product
+    version `v0.0.1-test2`), `speaker_buddy-merged.bin`, `speaker_buddy.bin`; the downloaded exe
+    matches `SHA256SUMS`. Test release and tags deleted afterwards (no tags on the remote)
 55. [x] Tray icon and exe icon from the logo (the owner, 2026-10-25 01:27-01:32): logo D "face in
     the colour ring", a three-colour ring (purple, green, red) around the dark Buddy face with
     white eyes and a green smile; a grey "waiting" variant for the tray.
@@ -536,17 +549,20 @@ implement.
     Montserrat 28 grey, on `lv_layer_top` for 2 s or until the clock runs, then gone for good;
     `timer_core/splash.c` with 5 host tests. Build without warnings, `check-image` 0, flashed by
     the dev session. PASS per the owner 2026-10-25 01:39 ("das logo und version waren toll.
-    perfekt"). Not checked: a tap during the 2 s ends the splash and starts the clock
+    perfekt"). Per the owner 02:27: a tap during the startup screen ends it and starts the clock;
+    after power-on the clock shows 00:00, stopped
 
 Follow-ups from the code review of e57664c, decided by the owner 2026-10-25 01:51 ("alles so").
 Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
 
-57. [ ] Keepalive: while connected, the laptop sends a state line at least once per second, a
+57. [x] Keepalive: while connected, the laptop sends a state line at least once per second, a
     neutral one when no slide show runs and the last state while PowerPoint is busy. The
     disconnected symbol then only means cable or program gone. After `state: ended` the laptop
     keeps sending neutral, so the timer stays online and neutral (`docs/protocol.md` follows).
-    Pushed in e0cd62b "Keep the timer link alive once per second" (tests 217/217); not seen on
-    the board yet. Expected: tests pass; on the board no disconnected symbol between shows
+    Pushed in e0cd62b "Keep the timer link alive once per second" (tests 217/217). Expected:
+    tests pass; on the board no disconnected symbol between shows. Board check PASS per the owner
+    2026-10-25 02:28: tray app (8ffc906 build) running without PowerPoint, board replugged, no
+    disconnected symbol after 15 s
 58. [x] New protocol line `{"v":1,"L":null}` = talk length unknown, clear it. The laptop sends
     it after connecting and at show start when `L` is unknown; the firmware clears `L`.
     Firmware pushed in f095fdb, board-checked by the dev session (`L` 60 logged, `L` null
@@ -577,7 +593,14 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     lines parse, the test fails with 8; board: `L` 60, null and 0 as before).
     CI green on all of them except c0df8ab (running); the map scan and the lock gate pass inside
     the IDF container.
-    Open: the line framer with its tests (dev session, in progress)
+    Line framer pushed in 8ffc906 "firmware: line framer in timer_core with host tests": 6 host
+    cases, 8/8 suites, build clean, `check-image` 0; board: a 195-byte line ignored, a line split
+    across reads parsed, `\r\n` parsed. CI c0df8ab green. Open: CI result of 8ffc906; then this
+    step is done
+62. [ ] Deck line `## session length m:ss` (for example `## session length 60:00`) sets the talk
+    length (the owner, 2026-10-25 02:38-02:41). Precedence: `--length`, then `## session length`,
+    then the highest mark if it is at least 5:00. Laptop only (dev-Repository-2). Commit pending.
+    Expected: tests for the precedence pass
 
 After the talk date (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
@@ -611,10 +634,11 @@ individuals in Germany).
   until a flash or a copy to the stage laptop
 - Step 43 (stage laptop): delete `speaker-buddy.exe` (one self-contained file, no runtime was
   installed); remove the certificate as in the Machine-Sync-Queue row
-- Step 46 (rehearsal fails): stage runs on the offline timer alone (A-02); `v0.1.0-rc1` from step
-  45 stays the last known-good build
-- During the talk: pull the cable. The timer continues offline; PowerPoint is unaffected because
-  the program only reads
+- Step 46 (rehearsal fails): the talk runs with the backup timer only; `v0.1.0-rc1` from step 45
+  stays the last known-good build
+- During the talk: if the laptop program misbehaves, "Stop and release port" in its tray menu;
+  the timer keeps counting offline and PowerPoint is unaffected because the program only reads.
+  Pulling the cable switches the timer off (no battery until v2); the backup timer is the backup
 
 ## Verification
 
