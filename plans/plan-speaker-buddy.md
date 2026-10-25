@@ -607,6 +607,12 @@ Dev sessions: dev-Repository (firmware, CI), dev-Repository-2 (laptop).
     2026-10-25 03:01). CI pending: the force pushes of the history rewrite did not trigger
     `ci.yml` (no code change between the old and new tips); it runs with the next push that
     touches `laptop/`, `firmware/` or `tools/`
+63. [ ] At slide show end the laptop also sends `{"v":1,"L":null}`, so the timer stops the
+    overtime blink after the show and keeps counting neutral (the owner, 2026-10-25 03:07; found
+    by the fact check of the README: today the timer keeps the old `L` and stays orange after a
+    show that ran long). A length given with `--length` stays. Owner: dev-Repository-2, next
+    session. Expected: tests pass; on the board the orange blink ends with the show. Then update
+    `docs/protocol.md` ("End of slide show") and the README screen table
 
 After the first talk (not planned here), as GitHub issues in milestone `v1.0`: #6 build attestations for
 the release (R-07), #7 Dependabot (R-08), #8 CSV rehearsal log (L-08), #9 brightness (D-05),
