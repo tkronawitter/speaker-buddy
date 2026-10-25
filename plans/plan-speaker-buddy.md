@@ -735,11 +735,16 @@ PowerPoint harness 15:15-15:16 without the board: issue step 5 PASS. README word
 two fixes to the rehearsal section (example row matched the tolerance, file name from the first
 row) by the documentation session. CI on 55a84a8 red (run 40201728872): 4 `RehearsalRecorder`
 file name tests failed on Ubuntu, because the .NET path functions follow the OS; fixed in
-bab1386 (plain string operations, the characters Windows forbids in file names replaced), CI run
-40204184587 pending. #1, #7 and #8 close after CI green.
+bab1386 (plain string operations, the characters Windows forbids in file names replaced), CI
+green in run 40204184587. #1 and #7 closed 2026-10-25 15:56; #8 was closed by "Closes #8" in
+3e6d351.
 Dependabot opened pull requests #16-#20 (NuGet group and 4 majors); merges wait for the owner's
 go. All five are red only in the Codecov upload step, because Dependabot runs get no repository
-secrets; build and tests are green. How to handle that: decision pending with the owner.
+secrets; build and tests are green. Decision (the owner, 15:56): no Codecov secret for
+Dependabot; dev-Repository-2 changes `ci.yml` so a failed Codecov upload does not fail runs by
+`dependabot[bot]` (`fail_ci_if_error` false for them). Also 15:56: the firmware moves to the
+newest versions now, Renovate for #21 is decided later; dev-Repository compares ESP-IDF 6.1 and
+5.5.6 against the BSP and component ranges, then raises the pins.
 New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
 the owner's ask 2026-10-25 15:22). Options: a Renovate custom regex manager, a scheduled
 workflow running `idf.py update-dependencies`, Dependabot `docker` for the image digest. State on
