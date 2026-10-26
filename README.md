@@ -1,6 +1,4 @@
-<img src="assets/logo/speaker-buddy.svg" alt="Speaker Buddy logo: a smiling face inside a purple, green and red ring" width="128">
-
-# Speaker Buddy
+# <img src="assets/logo/speaker-buddy.svg" alt="Speaker Buddy logo" width="48" align="center"> Speaker Buddy
 
 [![ci](https://github.com/tkronawitter/speaker-buddy/actions/workflows/ci.yml/badge.svg)](https://github.com/tkronawitter/speaker-buddy/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/tkronawitter/speaker-buddy/graph/badge.svg)](https://codecov.io/gh/tkronawitter/speaker-buddy)
