@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/logo/speaker-buddy.svg" alt="Speaker Buddy logo: a smiling face inside a purple, green and red ring" width="128">
-</p>
+<img src="assets/logo/speaker-buddy.svg" alt="Speaker Buddy logo: a smiling face inside a purple, green and red ring" width="128">
 
 # Speaker Buddy
 
