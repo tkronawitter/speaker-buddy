@@ -1,7 +1,7 @@
 # Plan: Speaker Buddy, stage 1
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
-**Last updated:** 2026-10-25
+**Last updated:** 2026-10-27
 **Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner's Windows 11 laptop
 
 ## Goal
@@ -797,6 +797,14 @@ still work and show "Bypassed rule violations". `ci.yml` runs only on `laptop/**
 merges only through the bypass (README "Branch rules"). Before a future history rewrite,
 disable the ruleset (or confirm that the admin bypass lets the force push through), because it
 blocks force pushes.
+README logo, 2026-10-26 (README only, no change for the operator): ca653c6 logo above the
+title, c37a3de left-aligned, 1fb6712 inline next to the title, c6a1b94 vertically centred
+(`align="absmiddle"`); final state shows `assets/logo/speaker-buddy.svg` at 48 px (`width="48"` in
+README.md line 1). Pushed straight to main with the admin bypass, so the four required checks
+did not gate these commits. Checked by the coordinator with the GitHub API 2026-10-27 22:09:
+GitHub renders the h1 with the image and keeps the markup after sanitising; there are no check
+runs on c6a1b94 (README only, the CI path filter does not match); risk low, no code. Open: the
+owner has not yet looked at whether the logo sits vertically centred on github.com.
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
