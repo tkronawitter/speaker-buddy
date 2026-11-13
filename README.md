@@ -298,10 +298,9 @@ version named in "Build and flash the firmware".
 
 A ruleset protects `main`: no force push, no deletion, and the CI checks `laptop`, `laptop-app`,
 `firmware-host` and `firmware-build` must pass before a pull request can be merged. Repository
-admins can bypass it. CI runs only for changes under `laptop/`, `firmware/`, `tools/` or to
-`ci.yml` itself, so a pull request that touches nothing else, for example a Dependabot update of
-the actions in `release.yml` or a change to the docs, never gets these checks and needs an admin
-to merge it.
+admins can bypass it. CI runs on every pull request to `main`, including docs-only ones, so no
+bypass is needed to merge. A push to `main` runs CI only for changes under `laptop/`,
+`firmware/`, `tools/` or to `ci.yml` itself.
 
 ### Protocol
 

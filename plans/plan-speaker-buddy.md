@@ -805,9 +805,15 @@ checked.
 GitHub ruleset "main" (id 25823862, the owner's go 2026-10-25 15:21; read back with the GitHub
 API): no force push, no deletion, required checks `laptop`, `laptop-app`, `firmware-host`,
 `firmware-build`; bypass "always" for the repository admin role, so direct pushes by the owner
-still work and show "Bypassed rule violations". `ci.yml` runs only on `laptop/**`,
-`firmware/**`, `tools/**` and itself, so a pull request outside these paths gets no checks and
-merges only through the bypass (README "Branch rules"). Before a future history rewrite,
+still work and show "Bypassed rule violations". Until 2026-11-13 `ci.yml` ran only on
+`laptop/**`, `firmware/**`, `tools/**` and itself, so a pull request outside these paths got no
+checks and merged only through the bypass. Since PR #32 (ee8e366, the owner's decision
+2026-11-13 12:04, option A) the `pull_request` trigger has no paths filter, so every pull
+request gets the four required checks (proven by PR #31, merged as 0c89b1f with all four green);
+the push trigger on `main` keeps its filter. Rejected: a no-op job per path (B), the admin
+bypass for docs-only changes (C). Docs-only changes go through a pull request as well (the
+owner's decision 2026-11-13 09:34); bc8f0a5 and c47f337 were pushed directly before it. A "PR
+required" rule in the ruleset is still undecided. Before a future history rewrite,
 disable the ruleset (or confirm that the admin bypass lets the force push through), because it
 blocks force pushes.
 README logo, 2026-10-26 (README only, no change for the operator): ca653c6 logo above the
