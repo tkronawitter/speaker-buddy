@@ -1,7 +1,7 @@
 # Plan: Speaker Buddy, stage 1
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
-**Last updated:** 2026-10-27
+**Last updated:** 2026-11-13
 **Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner's Windows 11 laptop
 
 ## Goal
@@ -781,6 +781,17 @@ release firmware on the board, release exe on the development PC): tray icon in 
 starts the clock from 00:00, a 1 s press resets it to 00:00. esptool 5
 renames `write_flash` to `write-flash` (the old name still works with a warning); README,
 `.github/release-notes.md` and the rollback below use the new name.
+Flash from a second development PC (dev-Repository, 2026-11-13 about 09:15): serial PASS, the
+clock screen still to be confirmed by the owner. Commit 994afd8, app version
+`v0.1.0-alpha.1-7-g994afd8`, ESP-IDF v6.1 (esptool image-info), flashed with the `idf.ps1`
+wrapper of that PC. Findings: the board is `COM3` there (USB VID_303A PID_1001; `COM4` and
+`COM5` are Bluetooth serial ports), so `-p COM4` in the steps is the first PC's port only and
+the port is looked up per machine. `tools/check-image.ps1` finds `nm` only with `IDF_TOOLS_PATH`
+set when the tools are not in the default `~/.espressif` (set, it exits 0); open gap until the
+script changes. After an RTS reset the USB Serial/JTAG boot log shows only the app's JSON
+lines, no IDF banner, and `idf.py monitor` needs a TTY. The rollback image comes from
+`gh release download v0.1.0-alpha.1`; the tag is required because the only release is a
+pre-release.
 New issue #21 "Automatic update pull requests for the firmware dependencies" (milestone `v1.0`,
 the owner's ask 2026-10-25 15:22). Options: a Renovate custom regex manager, a scheduled
 workflow running `idf.py update-dependencies`, Dependabot `docker` for the image digest. State on
