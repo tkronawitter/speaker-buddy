@@ -8,13 +8,10 @@ on:
       - "firmware/**"
       - "tools/**"
       - ".github/workflows/ci.yml"
+  # No paths filter here: the ruleset requires all four checks on every PR to main, and a
+  # filtered-out PR would never get them and could not merge.
   pull_request:
     branches: [main]
-    paths:
-      - "laptop/**"
-      - "firmware/**"
-      - "tools/**"
-      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
