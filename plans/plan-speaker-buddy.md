@@ -804,8 +804,8 @@ stable 1.6.2) and cmake_utilities 0.5.3 (1.1.1), probably held back by the BSP's
 checked.
 GitHub ruleset "main" (id 25823862, the owner's go 2026-10-25 15:21; read back with the GitHub
 API): no force push, no deletion, required checks `laptop`, `laptop-app`, `firmware-host`,
-`firmware-build`; bypass "always" for the repository admin role, so direct pushes by the owner
-still work and show "Bypassed rule violations". Until 2026-11-13 `ci.yml` ran only on
+`firmware-build`; until 2026-11-13 14:41 the bypass was "always" for the repository admin role,
+so direct pushes by the owner worked and showed "Bypassed rule violations". Until 2026-11-13 `ci.yml` ran only on
 `laptop/**`, `firmware/**`, `tools/**` and itself, so a pull request outside these paths got no
 checks and merged only through the bypass. Since PR #32 (ee8e366, the owner's decision
 2026-11-13 12:04, option A) the `pull_request` trigger has no paths filter, so every pull
@@ -815,11 +815,13 @@ bypass for docs-only changes (C). Docs-only changes go through a pull request as
 owner's decision 2026-11-13 09:34); bc8f0a5 and c47f337 were pushed directly before it. The
 ruleset has a `pull_request` rule since the owner's go 2026-11-13 13:57 (0 approvals, so the
 owner can merge their own PR; read back via the API: non_fast_forward, deletion,
-required_status_checks, pull_request). The admin bypass stays "always": an admin push still goes
-through and is marked as a bypassed rule violation. Rollback: PUT the saved ruleset JSON from
-before the change. Before a future history rewrite,
-disable the ruleset (or confirm that the admin bypass lets the force push through), because it
-blocks force pushes.
+required_status_checks, pull_request). Admin bypass changed from "always" to "pull_request" on
+the owner's go 2026-11-13 14:41 (read back via the API: bypass `["pull_request"]`,
+`current_user_can_bypass` "pull_requests_only", rules unchanged). Effect: direct pushes to
+`main` are rejected for everyone, including Claude, which pushes with the owner's token; an admin
+can still merge a pull request without its checks. Rollback for both changes: PUT the saved
+ruleset JSON from before the change. Before a future history rewrite, disable the ruleset,
+because the bypass no longer lets a force push through and the ruleset blocks force pushes.
 README logo, 2026-10-26 (README only, no change for the operator): ca653c6 logo above the
 title, c37a3de left-aligned, 1fb6712 inline next to the title, c6a1b94 vertically centred
 (`align="absmiddle"`); final state shows `assets/logo/speaker-buddy.svg` at 48 px (`width="48"` in

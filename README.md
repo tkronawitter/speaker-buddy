@@ -298,10 +298,11 @@ version named in "Build and flash the firmware".
 
 A ruleset protects `main`: no force push, no deletion, changes arrive through a pull request (no
 approval required), and the CI checks `laptop`, `laptop-app`,
-`firmware-host` and `firmware-build` must pass before a pull request can be merged. Repository
-admins can bypass it. CI runs on every pull request to `main`, including docs-only ones, so no
-bypass is needed to merge. A push to `main` runs CI only for changes under `laptop/`,
-`firmware/`, `tools/` or to `ci.yml` itself.
+`firmware-host` and `firmware-build` must pass before a pull request can be merged. Nobody can
+push to `main` directly; repository admins can only bypass the rules when merging a pull request.
+CI runs on every pull request to `main`, including docs-only ones, so no bypass is needed to
+merge. After a merge, CI runs on `main` only for changes under `laptop/`, `firmware/`, `tools/`
+or to `ci.yml` itself.
 
 ### Protocol
 
