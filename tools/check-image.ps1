@@ -2,7 +2,8 @@
 # linked code by symbol names (nm) and by the archive members in the linker map; it cannot see code
 # that hides under other names, so it detects, it does not prove.
 # Usage: pwsh tools/check-image.ps1 [firmware/build/speaker_buddy.elf] [-Nm <path to nm>] [-Map <map>]
-# Without -Nm, xtensa-esp32s3-elf-nm is taken from PATH or from the ESP-IDF tools directory.
+# Without -Nm, xtensa-esp32s3-elf-nm is taken from PATH, else from $env:IDF_TOOLS_PATH, ~/.espressif
+# or ~/esp/.espressif, in that order.
 # Without -Map, the .map next to the ELF is used.
 param(
     [string] $Elf = (Join-Path $PSScriptRoot '..\firmware\build\speaker_buddy.elf'),
@@ -43,11 +44,22 @@ if (-not $Nm) {
         $Nm = $onPath.Source
     }
     else {
-        $toolsRoot = if ($env:IDF_TOOLS_PATH) { $env:IDF_TOOLS_PATH } else { Join-Path $HOME '.espressif' }
-        $found = Get-ChildItem -Path (Join-Path $toolsRoot 'tools\xtensa-esp-elf') -Recurse `
-            -Filter 'xtensa-esp32s3-elf-nm*' -ErrorAction SilentlyContinue | Select-Object -First 1
+        # IDF_TOOLS_PATH first, then the installer default (~/.espressif) and the layout with the
+        # tools below ~/esp next to the IDF checkout (~/esp/.espressif)
+        $toolsRoots = @($env:IDF_TOOLS_PATH, (Join-Path $HOME '.espressif'), (Join-Path $HOME 'esp\.espressif')) |
+            Where-Object { $_ } | Select-Object -Unique
+        $found = $null
+        foreach ($toolsRoot in $toolsRoots) {
+            $found = Get-ChildItem -Path (Join-Path $toolsRoot 'tools\xtensa-esp-elf') -Recurse `
+                -Filter 'xtensa-esp32s3-elf-nm*' -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+                break
+            }
+        }
         if (-not $found) {
-            Write-Error 'xtensa-esp32s3-elf-nm not found; pass -Nm or set IDF_TOOLS_PATH'
+            Write-Error ("IMAGE NOT CHECKED: xtensa-esp32s3-elf-nm not found on PATH or below: " +
+                ($toolsRoots -join ', ') + '. Set IDF_TOOLS_PATH to the ESP-IDF tools directory ' +
+                '(the folder that contains tools\xtensa-esp-elf) or pass -Nm <path to nm>, then run again.')
         }
         $Nm = $found.FullName
     }
