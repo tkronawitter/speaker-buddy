@@ -2,7 +2,7 @@
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
 **Last updated:** 2026-11-13
-**Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC `COM4`, the owner's Windows 11 laptop
+**Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC (port found by `tools/find-port.ps1`), the owner's Windows 11 laptop
 
 ## Goal
 
@@ -179,8 +179,8 @@ implement.
     A negative test with a fake `nm` fails as intended
 20. [x] First flash of the `firmware/` project under the standing go; the owner observes the board.
     Run `pwsh
-    tools/check-image.ps1 firmware/build/speaker_buddy.elf` (must exit 0), then `idf.py -p COM4
-    flash monitor` with a minimal screen (solid colour plus "hello" text, touch coordinates
+    tools/check-image.ps1 firmware/build/speaker_buddy.elf` (must exit 0), then `idf.py -p
+    (pwsh tools/find-port.ps1) flash monitor` with a minimal screen (solid colour plus "hello" text, touch coordinates
     logged). Expected: display shows the screen, touch logs coordinates, the BSP log names the
     touch chip (CO5300/CST816S = V2; BSP 2.0.3 ships only the CO5300 panel driver). The PCB is
     marked "Rev 1.1".
@@ -785,10 +785,12 @@ Flash from a second development PC (dev-Repository, 2026-11-13 about 09:15): ser
 screen PASS (the owner, 09:16), board check PASS overall. Commit 994afd8, app version
 `v0.1.0-alpha.1-7-g994afd8`, ESP-IDF v6.1 (esptool image-info), flashed with the `idf.ps1`
 wrapper of that PC. Findings: the board is `COM3` there (USB VID_303A PID_1001; `COM4` and
-`COM5` are Bluetooth serial ports), so `-p COM4` in the steps is the first PC's port only and
-the port is looked up per machine. `tools/check-image.ps1` finds `nm` only with `IDF_TOOLS_PATH`
-set when the tools are not in the default `~/.espressif` (set, it exits 0); open gap until the
-script changes. After an RTS reset the USB Serial/JTAG boot log shows only the app's JSON
+`COM5` are Bluetooth serial ports), so a fixed `-p COM4` in the steps was the first PC's port
+only; the steps now use `tools/find-port.ps1` (PR #30). `tools/check-image.ps1` finds `nm` only with `IDF_TOOLS_PATH`
+set when the tools are not in the default `~/.espressif` (set, it exits 0); fixed in PR #30
+(4a2e31f): it also looks in `~/esp/.espressif` and otherwise fails with "IMAGE NOT CHECKED".
+`find-port.ps1` printed `COM3` on that PC and ignored the Bluetooth ports; exit 2 (more than
+one board) and the instance ID in ROM download mode are untested. After an RTS reset the USB Serial/JTAG boot log shows only the app's JSON
 lines, no IDF banner, and `idf.py monitor` needs a TTY. The rollback image comes from
 `gh release download v0.1.0-alpha.1`; the tag is required because the only release is a
 pre-release.
@@ -835,8 +837,8 @@ individuals in Germany).
 - The `erase_flash` done before step 20 cannot be undone; the archived factory dump (step 16)
   stays archive only.
 - Steps 20, 28, 33 (flash): the factory image is never restored. Rollback is flashing the last
-  own build that worked: `idf.py -p COM4 flash` from the previous commit, or `esptool -p COM4
-  write-flash 0x0 <merged .bin>` from the archived build. If the board stops enumerating, hold
+  own build that worked: `idf.py -p (pwsh tools/find-port.ps1) flash` from the previous commit, or
+  `esptool -p (pwsh tools/find-port.ps1) write-flash 0x0 <merged .bin>` from the archived build. If the board stops enumerating, hold
   BOOT while plugging in to enter the ROM bootloader, then flash again. Step 16 confirms the
   archive before the first flash
 - Steps 1 to 14, 22 to 27, 30 to 38 (code): `git revert <commit>`; nothing is deployed anywhere
