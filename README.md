@@ -224,9 +224,10 @@ ctest --test-dir build-host
 ```
 
 Build the image from an ESP-IDF shell, check it, then flash it. `tools/find-port.ps1` prints the
-board's COM port (found by its USB ID), so no port is hardwired:
+board's COM port (found by its USB ID), so no port is hardwired. This step is for Windows and
+PowerShell; in `sh`, pass the port by hand with `-p` or set `ESPPORT`:
 
-```sh
+```powershell
 cd firmware
 idf.py build
 pwsh ../tools/check-image.ps1 build/speaker_buddy.elf
