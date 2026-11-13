@@ -223,17 +223,23 @@ cmake --build build-host
 ctest --test-dir build-host
 ```
 
-Build the image from an ESP-IDF shell, check it, then flash it (replace `COM4` with the board's
-port):
+Build the image from an ESP-IDF shell, check it, then flash it. `tools/find-port.ps1` prints the
+board's COM port (found by its USB ID), so no port is hardwired. This step is for Windows and
+PowerShell; in `sh`, pass the port by hand with `-p` or set `ESPPORT`:
 
-```sh
+```powershell
 cd firmware
 idf.py build
 pwsh ../tools/check-image.ps1 build/speaker_buddy.elf
-idf.py -p COM4 flash
+idf.py -p (pwsh ../tools/find-port.ps1) flash
 ```
 
-`check-image` must exit 0 before every flash. The firmware must contain no radio code: it fails
+Instead of `-p`, set the environment variable `ESPPORT` (`esptool` reads `ESPTOOL_PORT`). The
+script exits 1 if no board is found and 2 if more than one is connected; then pass the port to
+`idf.py -p` yourself.
+
+`check-image` must exit 0 before every flash. It looks for `nm` in `IDF_TOOLS_PATH`,
+`~/.espressif` and `~/esp/.espressif`; if none has it, it fails with "IMAGE NOT CHECKED". The firmware must contain no radio code: it fails
 if the image or its linker map contains Wi-Fi, Bluetooth, over-the-air update or TinyUSB code.
 
 ### Publish and sign
