@@ -781,8 +781,8 @@ release firmware on the board, release exe on the development PC): tray icon in 
 starts the clock from 00:00, a 1 s press resets it to 00:00. esptool 5
 renames `write_flash` to `write-flash` (the old name still works with a warning); README,
 `.github/release-notes.md` and the rollback below use the new name.
-Flash from a second development PC (dev-Repository, 2026-11-13 about 09:15): serial PASS, the
-clock screen still to be confirmed by the owner. Commit 994afd8, app version
+Flash from a second development PC (dev-Repository, 2026-11-13 about 09:15): serial PASS, clock
+screen PASS (the owner, 09:16), board check PASS overall. Commit 994afd8, app version
 `v0.1.0-alpha.1-7-g994afd8`, ESP-IDF v6.1 (esptool image-info), flashed with the `idf.ps1`
 wrapper of that PC. Findings: the board is `COM3` there (USB VID_303A PID_1001; `COM4` and
 `COM5` are Bluetooth serial ports), so `-p COM4` in the steps is the first PC's port only and
