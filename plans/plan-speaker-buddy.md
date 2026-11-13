@@ -463,13 +463,24 @@ GitHub 2026-10-25 13:31
 
 ### Task 7: Stage laptop and rehearsal (by the go/no-go date)
 
-41. [ ] **(Owner)** Add `## m:ss` marks to the talk deck. Due before step 43
-42. [ ] **(Owner)** Run `speaker-buddy.exe --check <talk deck>`. Expected: no near misses,
-    no decreasing marks, highest mark close to 30:00
+41. [x] **(Owner)** Add `## m:ss` marks to the talk deck. Due before step 43. Done 2026-11-13: the
+    22 marks were present but written as `### m:ss`, which the timer ignores (`--check`: "No
+    marks found", 22 near misses). Fixed in the 22 notes pages only (`## m:ss`; the "cut here
+    if late" slide has its mark on its own line); a backup of the deck was taken first
+42. [x] **(Owner)** Run `speaker-buddy.exe --check <talk deck>`. Expected: no near misses,
+    no decreasing marks, highest mark close to 30:00. PASS 2026-11-13: 22 marks, length 30:00,
+    tolerance 0:45, 0 problems, run by the dev session and again by the coordinator. Plain `& exe
+    --check` returns at once without output in PowerShell; pipe it to `Out-Host` (README says so)
 43. [ ] **(Owner)** Put the signed program on the stage laptop. On the development PC: `pwsh
     tools/publish-laptop.ps1` (one self-contained `laptop/publish/speaker-buddy.exe`, about
     70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in e4b85ad), then
     `pwsh tools/sign.ps1` (b82b6eb). Expected: exe starts into the tray.
+    Status 2026-11-13, partly done on the laptop: the release exe was published from fc3ca76
+    (`laptop/publish/speaker-buddy.exe`, 73,886,548 bytes, SHA-256 `38306298...12CE10`) and is
+    UNSIGNED, because the signing key exists only on the development PC. On the laptop the
+    certificate is imported (CurrentUser Root and TrustedPublisher) and Smart App Control is off
+    (0). Untested: GUI start and the board connection with this exe, which come with the dress
+    rehearsal. Open: whether this laptop is the stage laptop (likely, not confirmed).
     The stage laptop is the owner's private device. Signing (the owner, 2026-10-25 01:11, replacing
     "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy (self-signed)`, thumbprint
     `8E1E2DC50FFA1A5E5709FF6EDAF2DE142C3FC8C7`, valid until 2028-12-30, private key not
