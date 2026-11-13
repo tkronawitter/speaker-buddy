@@ -480,7 +480,8 @@ GitHub 2026-10-25 13:31
     UNSIGNED, because the signing key exists only on the development PC. On the laptop the
     certificate is imported (CurrentUser Root and TrustedPublisher) and Smart App Control is off
     (0). Untested: GUI start and the board connection with this exe, which come with the dress
-    rehearsal. Open: whether this laptop is the stage laptop (likely, not confirmed).
+    rehearsal. This laptop is the stage laptop (the owner, 2026-11-13 16:27), so the dress
+    rehearsal here counts as the stage test (step 46). Signing on the development PC stays open.
     The stage laptop is the owner's private device. Signing (the owner, 2026-10-25 01:11, replacing
     "unsigned" from 01:09): self-signed code signing certificate `CN=Speaker Buddy (self-signed)`, thumbprint
     `8E1E2DC50FFA1A5E5709FF6EDAF2DE142C3FC8C7`, valid until 2028-12-30, private key not
