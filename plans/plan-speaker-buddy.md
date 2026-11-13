@@ -812,8 +812,12 @@ checks and merged only through the bypass. Since PR #32 (ee8e366, the owner's de
 request gets the four required checks (proven by PR #31, merged as 0c89b1f with all four green);
 the push trigger on `main` keeps its filter. Rejected: a no-op job per path (B), the admin
 bypass for docs-only changes (C). Docs-only changes go through a pull request as well (the
-owner's decision 2026-11-13 09:34); bc8f0a5 and c47f337 were pushed directly before it. A "PR
-required" rule in the ruleset is still undecided. Before a future history rewrite,
+owner's decision 2026-11-13 09:34); bc8f0a5 and c47f337 were pushed directly before it. The
+ruleset has a `pull_request` rule since the owner's go 2026-11-13 13:57 (0 approvals, so the
+owner can merge their own PR; read back via the API: non_fast_forward, deletion,
+required_status_checks, pull_request). The admin bypass stays "always": an admin push still goes
+through and is marked as a bypassed rule violation. Rollback: PUT the saved ruleset JSON from
+before the change. Before a future history rewrite,
 disable the ruleset (or confirm that the admin bypass lets the force push through), because it
 blocks force pushes.
 README logo, 2026-10-26 (README only, no change for the operator): ca653c6 logo above the
