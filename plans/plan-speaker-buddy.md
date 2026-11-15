@@ -900,6 +900,8 @@ once (from step 39); issue #2, display check of the time scale-down from 100 min
 free for open source with a release history; Certum Open Source, about 25-69 EUR a year; a CA
 OV certificate, about 100 USD a year and up; Azure Artifact Signing is not available to
 individuals in Germany).
+New issue #62, screensaver for the idle display (OLED burn-in), milestone `v2` (owner request,
+2026-11-15).
 
 ## Rollback
 
