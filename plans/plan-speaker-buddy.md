@@ -521,8 +521,9 @@ GitHub 2026-10-25 13:31
     Expected: a known-good build exists before the rehearsal. This is the safety net for step 46.
     Status 2026-11-15: tag `v0.1.0-rc1` (annotated) is on fc3ca76, pushed and verified on origin.
     The firmware is unchanged since `v0.1.0-alpha.1` (`git diff v0.1.0-alpha.1 fc3ca76 -- firmware`
-    is empty), so the alpha.1 firmware on the board belongs to the rc. Still open (owner): put the
-    `.bin` and the exe under the backup path above
+    is empty), so the alpha.1 firmware on the board belongs to the rc. The rc1 release assets are
+    in the backup path above (checked against `SHA256SUMS`, coordinator, 2026-11-15). Still open
+    (owner): copy the tested laptop exe there
 46. [ ] **(Owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
@@ -866,7 +867,21 @@ the owner chooses `v0.1.0` or `v1.0.0` for the first talk, depending on whether 
 done (02:19). v1.0 is the first stable USB release, with its own milestone for the backlog issues. v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
 allowed, Wi-Fi blocked". v3: Wi-Fi and OTA updates, issue #5, milestone `v3`; A-04 is lifted for
 Wi-Fi and OTA.
-Also in milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
+Milestones re-cut by the owner 2026-11-15 (10:15; GitHub milestones were renamed and split; due
+dates only for `v1 PoC`: "Termine machen wir nicht"):
+
+| Milestone | Content | Due |
+|---|---|---|
+| `v1 PoC` | Tagged USB build that runs a real talk, plus basic repository security that needs no change to the build (settings, SECURITY.md). No code signing, no installer | 2026-11-17 |
+| `v2` | Stable USB release for other people (the former `v1.0`): publicly trusted signature, build attestations, installer, hardened release workflow, open USB features. No radio | none |
+| `v3` | Battery and Bluetooth LE (#4). A-04 becomes "Bluetooth allowed, Wi-Fi blocked" | none |
+| `v4` | Wi-Fi and OTA (#5), split from `v3`: signed images, secure boot decision (eFuse, not reversible). A-04 is lifted for Wi-Fi and OTA | none |
+| `backlog` | Ideas without a version yet (#13, #14) | none |
+
+This supersedes the roadmap sentences above that name `v1.0`, `v2` and `v3`: every "milestone
+`v1.0`" in this plan now means `v2`. Whether the first-talk tag (step 46/47) stays `v0.1.0` or
+`v1.0.0` is not decided by the re-cut and stays with the owner.
+Also in the former milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
 26 and 28; pulled into the user test block of 2026-10-25 by the owner at 09:35); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
 free for open source with a release history; Certum Open Source, about 25-69 EUR a year; a CA
