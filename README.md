@@ -277,6 +277,10 @@ vulnerable dependency is reported and gets a pull request without waiting for th
 CodeQL default setup scans the GitHub Actions workflows and the C# code (default query suite,
 weekly and on changes to `main`); it is not a required check.
 
+Private vulnerability reporting is switched on, so a finding can be reported through the
+Security tab without a public issue. `SECURITY.md` describes the process and the supported
+version.
+
 Re-resolve the components within the ranges in `firmware/main/idf_component.yml` (for example
 `lvgl/lvgl` `>=9.6.0,<10`), from an ESP-IDF v6.1 shell:
 
