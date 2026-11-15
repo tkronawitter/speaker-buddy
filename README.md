@@ -272,6 +272,11 @@ one for the NuGet packages of the laptop program. It does not cover the firmware
 component manager is not a Dependabot ecosystem, so check `firmware/dependencies.lock` by hand
 once a month and before a release.
 
+Dependabot alerts and Dependabot security updates are switched on for the repository, so a
+vulnerable dependency is reported and gets a pull request without waiting for the weekly run.
+CodeQL default setup scans the GitHub Actions workflows and the C# code (default query suite,
+weekly and on changes to `main`); it is not a required check.
+
 Re-resolve the components within the ranges in `firmware/main/idf_component.yml` (for example
 `lvgl/lvgl` `>=9.6.0,<10`), from an ESP-IDF v6.1 shell:
 
@@ -297,12 +302,18 @@ version named in "Build and flash the firmware".
 ### Branch rules
 
 A ruleset protects `main`: no force push, no deletion, changes arrive through a pull request (no
-approval required), and the CI checks `laptop`, `laptop-app`,
-`firmware-host` and `firmware-build` must pass before a pull request can be merged. Nobody can
+approval required) that is merged by squash only, and the CI checks `laptop`, `laptop-app`,
+`firmware-host` and `firmware-build` must pass before a pull request can be merged. The checks
+are strict: the pull request branch must be up to date with `main`, so a branch that is behind
+has to be updated before it can be merged. Nobody can
 push to `main` directly; repository admins can only bypass the rules when merging a pull request.
 CI runs on every pull request to `main`, including docs-only ones, so no bypass is needed to
 merge. After a merge, CI runs on `main` only for changes under `laptop/`, `firmware/`, `tools/`
 or to `ci.yml` itself.
+
+A second ruleset, `release-tags`, protects every tag named `v*`: it cannot be deleted, moved or
+overwritten, and nobody can bypass it. Creating a new `v*` tag stays allowed, so releases are
+cut as before; a wrong tag is fixed with a new tag, not by moving the old one.
 
 ### Protocol
 
