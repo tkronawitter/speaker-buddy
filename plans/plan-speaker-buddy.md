@@ -518,14 +518,17 @@ GitHub 2026-10-25 13:31
     requirements notes). DROPPED 2026-11-15 by owner decision: the stage-laptop function test of
     2026-11-13 (step 43; 1827 s run, colour rule consistent on 44 rows) already covers it. The full
     dress rehearsal stays step 46
-45. [ ] Tag the build as `v0.1.0-rc1` and keep its `.bin` and exe next to the
+45. [x] Tag the build as `v0.1.0-rc1` and keep its `.bin` and exe next to the
     factory backup under `<private backup>\builds\v0.1.0-rc1\`.
     Expected: a known-good build exists before the rehearsal. This is the safety net for step 46.
     Status 2026-11-15: tag `v0.1.0-rc1` (annotated) is on fc3ca76, pushed and verified on origin.
     The firmware is unchanged since `v0.1.0-alpha.1` (`git diff v0.1.0-alpha.1 fc3ca76 -- firmware`
     is empty), so the alpha.1 firmware on the board belongs to the rc. The rc1 release assets are
-    in the backup path above (checked against `SHA256SUMS`, coordinator, 2026-11-15). Still open
-    (owner): copy the tested laptop exe there
+    in the backup path above (checked against `SHA256SUMS`, coordinator, 2026-11-15). DONE
+    2026-11-15 by owner decision without a copy of the tested laptop exe: that backup copy is
+    dropped. The safety net is the rc1 release assets in the backup path. Recovery if the
+    stage-laptop exe is lost: copy the release exe over, run `Unblock-File` on it and start it
+    once by hand
 46. [ ] **(Owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
