@@ -533,7 +533,12 @@ GitHub 2026-10-25 13:31
     Go means the rc build becomes the release for the first talk. Decided by the owner 2026-11-15
     10:58: the first-talk tag is `v0.1.0` (this replaces the choice of 2026-10-25 02:19 between
     `v0.1.0` and `v1.0.0`, which depended on the milestone then called `v1.0`, now `v2`). The tag
-    is set only after the go in this step. No-go means the owner runs the talk with a backup timer only
+    is set only after the go in this step. No-go means the owner runs the talk with a backup timer only.
+    Interim result 2026-11-15 (owner, development PC, not the stage laptop, so this does not replace
+    the step): timing run with the rc1 exe in `--rehearsal` mode against a 30-minute deck (22 marks,
+    tolerance 0:45, `--check` 0 problems) and the alpha.1 firmware. Colours and timer correct per
+    the owner; per the rehearsal CSV the 30:00 mark was reached at 30:21 (+21 s, green), no errors
+    in the log, no disconnect
 47. [ ] Commit and push any fixes, tag the release for the first talk as `v0.1.0` (decided
     2026-11-15, see step 46). Tracker: issue #46
 
