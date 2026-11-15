@@ -1,7 +1,7 @@
 # Plan: Speaker Buddy, stage 1
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
-**Last updated:** 2026-11-13
+**Last updated:** 2026-11-15
 **Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC (port found by `tools/find-port.ps1`), the owner's Windows 11 laptop
 
 ## Goal
@@ -471,7 +471,9 @@ GitHub 2026-10-25 13:31
     no decreasing marks, highest mark close to 30:00. PASS 2026-11-13: 22 marks, length 30:00,
     tolerance 0:45, 0 problems, run by the dev session and again by the coordinator. Plain `& exe
     --check` returns at once without output in PowerShell; pipe it to `Out-Host` (README says so)
-43. [ ] **(Owner)** Put the signed program on the stage laptop. On the development PC: `pwsh
+43. [x] **(Owner)** Put the signed program on the stage laptop. DONE 2026-11-15 by owner decision:
+    the unsigned exe from fc3ca76 is the stage build; signing on the development PC is dropped.
+    The signing notes below stay as background. On the development PC: `pwsh
     tools/publish-laptop.ps1` (one self-contained `laptop/publish/speaker-buddy.exe`, about
     70 MB, no .NET runtime needed on the stage laptop; O-03 pulled forward in e4b85ad), then
     `pwsh tools/sign.ps1` (b82b6eb). Expected: exe starts into the tray.
@@ -510,11 +512,17 @@ GitHub 2026-10-25 13:31
     - If Smart App Control is on: per the dev session (not tested), a self-signed certificate
       does not satisfy it even when imported; the options are turning Smart App Control off or
       a CA certificate (issue #3). The owner decides then
-44. [ ] **(Owner)** Desk rehearsal with the talk deck on the development PC (milestone 5 in the private
-    requirements notes). Expected: colours behave as intended; fixes go back into Tasks 2 to 6
-45. [ ] Tag the build that passed step 44 as `v0.1.0-rc1` and keep its `.bin` and exe next to the
+44. [x] **(Owner)** Desk rehearsal with the talk deck on the development PC (milestone 5 in the private
+    requirements notes). DROPPED 2026-11-15 by owner decision: the stage-laptop function test of
+    2026-11-13 (step 43; 1827 s run, colour rule consistent on 44 rows) already covers it. The full
+    dress rehearsal stays step 46
+45. [ ] Tag the build as `v0.1.0-rc1` and keep its `.bin` and exe next to the
     factory backup under `<private backup>\builds\v0.1.0-rc1\`.
-    Expected: a known-good build exists before the rehearsal. This is the safety net for step 46
+    Expected: a known-good build exists before the rehearsal. This is the safety net for step 46.
+    Status 2026-11-15: tag `v0.1.0-rc1` (annotated) is on fc3ca76, pushed and verified on origin.
+    The firmware is unchanged since `v0.1.0-alpha.1` (`git diff v0.1.0-alpha.1 fc3ca76 -- firmware`
+    is empty), so the alpha.1 firmware on the board belongs to the rc. Still open (owner): put the
+    `.bin` and the exe under the backup path above
 46. [ ] **(Owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
@@ -526,7 +534,8 @@ GitHub 2026-10-25 13:31
 ### Task 8: Freeze and the first talk
 
 48. [ ] Freeze: no flash, no code change to the stage build. The stage laptop keeps the tagged
-    exe. Expected: board and laptop carry the tag from step 47
+    exe. Expected: board and laptop carry the tag from step 47. Dependabot PRs #28 and #29 are
+    deferred until after the first talk (owner decision 2026-11-15)
 49. [ ] **(Owner)** On site: a backup timer runs in parallel; there is no other
     stage fallback (the owner, 2026-10-25 02:38-02:41, replacing the A-02 order "offline timer,
     presenter view clock, backup timer, switch by pulling the cable"). The cable is the timer's only
