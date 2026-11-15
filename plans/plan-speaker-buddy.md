@@ -31,7 +31,8 @@ code in 82316f3). Commit hashes before the rename are kept as they were.
   after; then the **first talk**
 - Scope tiers are fixed by the user (2026-10-24): core before the first talk, stretch only if time
   allows, everything else after the first talk. Stretch work never delays a core milestone
-- Firmware: ESP-IDF v5.5.5 (`%USERPROFILE%\esp\esp-idf-v5.5.5`), BSP
+- Firmware: ESP-IDF v6.1 (`idf: "==6.1.0"` in `firmware/main/idf_component.yml`, CI and release
+  image `espressif/idf:v6.1`; v5.5.5 until 2026-10-25, see the ESP-IDF 6.1 decision at the end of the steps), BSP
   `waveshare/esp32_s3_touch_amoled_1_8` 2.0.3, LVGL 9, all pinned in `dependencies.lock`;
   `CONFIG_BT_ENABLED=n`, no Wi-Fi init, no OTA, no TinyUSB, own partition table without OTA;
   secure boot and flash encryption stay off (A-04)
@@ -150,7 +151,8 @@ implement.
 15. [x] ESP-IDF v5.5.5 installed on the development PC: source `%USERPROFILE%\esp\esp-idf-v5.5.5`, tools in
     `%USERPROFILE%\esp\.espressif` (`IDF_TOOLS_PATH`); `install.ps1 esp32s3` ended "All done!"
     on 2026-10-24. Shell: set `IDF_TOOLS_PATH`, dot-source `export.ps1`. Expected: `idf.py
-    --version` prints `ESP-IDF v5.5.5`
+    --version` prints `ESP-IDF v5.5.5`. Superseded: the project moved to ESP-IDF v6.1 on
+    2026-10-25 (04001ba); the version printed is now `ESP-IDF v6.1`
 16. [x] Check that the factory backup is intact before the first flash:
     `Get-FileHash -Algorithm SHA256 "<private backup>\factory\factory-dump.bin"`
     and compare with the `.sha256` file next to it. Expected: identical hash. This is the safety
@@ -529,7 +531,10 @@ GitHub 2026-10-25 13:31
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
     power until v2, so pulling it switches the timer off; the owner 2026-10-25 02:38-02:41.)
     Go means the rc build becomes the release for the first talk; the owner then chooses `v0.1.0` or `v1.0.0`,
-    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the owner runs the talk with a backup timer only
+    depending on whether the stable-USB milestone is done (decision 2026-10-25 02:19, when it was
+    called `v1.0`; since the re-cut of 2026-11-15 it is `v2`, and `v1 PoC` is the milestone of
+    this talk, due 2026-11-17). The owner has not yet restated the tag rule for the new names;
+    no-go means the owner runs the talk with a backup timer only
 47. [ ] Commit and push any fixes, tag the release for the first talk (`v0.1.0` or `v1.0.0`, see step 46)
 
 ### Task 8: Freeze and the first talk
@@ -554,7 +559,8 @@ GitHub 2026-10-25 13:31
     The owner set the repository secret `CODECOV_TOKEN` on 2026-10-25 at 01:46; CI run 40144113537
     on cb6c842 uploaded the coverage report to Codecov. Follow-up for later:
     `fail_ci_if_error` can go to `true` now that the token exists
-51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
+51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container (now `espressif/idf:v6.1`,
+    04001ba): `idf.py build`, run the
     `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04).
     Pushed in fff75c8 "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
     green: jobs `laptop`, `firmware-host` and `firmware-build`, the image check ran inside the
