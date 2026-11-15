@@ -315,6 +315,10 @@ CI runs on every pull request to `main`, including docs-only ones, so no bypass 
 merge. After a merge, CI runs on `main` only for changes under `laptop/`, `firmware/`, `tools/`
 or to `ci.yml` itself.
 
+The head branch of a merged pull request is deleted automatically, so only `main` and the
+branches of open pull requests exist. The repository wiki is switched off; documentation lives in
+this repository.
+
 A second ruleset, `release-tags`, protects every tag named `v*`: it cannot be deleted, moved or
 overwritten, and nobody can bypass it. Creating a new `v*` tag stays allowed, so releases are
 cut as before; a wrong tag is fixed with a new tag, not by moving the old one.
