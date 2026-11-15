@@ -31,7 +31,8 @@ code in 82316f3). Commit hashes before the rename are kept as they were.
   after; then the **first talk**
 - Scope tiers are fixed by the user (2026-10-24): core before the first talk, stretch only if time
   allows, everything else after the first talk. Stretch work never delays a core milestone
-- Firmware: ESP-IDF v5.5.5 (`%USERPROFILE%\esp\esp-idf-v5.5.5`), BSP
+- Firmware: ESP-IDF v6.1 (`idf: "==6.1.0"` in `firmware/main/idf_component.yml`, CI and release
+  image `espressif/idf:v6.1`; v5.5.5 until 2026-10-25, see the ESP-IDF 6.1 decision at the end of the steps), BSP
   `waveshare/esp32_s3_touch_amoled_1_8` 2.0.3, LVGL 9, all pinned in `dependencies.lock`;
   `CONFIG_BT_ENABLED=n`, no Wi-Fi init, no OTA, no TinyUSB, own partition table without OTA;
   secure boot and flash encryption stay off (A-04)
@@ -150,7 +151,8 @@ implement.
 15. [x] ESP-IDF v5.5.5 installed on the development PC: source `%USERPROFILE%\esp\esp-idf-v5.5.5`, tools in
     `%USERPROFILE%\esp\.espressif` (`IDF_TOOLS_PATH`); `install.ps1 esp32s3` ended "All done!"
     on 2026-10-24. Shell: set `IDF_TOOLS_PATH`, dot-source `export.ps1`. Expected: `idf.py
-    --version` prints `ESP-IDF v5.5.5`
+    --version` prints `ESP-IDF v5.5.5`. Superseded: the project moved to ESP-IDF v6.1 on
+    2026-10-25 (04001ba); the version printed is now `ESP-IDF v6.1`
 16. [x] Check that the factory backup is intact before the first flash:
     `Get-FileHash -Algorithm SHA256 "<private backup>\factory\factory-dump.bin"`
     and compare with the `.sha256` file next to it. Expected: identical hash. This is the safety
@@ -521,14 +523,18 @@ GitHub 2026-10-25 13:31
     Expected: a known-good build exists before the rehearsal. This is the safety net for step 46.
     Status 2026-11-15: tag `v0.1.0-rc1` (annotated) is on fc3ca76, pushed and verified on origin.
     The firmware is unchanged since `v0.1.0-alpha.1` (`git diff v0.1.0-alpha.1 fc3ca76 -- firmware`
-    is empty), so the alpha.1 firmware on the board belongs to the rc. Still open (owner): put the
-    `.bin` and the exe under the backup path above
+    is empty), so the alpha.1 firmware on the board belongs to the rc. The rc1 release assets are
+    in the backup path above (checked against `SHA256SUMS`, coordinator, 2026-11-15). Still open
+    (owner): copy the tested laptop exe there
 46. [ ] **(Owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
     power until v2, so pulling it switches the timer off; the owner 2026-10-25 02:38-02:41.)
     Go means the rc build becomes the release for the first talk; the owner then chooses `v0.1.0` or `v1.0.0`,
-    depending on whether the `v1.0` milestone is done (decision 2026-10-25 02:19); no-go means the owner runs the talk with a backup timer only
+    depending on whether the stable-USB milestone is done (decision 2026-10-25 02:19, when it was
+    called `v1.0`; since the re-cut of 2026-11-15 it is `v2`, and `v1 PoC` is the milestone of
+    this talk, due 2026-11-17). The owner has not yet restated the tag rule for the new names;
+    no-go means the owner runs the talk with a backup timer only
 47. [ ] Commit and push any fixes, tag the release for the first talk (`v0.1.0` or `v1.0.0`, see step 46)
 
 ### Task 8: Freeze and the first talk
@@ -553,7 +559,8 @@ GitHub 2026-10-25 13:31
     The owner set the repository secret `CODECOV_TOKEN` on 2026-10-25 at 01:46; CI run 40144113537
     on cb6c842 uploaded the coverage report to Codecov. Follow-up for later:
     `fail_ci_if_error` can go to `true` now that the token exists
-51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container: `idf.py build`, run the
+51. [x] CI job `firmware-build` in the `espressif/idf:v5.5.5` container (now `espressif/idf:v6.1`,
+    04001ba): `idf.py build`, run the
     `nm` check from step 20, upload `speaker_buddy.bin` as artifact (R-02, A-04).
     Pushed in fff75c8 "ci: build the firmware in the ESP-IDF container"; CI run 40141818016
     green: jobs `laptop`, `firmware-host` and `firmware-build`, the image check ran inside the
@@ -866,7 +873,21 @@ the owner chooses `v0.1.0` or `v1.0.0` for the first talk, depending on whether 
 done (02:19). v1.0 is the first stable USB release, with its own milestone for the backlog issues. v2: Bluetooth LE and a battery, issue #4, milestone `v2`; A-04 becomes "Bluetooth
 allowed, Wi-Fi blocked". v3: Wi-Fi and OTA updates, issue #5, milestone `v3`; A-04 is lifted for
 Wi-Fi and OTA.
-Also in milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
+Milestones re-cut by the owner 2026-11-15 (10:15; GitHub milestones were renamed and split; due
+dates only for `v1 PoC`: "Termine machen wir nicht"):
+
+| Milestone | Content | Due |
+|---|---|---|
+| `v1 PoC` | Tagged USB build that runs a real talk, plus basic repository security that needs no change to the build (settings, SECURITY.md). No code signing, no installer | 2026-11-17 |
+| `v2` | Stable USB release for other people (the former `v1.0`): publicly trusted signature, build attestations, installer, hardened release workflow, open USB features. No radio | none |
+| `v3` | Battery and Bluetooth LE (#4). A-04 becomes "Bluetooth allowed, Wi-Fi blocked" | none |
+| `v4` | Wi-Fi and OTA (#5), split from `v3`: signed images, secure boot decision (eFuse, not reversible). A-04 is lifted for Wi-Fi and OTA | none |
+| `backlog` | Ideas without a version yet (#13, #14) | none |
+
+This supersedes the roadmap sentences above that name `v1.0`, `v2` and `v3`: every "milestone
+`v1.0`" in this plan now means `v2`. Whether the first-talk tag (step 46/47) stays `v0.1.0` or
+`v1.0.0` is not decided by the re-cut and stays with the owner.
+Also in the former milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
 26 and 28; pulled into the user test block of 2026-10-25 by the owner at 09:35); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
 free for open source with a release history; Certum Open Source, about 25-69 EUR a year; a CA
