@@ -530,12 +530,12 @@ GitHub 2026-10-25 13:31
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
     power until v2, so pulling it switches the timer off; the owner 2026-10-25 02:38-02:41.)
-    Go means the rc build becomes the release for the first talk; the owner then chooses `v0.1.0` or `v1.0.0`,
-    depending on whether the stable-USB milestone is done (decision 2026-10-25 02:19, when it was
-    called `v1.0`; since the re-cut of 2026-11-15 it is `v2`, and `v1 PoC` is the milestone of
-    this talk, due 2026-11-17). The owner has not yet restated the tag rule for the new names;
-    no-go means the owner runs the talk with a backup timer only
-47. [ ] Commit and push any fixes, tag the release for the first talk (`v0.1.0` or `v1.0.0`, see step 46)
+    Go means the rc build becomes the release for the first talk. Decided by the owner 2026-11-15
+    10:58: the first-talk tag is `v0.1.0` (this replaces the choice of 2026-10-25 02:19 between
+    `v0.1.0` and `v1.0.0`, which depended on the milestone then called `v1.0`, now `v2`). The tag
+    is set only after the go in this step. No-go means the owner runs the talk with a backup timer only
+47. [ ] Commit and push any fixes, tag the release for the first talk as `v0.1.0` (decided
+    2026-11-15, see step 46). Tracker: issue #46
 
 ### Task 8: Freeze and the first talk
 
@@ -864,8 +864,9 @@ title, c37a3de left-aligned, 1fb6712 inline next to the title, c6a1b94 verticall
 README.md line 1). Pushed straight to main with the admin bypass, so the four required checks
 did not gate these commits. Checked by the coordinator with the GitHub API 2026-10-27 22:09:
 GitHub renders the h1 with the image and keeps the markup after sanitising; there are no check
-runs on c6a1b94 (README only, the CI path filter does not match); risk low, no code. Open: the
-owner has not yet looked at whether the logo sits vertically centred on github.com.
+runs on c6a1b94 (README only, the CI path filter does not match); risk low, no code. The owner
+checked on github.com that the logo sits vertically centred: ok (2026-11-15, relayed by the
+coordinator). Closed.
 Milestone `backlog`: #13 other boards (O-07), #14 printable case (O-08).
 Roadmap (the owner, 2026-10-25 01:17-01:19, version scheme 01:59-02:01): release candidates
 for the first talk are `v0.1.0-rcN`, USB only, no radio (A-04 unchanged). At the go/no-go (step 46)
@@ -885,8 +886,9 @@ dates only for `v1 PoC`: "Termine machen wir nicht"):
 | `backlog` | Ideas without a version yet (#13, #14) | none |
 
 This supersedes the roadmap sentences above that name `v1.0`, `v2` and `v3`: every "milestone
-`v1.0`" in this plan now means `v2`. Whether the first-talk tag (step 46/47) stays `v0.1.0` or
-`v1.0.0` is not decided by the re-cut and stays with the owner.
+`v1.0`" in this plan now means `v2`. The first-talk tag is `v0.1.0` (owner, 2026-11-15 10:58; step
+46/47), so the roadmap sentence above that ties `v0.1.0` or `v1.0.0` to the `v1.0` milestone is
+superseded too.
 Also in the former milestone `v1.0` (moved from `v2` on 2026-10-25 02:19): issue #1, test the presentation lock with two slide shows at
 once (from step 39); issue #2, display check of the time scale-down from 100 minutes (from steps
 26 and 28; pulled into the user test block of 2026-10-25 by the owner at 09:35); issue #3, a publicly trusted code signing certificate (options: SignPath Foundation,
