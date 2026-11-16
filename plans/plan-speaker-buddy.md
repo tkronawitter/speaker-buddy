@@ -1,7 +1,7 @@
 # Plan: Speaker Buddy, stage 1
 
 **Status:** in-progress (approved by the owner 2026-10-24 18:45; the plan may change along the way)
-**Last updated:** 2026-11-15
+**Last updated:** 2026-11-16
 **Target:** github.com/tkronawitter/speaker-buddy (`firmware/`, `laptop/`, `docs/`, `.github/`), Waveshare ESP32-S3-Touch-AMOLED-1.8 (V2) on the development PC (port found by `tools/find-port.ps1`), the owner's Windows 11 laptop
 
 ## Goal
@@ -529,7 +529,18 @@ GitHub 2026-10-25 13:31
     dropped. The safety net is the rc1 release assets in the backup path. Recovery if the
     stage-laptop exe is lost: copy the release exe over, run `Unblock-File` on it and start it
     once by hand
-46. [ ] **(Owner)** Go/no-go: full dress rehearsal on the stage laptop with a second screen,
+46. [x] **(Owner)** DONE 2026-11-16 by owner decision, replaced by an automatic smoke test on the
+    stage laptop (the full dress rehearsal is dropped): exe `fc3ca76` (SHA-256 `38306298...12CE10`),
+    board with firmware `v0.1.0-alpha.1-7-g994afd8` on COM3, no flash. All four checks PASS:
+    (1) `--check` on the talk deck: 22 marks, 30:00, tolerance 0:45, 0 problems; (2) `find-port`
+    finds COM3; (3) tray start: connected, firmware line received, no disconnect; (4) generic
+    5-slide deck (session length 2:30, marks 0:10, 2:00, 2:10) with `--rehearsal` and PowerPoint
+    driven by script: purple at t=63 (d=53), red at t=69 (d=-51), green at t=93 and t=99, all
+    +1 s from the plan; the owner saw purple, red and green on the board. Two benign
+    0x8001010A lines ("PowerPoint busy, tick skipped") at show start and end. Verified by the
+    coordinator from log and CSV, no process left over. For repeating the test: the tolerance
+    floor is 45 s, so a short deck needs marks more than 45 s apart to show red and purple; only
+    a touch on the board starts the clock, so the test still needs one reset plus a tap. Was: go/no-go with a full dress rehearsal on the stage laptop with a second screen,
     presenter view, the timer on USB, the whole 30 minutes. Expected: the talk never shows a
     window from the program. (The cable pull mid-talk is dropped: the cable is the timer's only
     power until v2, so pulling it switches the timer off; the owner 2026-10-25 02:38-02:41.)
@@ -543,13 +554,15 @@ GitHub 2026-10-25 13:31
     the owner; per the rehearsal CSV the 30:00 mark was reached at 30:21 (+21 s, green), no errors
     in the log, no disconnect
 47. [ ] Commit and push any fixes, tag the release for the first talk as `v0.1.0` (decided
-    2026-11-15, see step 46). Tracker: issue #46
+    2026-11-15, see step 46). Tracker: issue #46. Status 2026-11-16: annotated tag `v0.1.0` set on
+    `fc3ca76` and pushed (coordinator, on the owner's go); release workflow result still open
 
 ### Task 8: Freeze and the first talk
 
 48. [ ] Freeze: no flash, no code change to the stage build. The stage laptop keeps the tagged
     exe. Expected: board and laptop carry the tag from step 47. Dependabot PRs #28 and #29 are
-    deferred until after the first talk (owner decision 2026-11-15)
+    deferred until after the first talk (owner decision 2026-11-15). Backlog after the talk, no
+    issue before: the exe has no single-instance guard (two instances were seen on 2026-11-13)
 49. [ ] **(Owner)** On site: a backup timer runs in parallel; there is no other
     stage fallback (the owner, 2026-10-25 02:38-02:41, replacing the A-02 order "offline timer,
     presenter view clock, backup timer, switch by pulling the cable"). The cable is the timer's only
