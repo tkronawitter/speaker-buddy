@@ -43,7 +43,22 @@ internal static class Program
                 return Demo(command.Port);
         }
 
+        // Tray mode only: it owns the serial port and the daily log. --check and --help touch neither
+        // and stay usable next to a running tray; --demo is a bench tool that Windows already keeps
+        // off a port the tray holds (a COM port opens exclusively).
         var log = new FileLog();
+        using var guard = SingleInstance.Acquire(SingleInstance.TrayName);
+        if (guard.State == SingleInstanceState.AlreadyRunning)
+        {
+            log.Write("already running, exit");
+            return 0;
+        }
+
+        if (guard.State == SingleInstanceState.GuardFailed)
+        {
+            log.Write($"single-instance guard failed, running without it: {guard.Error}");
+        }
+
         LogUnhandledExceptions(log);
         log.DeleteOldFiles();
         ApplicationConfiguration.Initialize();
