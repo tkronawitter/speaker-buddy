@@ -197,7 +197,7 @@ always starts a new file. The 30-day cleanup of the log folder leaves rehearsal 
 
 | Path | Content |
 | --- | --- |
-| `laptop/` | Laptop program, C# / .NET 8. `SpeakerBuddy.Core` holds the platform-neutral logic and its tests, `SpeakerBuddy.App` is the Windows program (`speaker-buddy.exe`) |
+| `laptop/` | Laptop program, C# / .NET 10. `SpeakerBuddy.Core` holds the platform-neutral logic and its tests, `SpeakerBuddy.App` is the Windows program (`speaker-buddy.exe`) |
 | `firmware/` | ESP-IDF firmware for the timer. `components/timer_core` holds the clock, protocol and display logic in plain C, with host tests in `test/host` |
 | `docs/protocol.md` | The serial protocol between timer and laptop program |
 | `tools/` | `check-image.ps1` / `check-image.sh`, `publish-laptop.ps1`, `sign.ps1`, `make-icons.ps1` (builds the `.ico` files from the logo) |
@@ -206,7 +206,7 @@ always starts a new file. The 30-day cleanup of the log folder leaves rehearsal 
 
 ### Build and test the laptop logic
 
-Requires the .NET 8 SDK.
+Requires the .NET 10 SDK.
 
 ```sh
 dotnet test laptop/SpeakerBuddy.sln
