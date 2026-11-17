@@ -2,7 +2,7 @@
 
   <!-- Windows only: the app under test uses WinForms, the registry and COM. CI runs it on windows-latest -->
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <!-- Lets the Ubuntu CI runner build the solution; the tests run in the Windows job only -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
